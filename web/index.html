@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#02070d">
+  <link rel="icon" href="/icons/jarvis.png" type="image/png">
+  <title>Jarvis</title>
+  <script>
+    /* Runs before first paint: apply the saved theme and decide whether the startup sequence plays. */
+    window.JARVIS_ADDRESS = "__ADDRESS__";
+    (function () {
+      try {
+        var d = document.documentElement, get = function (k) { return localStorage.getItem(k); };
+        var theme = get('jarvis-theme-v1'); if (theme) d.setAttribute('data-theme', theme);
+        var mode = get('jarvis-boot-mode') || 'first', id = '__BOOT_ID__';
+        var play = mode === 'every' ? get('jarvis-boot-id') !== id : mode === 'first' ? !get('jarvis-boot-seen') : false;
+        /* Windows "Animation effects" off makes the page still, unless Settings > Look > Animations says otherwise. */
+        var motion = get('jarvis-motion'); if (motion === 'always') d.setAttribute('data-motion', 'always');
+        if (motion !== 'always' && window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) play = false;
+        if (play) d.setAttribute('data-boot', 'play');
+        window.__bootId = id;
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="hud-bg" aria-hidden="true"><i></i><i></i></div>
+  <div class="hud-frame" aria-hidden="true"><span>J.A.R.V.I.S. // MK 24</span><span>SECURE LOCAL LINK</span></div>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Jarvis home"><span class="brand-mark" aria-hidden="true">J</span><span>JARVIS</span></a>
+      <div class="topbar-right">
+        <div class="status"><span class="status-dot"></span><span id="connection">Local assistant</span></div>
+        <button type="button" id="timer-chip" class="settings-button timer-chip hidden" title="Active timers and reminders">⏱ <span id="timer-chip-text">0:00</span></button>
+        <button type="button" id="wake-chip" class="settings-button wake-chip hidden" title="Listening for “Hey Jarvis”. Click to turn off.">◉ <span id="wake-chip-text">LISTENING</span></button>
+        <button type="button" id="voice-toggle" class="settings-button voice-toggle" aria-pressed="false" title="Speak answers aloud">♪ Voice off</button>
+        <button type="button" id="open-settings" class="settings-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings">◐ Settings</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar hud-panel" aria-label="Chat navigation">
+        <div class="panel-title">COMMS</div>
+        <button type="button" id="new-chat" class="sidebar-new-chat"><span>＋</span> New chat</button>
+        <div class="sidebar-label">YOUR CHATS</div>
+        <input type="search" id="chat-search" class="chat-search" placeholder="Search chats…" aria-label="Search chats" autocomplete="off">
+        <nav id="chat-list" class="chat-list" aria-label="Saved chats"></nav>
+        <div class="sidebar-bottom">
+          <button type="button" id="clear-chat" class="sidebar-clear" title="Clear the current chat">Clear current chat</button>
+          <button type="button" id="delete-chat" class="sidebar-delete" title="Delete the current chat and its saved messages">Delete current chat</button>
+        </div>
+      </aside>
+
+      <main class="main-pane">
+    <div class="orb-stage" id="orb-stage" aria-hidden="true">
+      <div class="reactor">
+        <svg class="ring ring-a" viewBox="0 0 400 400"><circle cx="200" cy="200" r="195" stroke-width="1" opacity=".45"/><circle cx="200" cy="200" r="184" stroke-width="8" stroke-dasharray="1.5 8.134" opacity=".7"/><circle cx="200" cy="200" r="184" stroke-width="15" stroke-dasharray="3 286.03"/></svg>
+        <svg class="ring ring-b" viewBox="0 0 400 400"><circle cx="200" cy="200" r="166" stroke-width="9" stroke-dasharray="200 30 87.67 30" opacity=".5"/><circle cx="200" cy="200" r="155" stroke-width="1" opacity=".6"/></svg>
+        <svg class="ring ring-c" viewBox="0 0 400 400"><circle cx="200" cy="200" r="139" stroke-width="3.5" stroke-dasharray="190 99.03"/></svg>
+        <svg class="ring ring-d" viewBox="0 0 400 400"><circle cx="200" cy="200" r="119" stroke-width="15" stroke-dasharray="4 8.46" opacity=".32"/><circle cx="200" cy="200" r="105" stroke-width="1.5" opacity=".8"/></svg>
+        <svg class="ring ring-e" viewBox="0 0 400 400"><circle cx="200" cy="200" r="80" stroke-width="22" stroke-dasharray="38 12.265" opacity=".78"/><circle cx="200" cy="200" r="62" stroke-width="2"/></svg>
+        <i class="reactor-sweep"></i><i class="reactor-core"></i>
+      </div>
+      <div class="orb-state"></div>
+    </div>
+
+    <section class="hero" id="welcome">
+      <div class="eyebrow"><span></span> YOUR PERSONAL ASSISTANT</div>
+      <h1>At your service.</h1>
+      <p>Ask a question, dictate a message, or ask me to open something.</p>
+      <div class="suggestions">
+        <button class="suggestion" data-prompt="What can you help me with?">What can you help me with?<span>↗</span></button>
+        <button class="suggestion" data-prompt="Open Notepad">Open Notepad<span>↗</span></button>
+        <button class="suggestion" data-prompt="Create an image of a tiny cabin under the northern lights, painterly style">Create an image<span>↗</span></button>
+        <button class="suggestion" data-prompt="Give me a quick summary of today's top technology news.">Summarize a topic<span>↗</span></button>
+      </div>
+    </section>
+
+    <section class="conversation" id="conversation" aria-live="polite" aria-label="Conversation"></section>
+    <div class="thinking hidden" id="thinking"><span></span><span></span><span></span><i>Jarvis is thinking</i></div>
+    <section id="live-screen" class="live-screen hidden" aria-label="Live screen preview">
+      <div class="live-screen-heading"><span class="live-indicator"></span> LIVE SCREEN PREVIEW <span id="screen-feed-status">Connecting…</span></div>
+      <img id="live-screen-image" alt="Live preview of your computer screen">
+    </section>
+
+    <form class="composer" id="composer">
+      <label class="sr-only" for="message">Message Jarvis</label>
+      <div class="computer-note hidden" id="computer-note">The preview stays on this PC. Frames are sent to your AI provider when a task is analyzed and as it runs; API charges may apply. Actions normally need your approval.</div>
+      <textarea id="message" rows="1" placeholder="Message Jarvis…" autocomplete="off"></textarea>
+      <div class="composer-tools">
+        <span class="hint" id="voice-hint">Enter to send</span>
+        <div class="button-group">
+          <button type="button" id="autopilot-mode" class="autopilot-toggle hidden" aria-pressed="false" title="Run computer actions without step-by-step approval; stop with Ctrl+Shift+F10">Autopilot off</button>
+          <button type="button" id="autopilot-stop" class="autopilot-stop hidden" title="Stop Autopilot">Stop</button>
+          <button type="button" id="computer-mode" class="computer-toggle" aria-pressed="false" title="Let Jarvis inspect the screen and propose approved actions">▣ Computer off</button>
+          <button type="button" id="docs-toggle" class="computer-toggle hidden" aria-pressed="false" title="Answer from your saved documents, using only the local Ollama model">▤ Docs off</button>
+          <button type="button" id="docs-attach" class="icon-button" title="Add a document (PDF, Word, Excel, PowerPoint, CSV, text or code)" aria-label="Add a document">+<span class="sr-only">Add a document</span></button>
+          <input type="file" id="docs-file" class="hidden" multiple accept=".pdf,.docx,.docm,.xlsx,.xlsm,.pptx,.csv,.tsv,.txt,.md,.markdown,.json,.xml,.yml,.yaml,.html,.htm,.log,.py,.js,.ts,.java,.c,.cpp,.cs,.go,.rs,.sql,.ps1,.bat,.sh,.css,.toml,.ini">
+          <button type="button" id="mic" class="icon-button" title="Push to talk" aria-label="Push to talk">♩<span class="sr-only">Push to talk</span></button>
+          <button type="submit" class="send-button" aria-label="Send message">↑</button>
+        </div>
+      </div>
+    </form>
+    <footer>Computer actions need approval unless Autopilot is on <span>·</span> Screen analysis may use API credits</footer>
+      </main>
+
+      <aside class="rail" aria-label="Status">
+        <div class="hud-panel chrono">
+          <div class="panel-title">CHRONO</div>
+          <div class="chrono-time" id="hud-time">--:--<small>--</small></div>
+          <div class="chrono-row"><span id="hud-date">&nbsp;</span><span id="hud-uptime" title="Time since this window opened">T+ 00:00:00</span></div>
+        </div>
+        <div id="sysmon" class="sysmon hud-panel" aria-label="System status">
+          <div class="sys-head"><div class="panel-title">SYSTEM</div><button type="button" id="sys-expand" class="sys-expand" title="Open the system monitor" aria-label="Open the system monitor">⤢</button></div>
+          <div id="sys-charts" class="sys-charts"></div>
+          <div id="sys-battery" class="sys-row sys-battery hidden"><span class="sys-label">BAT</span><span class="sys-bar"><i></i></span><span class="sys-val"></span></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="settings-backdrop" class="settings-backdrop hidden"></div>
+  <section id="settings" class="settings-panel hidden" role="dialog" aria-modal="true" aria-label="Settings">
+    <header class="settings-head">
+      <div class="panel-title">CONFIGURATION</div>
+      <input type="search" id="settings-search" class="settings-search" placeholder="Search settings…  (Ctrl+K)" aria-label="Search settings" autocomplete="off" spellcheck="false">
+      <button type="button" id="settings-close" class="settings-close" aria-label="Close settings">✕</button>
+    </header>
+    <div class="settings-body">
+    <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+      <button type="button" role="tab" id="tab-look" class="settings-tab" data-pane="look" aria-selected="true" aria-controls="pane-look">Look</button>
+      <button type="button" role="tab" id="tab-voice" class="settings-tab" data-pane="voice" aria-selected="false" aria-controls="pane-voice" tabindex="-1">Voice</button>
+      <button type="button" role="tab" id="tab-ai" class="settings-tab" data-pane="ai" aria-selected="false" aria-controls="pane-ai" tabindex="-1">AI model</button>
+      <button type="button" role="tab" id="tab-chats" class="settings-tab" data-pane="chats" aria-selected="false" aria-controls="pane-chats" tabindex="-1">Chats</button>
+      <button type="button" role="tab" id="tab-memory" class="settings-tab" data-pane="memory" aria-selected="false" aria-controls="pane-memory" tabindex="-1">Memory</button>
+      <button type="button" role="tab" id="tab-timers" class="settings-tab" data-pane="timers" aria-selected="false" aria-controls="pane-timers" tabindex="-1">Daily</button>
+      <button type="button" role="tab" id="tab-mail" class="settings-tab" data-pane="mail" aria-selected="false" aria-controls="pane-mail" tabindex="-1">Mail</button>
+      <button type="button" role="tab" id="tab-keys" class="settings-tab" data-pane="keys" aria-selected="false" aria-controls="pane-keys" tabindex="-1">Shortcuts</button>
+      <button type="button" role="tab" id="tab-plan" class="settings-tab" data-pane="plan" aria-selected="false" aria-controls="pane-plan" tabindex="-1">Planner</button>
+      <button type="button" role="tab" id="tab-notes" class="settings-tab" data-pane="notes" aria-selected="false" aria-controls="pane-notes" tabindex="-1">Notes</button>
+    </div>
+    <div class="settings-content" id="settings-content">
+
+    <div class="settings-pane" id="pane-look" role="tabpanel" aria-labelledby="tab-look">
+      <div class="settings-section">
+        <h2 class="settings-heading">Interface style</h2>
+        <div class="theme-grid" id="theme-grid" role="radiogroup" aria-label="Interface style"></div>
+        <p class="settings-note">The dot on each preview is the color Jarvis turns while it is thinking.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">System panel</h2>
+        <label class="settings-check"><input type="checkbox" id="sysmon-on" checked> Show live CPU, memory and GPU charts in the status panel</label>
+        <div class="settings-field"><label for="chart-scale">Chart scale</label>
+          <select id="chart-scale"><option value="auto">Auto-zoom, so small changes stay visible</option><option value="fixed">Fixed 0–100%, like Task Manager</option></select></div>
+        <button type="button" id="sys-open-big" class="settings-action">▦ Open the system monitor</button>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Animations</h2>
+        <div class="settings-field">
+          <label for="motion-mode">Moving parts of the interface</label>
+          <select id="motion-mode">
+            <option value="system">Follow Windows</option>
+            <option value="always">Always animate</option>
+          </select>
+        </div>
+        <p class="settings-note" id="motion-note"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Startup sequence</h2>
+        <div class="settings-field">
+          <label for="boot-mode">Play the startup animation</label>
+          <select id="boot-mode">
+            <option value="first">First launch only</option>
+            <option value="every">Every time Jarvis starts</option>
+            <option value="never">Never</option>
+          </select>
+        </div>
+        <button type="button" id="boot-replay" class="settings-action">▶ Replay startup sequence</button>
+        <p class="settings-note">Saved in this browser, so your choices stay after you stop and restart the server. The startup sequence is purely cosmetic.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-voice" role="tabpanel" aria-labelledby="tab-voice">
+      <div class="settings-section">
+        <h2 class="settings-heading">Language</h2>
+        <div class="settings-field"><label for="lang-select">Jarvis speaks and listens in</label><select id="lang-select"></select></div>
+        <p class="settings-note" id="lang-note">Replies, voice input and spoken replies follow this language. You can also just say “switch to French”. Menus and built-in messages such as timer alerts stay in English.</p>
+      </div>
+      <div class="settings-section" id="wake-section">
+        <h2 class="settings-heading">Wake word</h2>
+        <label class="settings-check"><input type="checkbox" id="ww-enabled"> Listen for “Hey Jarvis”, even when this window is closed</label>
+        <p class="settings-note" id="ww-status">Off. Jarvis does not listen to the microphone.</p>
+        <div id="ww-options" class="hidden">
+          <div class="settings-field"><label for="ww-device">Microphone</label><select id="ww-device"><option value="">Default microphone</option></select></div>
+          <div class="settings-field"><label for="ww-sens">Sensitivity</label><select id="ww-sens">
+            <option value="low">Low (noisy room)</option><option value="normal">Normal</option><option value="high">High (quiet room, soft voice)</option></select></div>
+          <label class="settings-check"><input type="checkbox" id="ww-speak" checked> Speak the answers aloud (Windows voice)</label>
+          <label class="settings-check"><input type="checkbox" id="ww-follow" checked> Keep listening for 6 seconds after an answer, so I can reply without saying “Hey Jarvis” again</label>
+          <h3 class="settings-subheading">Heard recently</h3>
+          <ul id="ww-log" class="tool-list"></ul>
+        </div>
+        <p class="settings-note">Say “Hey Jarvis” and then what you want, in one go (“Hey Jarvis, what's the weather”) or after the beep. Actions that need approval are asked out loud: say “yes” or “no”. Say “stop listening” to end a conversation. Speech is recognised on this PC with Whisper, nothing is recorded, and nothing goes to the internet. It needs the speech package from install-jarvis.bat.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Voice replies</h2>
+        <label class="settings-check"><input type="checkbox" id="voice-on"> Speak Jarvis's answers aloud</label>
+        <div class="settings-field"><label for="voice-engine">Voice engine</label><select id="voice-engine">
+          <option value="browser">Browser voice (built in)</option>
+          <option value="cloud">Natural voice (cloud AI)</option>
+          <option value="piper">Natural voice (offline, Piper)</option>
+        </select></div>
+        <div class="settings-field" id="field-browser-voice"><label for="voice-select">Voice</label><select id="voice-select"></select></div>
+        <div class="settings-field hidden" id="field-cloud-voice"><label for="voice-cloud-voice">Cloud voice</label><select id="voice-cloud-voice"></select></div>
+        <div class="settings-field hidden" id="field-piper-voice"><label for="voice-piper-model">Piper voice</label><select id="voice-piper-model"></select></div>
+        <div class="settings-field"><label for="voice-rate">Speed <output id="voice-rate-out">1.00×</output></label><input type="range" id="voice-rate" min="0.7" max="1.4" step="0.05" value="1"></div>
+        <div class="settings-field" id="field-pitch"><label for="voice-pitch">Pitch <output id="voice-pitch-out">1.00</output></label><input type="range" id="voice-pitch" min="0.6" max="1.2" step="0.05" value="1"></div>
+        <label class="settings-check voice-chirp-row"><input type="checkbox" id="voice-chirp" checked> Play a soft chirp before Jarvis speaks</label>
+        <button type="button" id="voice-jarvis" class="settings-action">✦ Use the Jarvis voice settings</button>
+        <button type="button" id="voice-test" class="settings-action">▶ Test voice</button>
+        <p class="settings-note" id="voice-note">Voices come from your browser and Windows. Code is never read aloud, and the reactor pulses while Jarvis speaks.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-ai" role="tabpanel" aria-labelledby="tab-ai">
+      <div class="settings-section">
+        <h2 class="settings-heading">AI model</h2>
+        <div class="seg" role="radiogroup" aria-label="Where Jarvis thinks">
+          <button type="button" role="radio" class="seg-option" id="prov-local" data-provider="local" aria-checked="false">Local</button>
+          <button type="button" role="radio" class="seg-option" id="prov-cloud" data-provider="cloud" aria-checked="false">Cloud</button>
+        </div>
+        <div class="settings-field"><label for="model-select">Model</label><select id="model-select"><option>Loading…</option></select></div>
+        <button type="button" id="model-refresh" class="settings-action">↻ Refresh model list</button>
+        <p class="settings-note" id="ai-note"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Training log</h2>
+        <label class="settings-check"><input type="checkbox" id="train-on"> Save each exchange, to train a model made just to be Jarvis later</label>
+        <p class="settings-note" id="train-note"></p>
+        <p class="settings-note">Use 👍 and 👎 under an answer to mark the ones worth learning from. Run <code>export-training.bat</code> to turn them into a fine-tuning file.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-chats" role="tabpanel" aria-labelledby="tab-chats">
+      <div class="settings-section">
+        <h2 class="settings-heading">Your chats</h2>
+        <button type="button" id="export-chat" class="settings-action">⇩ Export this chat (Markdown)</button>
+        <button type="button" id="export-all" class="settings-action">⇩ Export all chats (JSON)</button>
+        <button type="button" id="import-chats" class="settings-action">⇧ Import chats (JSON)</button>
+        <input type="file" id="import-file" class="hidden" accept="application/json,.json">
+        <p class="settings-note" id="chats-note">Chats live in this browser only. Export them to keep a backup or move them to another browser. Importing adds chats and never replaces existing ones.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-memory" role="tabpanel" aria-labelledby="tab-memory">
+      <div class="settings-section">
+        <h2 class="settings-heading">Long-term memory</h2>
+        <div class="inline-form"><input type="text" id="memory-input" maxlength="300" placeholder="Something for Jarvis to remember…" aria-label="New memory"><button type="button" id="memory-add" class="settings-action">Add</button></div>
+        <ul id="memory-list" class="tool-list" aria-label="Remembered items"></ul>
+        <button type="button" id="memory-clear" class="settings-action danger">Clear all memories</button>
+        <p class="settings-note" id="memory-note">You can also say “remember that my printer is the HP in the office”, “what do you remember?” or “forget the printer”. Memories are kept in memory.json next to server.py and sent with every request, so keep them short.</p>
+      </div>
+      <div class="settings-section" id="docs-section">
+        <h2 class="settings-heading">Documents</h2>
+        <ul id="docs-list" class="tool-list" aria-label="Saved documents"></ul>
+        <button type="button" id="docs-add" class="settings-action">+ Add documents</button>
+        <label class="settings-check"><input type="checkbox" id="docs-on"> Answer my questions from these documents</label>
+        <p class="settings-note" id="docs-note">Files are read on this PC. Only the few passages that match your question go to the local Ollama model; nothing is sent to a cloud provider. PDF, Word, Excel, PowerPoint, CSV, text, Markdown and code files work. You can also drop files onto the chat.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-notes" role="tabpanel" aria-labelledby="tab-notes">
+      <div class="settings-section">
+        <h2 class="settings-heading">Notes</h2>
+        <p class="settings-note">Say “note that the exam is in room 204” and later “what did I note about the exam?”. Notes stay on this PC. For things Jarvis should always know about you, say “remember that …” instead (Memory).</p>
+        <div class="inline-form"><input type="text" id="notes-text" maxlength="2000" placeholder="Write a note…" aria-label="New note"><button type="button" id="notes-add">Add</button></div>
+        <div class="inline-form"><input type="search" id="notes-find" placeholder="Find in my notes…" aria-label="Find in my notes"></div>
+        <ul id="notes-list" class="tool-list"></ul>
+        <p class="settings-note" id="notes-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Study mode</h2>
+        <p class="settings-note">Say “quiz me on chapter 3” and Jarvis asks questions from your saved documents (Settings > Chats) and your notes, one at a time, and marks your answers. Also: “flashcards on the heart”, “quiz me with 10 questions”, “quiz me on what I got wrong”, “plan revision for the chemistry exam on 20 November” (adds the exam and three revision tasks to your planner) and “my study stats”. Say “stop quiz” to end. Everything stays on this PC.</p>
+        <p class="settings-note" id="study-stats" role="status"></p>
+        <div class="inline-form"><button type="button" id="study-clear">Clear missed questions</button></div>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-plan" role="tabpanel" aria-labelledby="tab-plan">
+      <div class="settings-section">
+        <h2 class="settings-heading">Import a calendar</h2>
+        <p class="settings-note">Bring in your school timetable or any calendar. Paste an iCal link (it ends in .ics, or starts with webcal://) or choose an .ics file. Lessons then appear in your calendar, the morning briefing and “what's on my calendar tomorrow”. Jarvis only reads it and never changes the original. Links are read again every few hours.</p>
+        <ul id="cal-sources" class="tool-list"></ul>
+        <div class="inline-form"><input type="text" id="cal-url" placeholder="Calendar link (https:// or webcal://)…" aria-label="Calendar link"><input type="text" id="cal-name" maxlength="60" placeholder="Name (optional)" aria-label="Calendar name"><button type="button" id="cal-add">Import</button></div>
+        <div class="inline-form"><input type="file" id="cal-file" accept=".ics,text/calendar" aria-label="Calendar file"><button type="button" id="cal-sync">Refresh now</button></div>
+        <label class="settings-check"><input type="checkbox" id="cal-alerts"> Also alert me before each imported event (lessons can be many)</label>
+        <p class="settings-note" id="cal-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">To-do list</h2>
+        <ul id="plan-tasks" class="tool-list"></ul>
+        <div class="inline-form"><input type="text" id="plan-task-text" maxlength="200" placeholder="Add a task…" aria-label="New task"><input type="date" id="plan-task-due" aria-label="Due date"><button type="button" id="plan-task-add">Add</button></div>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Calendar</h2>
+        <ul id="plan-events" class="tool-list"></ul>
+        <div class="inline-form"><input type="text" id="plan-event-title" maxlength="200" placeholder="Event title…" aria-label="Event title"><input type="datetime-local" id="plan-event-start" aria-label="Event start"><button type="button" id="plan-event-add">Add</button></div>
+        <p class="settings-note" id="plan-status"></p>
+        <p class="settings-note">You can also just say it: “add buy milk to my to-do list”, “schedule a dentist appointment on Friday at 3pm”, “what's on my calendar tomorrow”, “mark buy milk as done”. The morning briefing includes today's events and tasks.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Proactive Jarvis</h2>
+        <label class="settings-check"><input type="checkbox" id="pro-on"> Let Jarvis speak first when something needs your attention</label>
+        <p class="settings-note">What Jarvis watches</p>
+        <label class="settings-check"><input type="checkbox" id="pro-w-events"> Events coming up, <input type="number" id="al-lead" min="1" max="240" style="width:56px"> minutes before</label>
+        <label class="settings-check"><input type="checkbox" id="pro-w-tasks"> Tasks that come due</label>
+        <label class="settings-check"><input type="checkbox" id="pro-w-mail"> New email that is worth an interruption (needs Settings > Mail; checked every 5 minutes)</label>
+        <label class="settings-check"><input type="checkbox" id="pro-w-health"> PC health: low battery, memory nearly full, a hot graphics card, a nearly full disk</label>
+        <label class="settings-check"><input type="checkbox" id="pro-w-finished"> Things finishing: a download, or heavy work that kept the PC busy for minutes</label>
+        <p class="settings-note">How Jarvis tells you</p>
+        <label class="settings-check"><input type="checkbox" id="pro-d-chat"> A message in the chat</label>
+        <label class="settings-check"><input type="checkbox" id="pro-d-speak"> Spoken aloud, when voice is on</label>
+        <label class="settings-check"><input type="checkbox" id="pro-d-toast"> A Windows notification, when Jarvis is not the window in front</label>
+        <label class="settings-check"><input type="checkbox" id="pro-d-telegram"> Telegram, only after <input type="number" id="pro-idle" min="0" max="240" style="width:56px"> minutes without touching the keyboard or mouse</label>
+        <p class="settings-note">Limits</p>
+        <div class="settings-check">At most <input type="number" id="pro-cap" min="1" max="60" style="width:56px"> interruptions an hour. Quiet from <input type="time" id="pro-quiet-from"> to <input type="time" id="pro-quiet-to">.</div>
+        <div class="inline-form"><button type="button" id="pro-test">Test it now</button><button type="button" id="pro-mute">Not now</button></div>
+        <p class="settings-note" id="pro-status"></p>
+        <p class="settings-note">An event about to start and a nearly empty battery always get through the hourly limit and “not now”; during quiet hours only events do. Everything else is held and given together afterwards. You can also say “not now”, “do not disturb for two hours” or “you can interrupt me again”. With this switched off, events and tasks still pop up as reminders.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-keys" role="tabpanel" aria-labelledby="tab-keys">
+      <div class="settings-section">
+        <h2 class="settings-heading">Dictation anywhere</h2>
+        <label class="settings-check"><input type="checkbox" id="dict-enabled"> Hold a key, speak, let go: Jarvis types what you said into the app you are using</label>
+        <div class="settings-field"><label for="dict-key">Hold</label><select id="dict-key"></select></div>
+        <p class="settings-note" id="keys-status"></p>
+        <h3 class="settings-subheading">Typed recently</h3>
+        <ul id="dict-log" class="tool-list"></ul>
+        <p class="settings-note">Hold the key for half a second, speak, and let go. Say “new line” or “new paragraph” to press Enter. Speech is recognised on this PC with Whisper and nothing is recorded. It uses the same microphone as the wake word.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Quick actions on text</h2>
+        <label class="settings-check"><input type="checkbox" id="quick-enabled"> Select text in any app and press a key: Jarvis offers to summarise, translate, fix or explain it</label>
+        <div class="settings-field"><label for="quick-key">Press</label><select id="quick-key"></select></div>
+        <p class="settings-note">With nothing selected it uses whatever you last copied. The text is sent to your AI model (to the cloud only if that is the model you chose in Settings > AI model). “Replace” pastes the result over your selection, so check it first.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Spotify</h2>
+        <p class="settings-note">Lets you say “play Blinding Lights on Spotify”, “play my workout playlist”, “play the album Discovery by Daft Punk” or “queue Yellow”. Pausing and skipping already work without this. Choosing songs needs <strong>Spotify Premium</strong> and the Spotify app open on this PC or your phone. Setup, once: (1) open developer.spotify.com/dashboard, log in and press Create app (any name; tick “Web API”); (2) add the Redirect URI shown below to the app; (3) paste the app's Client ID here and press Connect, then allow access in the browser tab that opens. Jarvis never stores your Spotify login details.</p>
+        <div class="settings-field"><label for="spotify-redirect">Redirect URI</label><input type="text" id="spotify-redirect" readonly></div>
+        <div class="settings-field"><label for="spotify-client">Client ID</label><input type="text" id="spotify-client" maxlength="40" autocomplete="off" spellcheck="false"></div>
+        <div class="inline-form"><button type="button" id="spotify-connect">Connect</button><button type="button" id="spotify-disconnect">Disconnect</button></div>
+        <p class="settings-note" id="spotify-status" role="status"></p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-mail" role="tabpanel" aria-labelledby="tab-mail">
+      <div class="settings-section">
+        <h2 class="settings-heading">Gmail</h2>
+        <p class="settings-note" id="mail-status">Not connected. Jarvis can tell you how many emails arrived while you were away and what they were about. It only reads: it never sends, deletes or moves anything.</p>
+        <div class="settings-field"><label for="mail-address">Gmail address</label><input type="email" id="mail-address" maxlength="200" autocomplete="off" placeholder="you@gmail.com"></div>
+        <div class="settings-field"><label for="mail-password">App password</label><input type="password" id="mail-password" maxlength="100" autocomplete="new-password" placeholder="16 letters from Google (not your normal password)"></div>
+        <div class="settings-field"><label for="mail-filter">Tell me about</label><select id="mail-filter">
+          <option value="all">All new mail</option><option value="personal">Only the Gmail Primary tab (skips promotions, social and updates)</option></select></div>
+        <label class="settings-check"><input type="checkbox" id="mail-summarize" checked> Summarise what the emails are about with the AI model</label>
+        <label class="settings-check"><input type="checkbox" id="mail-cloud"> Allow the first lines of each email to be sent to a cloud AI model (when the AI model is not local, only senders and subjects are used)</label>
+        <div class="inline-form"><button type="button" id="mail-save">Save and check now</button><button type="button" id="mail-disconnect" class="hidden">Disconnect</button></div>
+        <p class="settings-note" id="mail-result" aria-live="polite"></p>
+        <p class="settings-note">To get an app password: turn on 2-Step Verification in your Google account, then open <b>myaccount.google.com/apppasswords</b>, name it “Jarvis” and copy the 16 letters. IMAP must be on in Gmail (Settings, Forwarding and POP/IMAP). The password is kept only in this PC's Jarvis folder; you can revoke it at any time.</p>
+        <p class="settings-note">Ask “any new emails?” in the window, by voice or on Telegram (/mail). The morning briefing includes it too. Jarvis only counts what arrived since you last asked.</p>
+      </div>
+    </div>
+
+    <div class="settings-pane hidden" id="pane-timers" role="tabpanel" aria-labelledby="tab-timers">
+      <div class="settings-section">
+        <h2 class="settings-heading">File check</h2>
+        <p class="settings-note">Checks that every file Jarvis needs is in this folder, using the list in the GitHub repository (github.com/LoicTheGuyThatGits/Jarvis_File_Checker). Missing files can be downloaded again; each one is verified against its fingerprint first. You can also ask “check my files”. Your data, settings and passwords are never touched.</p>
+        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button></div>
+        <label class="settings-check"><input type="checkbox" id="files-changed"> Also replace files that differ from the repository (the old copy is kept in data/file-backups)</label>
+        <pre class="settings-note" id="files-report" style="white-space:pre-wrap" role="status"></pre>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">PC health</h2>
+        <p class="settings-note">Checks disk space, memory, how long the PC has been on, temp files, startup programs and the heaviest programs. You can also ask “how's my PC?”. Say “clean up my temp files” to delete old ones (Jarvis asks you to confirm; it only touches temp files older than 3 days).</p>
+        <div class="inline-form"><button type="button" id="health-run">Check now</button></div>
+        <pre class="settings-note" id="health-report" style="white-space:pre-wrap"></pre>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Startup briefing</h2>
+        <div class="settings-field"><label for="brief-mode">Give me a briefing</label><select id="brief-mode">
+          <option value="startup">Each time Jarvis starts</option>
+          <option value="daily">The first time I open it each day</option>
+          <option value="off">Never (only when I ask)</option>
+        </select></div>
+        <label class="settings-check"><input type="checkbox" id="brief-weather" checked> Weather</label>
+        <label class="settings-check"><input type="checkbox" id="brief-reminders" checked> Timers and reminders</label>
+        <label class="settings-check"><input type="checkbox" id="brief-system" checked> System status</label>
+        <div class="settings-field"><label for="brief-place">Weather location</label></div>
+        <div class="inline-form"><input type="text" id="brief-place" maxlength="80" placeholder="Town or city" aria-label="Weather location"><button type="button" id="brief-find">Set</button></div>
+        <button type="button" id="brief-now" class="settings-action">▶ Brief me now</button>
+        <p class="settings-note" id="brief-note">The briefing is read aloud when voice replies are on. You can also say “brief me” or “what's the weather”. Weather comes from Open-Meteo and needs an internet connection.</p>
+      </div>
+      <div class="settings-section" id="routines-section">
+        <h2 class="settings-heading">Routines</h2>
+        <ul id="routine-list" class="tool-list" aria-label="Saved routines"></ul>
+        <div class="settings-field"><label for="routine-name">Create a routine</label></div>
+        <div class="inline-form"><input type="text" id="routine-name" maxlength="40" placeholder="Name, for example Good night" aria-label="Routine name"></div>
+        <div class="inline-form" style="margin-top:6px"><input type="text" id="routine-phrases" maxlength="200" placeholder="Other phrases (optional, separated by commas)" aria-label="Other phrases"></div>
+        <ol id="routine-steps" class="tool-list" aria-label="Steps in this routine"></ol>
+        <div class="inline-form"><select id="step-type" aria-label="Step type">
+          <option value="open_app">Open an app</option><option value="open_url">Open a website</option><option value="open_folder">Open a folder</option><option value="show_desktop">Show the desktop</option><option value="close_app">Close an app</option>
+          <option value="command">Tell Jarvis…</option><option value="say">Say…</option><option value="volume_down">Volume down</option><option value="volume_up">Volume up</option>
+          <option value="wait">Wait</option><option value="briefing">Give the briefing</option><option value="run_command">Run PowerShell</option>
+        </select><input type="text" id="step-value" aria-label="Step detail"><button type="button" id="step-add" class="settings-action">Add</button><button type="button" id="step-cancel" class="settings-action hidden">Cancel</button></div>
+        <label class="settings-check"><input type="checkbox" id="routine-auto"> Run without asking first (even with close-app or PowerShell steps)</label>
+        <button type="button" id="routine-save" class="settings-action">Save routine</button>
+        <p class="settings-note" id="routine-note">Say a routine's name, for example “good night”, or “run good night”. Unless you tick “Run without asking first”, Jarvis shows the steps and waits for your approval. With it ticked, every step runs immediately, including closing apps and PowerShell commands.</p>
+      </div>
+      <div class="settings-section" id="telegram-section">
+        <h2 class="settings-heading">Telegram</h2>
+        <p class="settings-note" id="tg-status">Not connected.</p>
+        <div id="tg-connect">
+          <div class="settings-field"><label for="tg-token">Bot token from BotFather</label></div>
+          <div class="inline-form"><input type="password" id="tg-token" autocomplete="off" placeholder="123456789:ABC-DEF…" aria-label="Telegram bot token"><button type="button" id="tg-save" class="settings-action">Connect</button></div>
+        </div>
+        <p class="settings-note hidden" id="tg-pair">Send this code to your bot in Telegram to pair it: <strong id="tg-code"></strong></p>
+        <div id="tg-options" class="hidden">
+          <label class="settings-check"><input type="checkbox" id="tg-mirror" checked> Send timers and reminders to my phone too</label>
+          <label class="settings-check"><input type="checkbox" id="tg-shot" checked> After a command from my phone (show the desktop, open an app), send a screenshot. It passes through Telegram's servers.</label>
+          <label class="settings-check"><input type="checkbox" id="tg-verify"> After that screenshot, let Jarvis look at it and tell me if the command did not work (needs a vision model; slower).</label>
+          <div class="settings-field"><label for="tg-brief">Daily briefing on Telegram at</label></div>
+          <div class="inline-form"><input type="time" id="tg-brief" aria-label="Daily briefing time"><button type="button" id="tg-brief-save" class="settings-action">Save</button></div>
+          <button type="button" id="tg-unpair" class="settings-action">Pair a different account</button>
+          <button type="button" id="tg-disconnect" class="settings-action danger">Disconnect the bot</button>
+        </div>
+        <p class="settings-note">Jarvis reads your messages from Telegram while it is running, so it answers only when this PC is on. Only the account you pair is answered. Anything that changes your PC waits for your Approve tap. Send /help to the bot for commands.</p>
+      </div>
+      <div class="settings-section" id="phone-section">
+        <h2 class="settings-heading">Phone app (Android)</h2>
+        <label class="settings-check"><input type="checkbox" id="phone-enabled"> Let the Jarvis Android app connect to this PC over my network</label>
+        <p class="settings-note" id="phone-status">Off. Jarvis only answers on this PC.</p>
+        <div id="phone-details" class="hidden">
+          <p class="settings-note">In the app, open Settings &gt; Brain &gt; PC and enter:</p>
+          <p class="settings-note">Address: <strong id="phone-address"></strong></p>
+          <p class="settings-note">Pairing code: <strong id="phone-code" class="phone-code"></strong></p>
+          <button type="button" id="phone-new-code" class="settings-action">Make a new pairing code</button>
+        </div>
+        <p class="settings-note">While this is on, Jarvis listens on your local network and anyone on it who has the pairing code can control this PC, so only use it on a network you trust and keep the code private. The connection is not encrypted. Making a new code disconnects every paired phone.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Timers and reminders</h2>
+        <div class="quick-timers" role="group" aria-label="Quick timers">
+          <button type="button" data-min="1">1 min</button><button type="button" data-min="5">5 min</button><button type="button" data-min="10">10 min</button><button type="button" data-min="25">25 min</button><button type="button" data-min="60">1 hour</button>
+        </div>
+        <div class="inline-form"><input type="number" id="timer-min" min="0.1" step="any" value="15" aria-label="Minutes"><input type="text" id="timer-label" maxlength="80" placeholder="Label (optional)" aria-label="Timer label"><button type="button" id="timer-start" class="settings-action">Start</button></div>
+        <ul id="timer-list" class="tool-list" aria-label="Active timers and reminders"></ul>
+        <button type="button" id="notify-enable" class="settings-action">🔔 Enable desktop notifications</button>
+        <p class="settings-note" id="timer-note">Try “set a timer for 10 minutes”, “remind me in 20 minutes to check the oven” or “remind me tomorrow at 9am to send the report”. Alerts ring while Jarvis is open in any browser tab, even in the background, and ones that came due while it was closed show when you reopen it.</p>
+      </div>
+    </div>
+      <p id="settings-empty" class="settings-empty hidden">No setting matches that. Try another word.</p>
+    </div>
+    </div>
+  </section>
+
+  <section id="sysbig" class="sysbig hidden" role="dialog" aria-label="System monitor">
+    <div class="sysbig-head"><h2 class="settings-heading">System monitor</h2><span class="sysbig-live">● LIVE</span><button type="button" id="sysbig-close" class="sysbig-close" aria-label="Close the system monitor">×</button></div>
+    <div id="sysbig-grid" class="sysbig-grid"></div>
+    <div class="settings-heading sysbig-subhead">CPU threads</div>
+    <div id="sysbig-cores" class="sysbig-cores hidden"></div>
+    <div id="sysbig-stats" class="sysbig-stats"></div>
+  </section>
+
+  <div id="alerts" class="alerts" role="alert" aria-live="assertive"></div>
+
+  <div id="boot" class="boot" aria-label="Jarvis starting up">
+    <div class="boot-inner">
+      <div class="reactor" id="boot-reactor" aria-hidden="true"></div>
+      <div class="boot-title">J.A.R.V.I.S.</div>
+      <div class="boot-sub" id="boot-sub">Just A Rather Very Intelligent System</div>
+      <ul class="boot-log" id="boot-log" aria-hidden="true"></ul>
+      <div class="boot-bar" aria-hidden="true"><span id="boot-bar-fill"></span></div>
+      <button type="button" id="boot-skip" class="boot-skip">Skip</button>
+    </div>
+  </div>
+
+  <section id="quick-panel" class="quick-panel hidden" role="dialog" aria-label="Quick actions">
+    <div class="quick-head"><strong>QUICK ACTIONS</strong><button type="button" id="quick-close" class="settings-button" aria-label="Close">✕</button></div>
+    <textarea id="quick-text" class="quick-text" rows="5" aria-label="Selected text"></textarea>
+    <div class="quick-buttons">
+      <button type="button" class="quick-act" data-action="summarize">Summarise</button>
+      <button type="button" class="quick-act" data-action="fix">Fix writing</button>
+      <button type="button" class="quick-act" data-action="explain">Explain</button>
+      <button type="button" class="quick-act" data-action="reply">Reply</button>
+      <button type="button" class="quick-act" data-action="shorter">Shorter</button>
+      <button type="button" class="quick-act" data-action="translate">Translate to</button>
+      <input type="text" id="quick-lang" maxlength="30" value="English" aria-label="Translate into">
+    </div>
+    <div class="inline-form"><input type="text" id="quick-custom" maxlength="300" placeholder="Or tell me what to do with it…" aria-label="Custom instruction"><button type="button" id="quick-go">Go</button></div>
+    <div id="quick-result" class="quick-result hidden" aria-live="polite"></div>
+    <div class="quick-buttons"><button type="button" id="quick-copy" class="hidden">Copy</button><button type="button" id="quick-replace" class="hidden">Replace selection</button></div>
+  </section>
+  <script src="/js/wake.js"></script>
+  <script src="/js/mail.js"></script>
+  <script src="/js/shortcuts.js"></script>
+  <script src="/js/planner.js"></script>
+  <script src="/js/notes.js"></script>
+  <script src="/js/extras.js"></script>
+  <script src="/js/code.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/features.js"></script>
+  <script src="/js/tools.js"></script>
+  <script src="/js/docs.js"></script>
+  <script src="/js/telegram.js"></script>
+  <script src="/js/phone.js"></script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+{
+ "format": 1,
+ "repo": "LoicTheGuyThatGits/Jarvis_File_Checker",
+ "files": [
+  {
+   "path": "LICENSE",
+   "sha256": "3cba3185542099115d42b644a81225d5f410696fb8e827a88cdd5ed79db460b6",
+   "size": 1075
+  },
+  {
+   "path": "README.md",
+   "sha256": "085d8cea4bbd23b46989c6752c285eb5a28912f7a37b906c9d67082ef5adc975",
+   "size": 44526
+  },
+  {
+   "path": "app/export_training.py",
+   "sha256": "f5ee8681810476bcc1f36c56cd60a2f77a5a9a971170d91efecab76fd093c6f3",
+   "size": 3536
+  },
+  {
+   "path": "app/followup.py",
+   "sha256": "6b4b51603251f4b9e095aa9b60e0871eb2f7059a5b75172c9ed3dec1f6cc6cb9",
+   "size": 4621
+  },
+  {
+   "path": "app/gmail_reader.py",
+   "sha256": "fdc654f4e9fc86b06afcef5ad214dbc849c6b52d049e0a62dc44d952368f2ea2",
+   "size": 8814
+  },
+  {
+   "path": "app/ical.py",
+   "sha256": "7101a1a17f4446a998ba4b00275b80d22f240a8d596ae2994fc4341f2cf24c91",
+   "size": 13529
+  },
+  {
+   "path": "app/jarvis_tray.py",
+   "sha256": "e0ec205960f03caccd0305065fa308909f75d9d2189e43bcbf7f3a18daf3f43f",
+   "size": 21162
+  },
+  {
+   "path": "app/jarvis_window.py",
+   "sha256": "c6b713f87a18e66447eaba11c2a1db3c43a0aad542d3c41dcc3b0e2743234010",
+   "size": 4109
+  },
+  {
+   "path": "app/maintenance.py",
+   "sha256": "88d429217b13195b6668461d96d7e24e2cf90cc511275e20391677e1cf1aa9e2",
+   "size": 10629
+  },
+  {
+   "path": "app/notes.py",
+   "sha256": "58028a00197da5c4f21c3fcba075f735125ef35492522e1a79cad2fb019e343c",
+   "size": 8572
+  },
+  {
+   "path": "app/phone_link.py",
+   "sha256": "b677dfbca0779cd8fd9bcabca9ecba27cad5393234f8181287a0d6d3c6edb7c1",
+   "size": 3114
+  },
+  {
+   "path": "app/planner.py",
+   "sha256": "c9bbd95c013c000a6ae1ac0d9529f6aabb224a4c6a7ef318f8ad3942af03334a",
+   "size": 26026
+  },
+  {
+   "path": "app/proactive.py",
+   "sha256": "f6387523cf15c0b91f4264b4e0686f9affa8165e7617902459e7d9705ec1d3b9",
+   "size": 23492
+  },
+  {
+   "path": "app/server.py",
+   "sha256": "fec5918591214ed187f178e255e05f79c359855600470feb24be71923472ae93",
+   "size": 295339
+  },
+  {
+   "path": "app/set-address.py",
+   "sha256": "df92337b14389c47e0878e0caba9c81d5deadfae1d130e3a8f8a5776d12f22ec",
+   "size": 711
+  },
+  {
+   "path": "app/shortcuts.py",
+   "sha256": "cf15431dcb8f951d06bb39e1f76cbf471c3b1bf55eb664ff49431a3eab850460",
+   "size": 9342
+  },
+  {
+   "path": "app/spotify.py",
+   "sha256": "e1a06c164e95787d2eb81c831edb024efc697b43bf3e1bc611bdd6abd16126f2",
+   "size": 14371
+  },
+  {
+   "path": "app/study.py",
+   "sha256": "807e2cf9f4059746304c155d33b943d06fafb2df2b7817be057ae9c005cd894d",
+   "size": 19200
+  },
+  {
+   "path": "app/telegram_bot.py",
+   "sha256": "1301493c1baecbb433c24b78296372e5e09b12958abb5d881fa7fbf2f7f9380e",
+   "size": 30484
+  },
+  {
+   "path": "app/voice_listener.py",
+   "sha256": "b89120554b80082072db9a0c012f4699bba070b325702c1e0c5a5e1509e78715",
+   "size": 15721
+  },
+  {
+   "path": "app/web_research.py",
+   "sha256": "57a56b84f99a099268f23cbe44a88a5b3173019d28a74509bf5ddb4b1a1791e9",
+   "size": 21202
+  },
+  {
+   "path": "export-training.bat",
+   "sha256": "b9913a67f1afbd150a87c210a17054de9a899949519c29908bf6d8fe596f2846",
+   "size": 308
+  },
+  {
+   "path": "filecheck.py",
+   "sha256": "bdb3e1b238a0852a14f2f7ec33ba058741446eed9c9e7ca9bfabf3ef636c1df1",
+   "size": 13552
+  },
+  {
+   "path": "install-jarvis.bat",
+   "sha256": "43718dcabd1c90ff8bfe75469d7b5bc0879ea6a22286e0c28fcdbe7f73f682dd",
+   "size": 5914
+  },
+  {
+   "path": "repair-jarvis.bat",
+   "sha256": "87a4b0019ac00979c44729e09cceffdbe6803fee5c76d2832d1a8e2a5f7e3861",
+   "size": 335
+  },
+  {
+   "path": "requirements.txt",
+   "sha256": "3e003f3d37ea59190033175725a1f485c31042146bb576403d1a9b96b7756f3e",
+   "size": 142
+  },
+  {
+   "path": "start-jarvis-app.bat",
+   "sha256": "491967d31c36ef1244d1ebc8741ee51670b019a3a8bd4041f7784de0c5bb03cf",
+   "size": 231
+  },
+  {
+   "path": "start-jarvis.bat",
+   "sha256": "5d008ddf7445aaba26a9a95be4ca8b88168879e0d873484bb1b7e5c17419dff8",
+   "size": 2325
+  },
+  {
+   "path": "tools/make_manifest.py",
+   "sha256": "2bce4da355be7c58801e20d3810d1ac5e28b83d6c0928cc5c1436982af73b6a9",
+   "size": 3393
+  },
+  {
+   "path": "web/css/app.css",
+   "sha256": "6a0a27cd327af820fc269f311940ca8e4e35dd6cc5db8cfe01542390c6d8820c",
+   "size": 50416
+  },
+  {
+   "path": "web/icons/jarvis.ico",
+   "sha256": "3ae85909faad467fdf014671dcfc4f330ffdcd52f1b4944be7762d47de64fef4",
+   "size": 87683
+  },
+  {
+   "path": "web/icons/jarvis.png",
+   "sha256": "93e86ac4a7e354ae6c91068d77e0194136beecf5dd1612ce3e42bcd5e416097b",
+   "size": 50103
+  },
+  {
+   "path": "web/index.html",
+   "sha256": "f90ab7443f5e72e8c9eeef03fe062bc92f11adc60825e72e6cba1a7398720a8f",
+   "size": 47904
+  },
+  {
+   "path": "web/js/app.js",
+   "sha256": "5fc07a098baa08bc36d75d8565b961d2e94204d3a3df60087eacab2cf601b517",
+   "size": 27479
+  },
+  {
+   "path": "web/js/code.js",
+   "sha256": "e9d33f29c92aead2953637de3b091249f38d58b5bcc9e2b66af5592176f2d12b",
+   "size": 11202
+  },
+  {
+   "path": "web/js/docs.js",
+   "sha256": "d843c3c2f6ff8d388e6f199e39538c8340303f7a0870031dfe1d5b257977f55c",
+   "size": 5831
+  },
+  {
+   "path": "web/js/extras.js",
+   "sha256": "d8696ca6634e021637d7cb6f8edfb36d62e9ce6347592aa0a4caa1704fc0b966",
+   "size": 3553
+  },
+  {
+   "path": "web/js/features.js",
+   "sha256": "fae649ba557399ebffdad9caa14fb28c1441af58bd785c11be3727822901a06c",
+   "size": 26228
+  },
+  {
+   "path": "web/js/mail.js",
+   "sha256": "d1d20c862abe808cc6dbafe3af71848323e4ecc224df227836efb23ed1f63778",
+   "size": 2535
+  },
+  {
+   "path": "web/js/notes.js",
+   "sha256": "ad02ac59bc6a9ead35dbbaa9b8925e8d03fe0af9ca67ff9545349d0d1a80aaf4",
+   "size": 3499
+  },
+  {
+   "path": "web/js/phone.js",
+   "sha256": "3f995be7ae5d002e9ea42819df351d795d6a2e5ad65e43dc077fb5faa8701cb6",
+   "size": 1720
+  },
+  {
+   "path": "web/js/planner.js",
+   "sha256": "c214978979810f7ca42a5a4129da5e504943ee962080f02946687a2439abd4a9",
+   "size": 10066
+  },
+  {
+   "path": "web/js/shortcuts.js",
+   "sha256": "2ce490b403c997f60795936c82cd028f3934b1d515753cfc4f7976ed63753f8f",
+   "size": 5539
+  },
+  {
+   "path": "web/js/telegram.js",
+   "sha256": "d85c35e6cc4460a2e974432af7dd758a69b16f3b1b4705ad48657d4137f4a3fe",
+   "size": 2946
+  },
+  {
+   "path": "web/js/tools.js",
+   "sha256": "02932bf6fde9f2e1681c265f6c76cd7265af68fc76f2d89926f892c224cf1701",
+   "size": 40716
+  },
+  {
+   "path": "web/js/ui.js",
+   "sha256": "e8affa1ed4367b5800dbbb7314fb4be3982930dd43efe3799fe260ed10f35154",
+   "size": 17060
+  },
+  {
+   "path": "web/js/wake.js",
+   "sha256": "c16aa0b994c0dafd055d4c66c52527284475edb73ceb11e66bf24e4630cdaadf",
+   "size": 3825
+  }
+ ]
+}

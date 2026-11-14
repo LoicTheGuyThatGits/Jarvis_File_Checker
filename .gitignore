@@ -1,0 +1,21 @@
+# Never publish these: they hold your passwords, tokens, notes and personal data, or they only fit this computer.
+__pycache__/
+*.pyc
+.env
+.venv/
+data/
+workspace/
+piper/
+model/
+.claude/
+*.bak
+*.bak-*
+*.part
+*.zip
+*.apk
+Jarvis-v24-share/
+server.py.bak*
+# Android build output (the android/ source itself may be tracked)
+android/platforms/
+android/plugins/
+android/node_modules/

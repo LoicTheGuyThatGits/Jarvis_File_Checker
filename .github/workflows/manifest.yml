@@ -1,0 +1,27 @@
+name: Update manifest
+# Keeps manifest.json (the list of files Jarvis needs, with fingerprints) in step with the code on every push.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Rebuild manifest.json
+        run: python tools/make_manifest.py
+      - name: Commit it when it changed
+        run: |
+          if ! git diff --quiet -- manifest.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add manifest.json
+            git commit -m "Update manifest [skip ci]"
+            git push
+          fi
