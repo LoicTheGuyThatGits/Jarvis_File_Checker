@@ -256,3 +256,11 @@ Settings > Daily > **Backup** saves everything in your `data` folder (chats, set
 
 ## Evening recap
 Say "evening recap" (or "recap my day", "how was my day?") for a short look back and ahead: tasks you ticked off today, events that happened, notes you saved, what is still open or overdue, and tomorrow's events and due tasks. It uses only your planner and notes, so it works offline and sends nothing anywhere. Settings > Planner > **Evening recap** can also post it in the chat once a day at a time you choose (off by default; it is never spoken aloud and never pushed to Telegram, and switching it on after the chosen time waits until the next day).
+
+## Smart commands (experimental)
+Jarvis's built-in commands recognise set phrases. With **Settings > AI model > Smart commands** switched on, a message they do not recognise ("ugh, I've got a physics test on the 20th", "nudge me in 2 hours to call mum", "where did I write the wifi code?") is shown to the AI model together with a list of 15 tools: calendar, to-do list, notes, reminders, timers, quizzes, recap, briefing, weather, PC health and Spotify. The model answers with the tool to use, and Jarvis runs it with the same code as the built-in command. Under the reply you see which tool was chosen.
+
+- **Safe by design:** only those tools exist for the model. Nothing that deletes, sends mail, touches files, backs up or updates is on the list. An answer Jarvis cannot trust (not valid, unknown tool, or details that are not in your message) is ignored and you get a normal chat answer instead.
+- **Undo:** say "undo that" within ten minutes to take back the last task, event, note, reminder or timer it added.
+- **Speed:** built-in commands still run first and instantly. Only messages that mention something tool-like cost one extra short question to the model.
+- **Off by default.** How well it works depends on the model: small local models make more mistakes. What it decided is kept in `data/training/router.jsonl` (on this PC only, while the training log is on) so it can be measured.

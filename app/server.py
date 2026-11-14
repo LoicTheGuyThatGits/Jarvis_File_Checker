@@ -891,6 +891,7 @@ PLANNER_CACHE: dict = {"path": None, "obj": None}
 import followup
 import backup as backup_module
 import recap as recap_module
+import tools_registry
 
 
 def backup_config_path():
@@ -1460,6 +1461,191 @@ def mail_alert_check(notify=None) -> None:
         else:
             return
         gmail_reader.save(mail_path(), cfg)
+
+
+# ---------------- the tool-using brain: the model picks a tool when no built-in command matched ----------------
+ROUTER = {"registry": None}
+
+
+def router_enabled() -> bool:
+    return load_settings().get("tool_router") is True          # off until switched on in Settings > AI model
+
+
+def router_set_enabled(on: bool) -> None:
+    load_settings()
+    with SETTINGS_LOCK:
+        SETTINGS["tool_router"] = bool(on)
+    save_settings()
+
+
+def router_ask_model(system: str, user: str) -> str:
+    """One short question to the chosen model, asking for JSON, with a low temperature so it does not get creative."""
+    ai = ai_settings()
+    if not ai["key"]:
+        raise ValueError("no model")
+    if ai["is_local"]:
+        ensure_ollama(ai["base"])
+    body = {"model": ai["model"], "stream": False, "temperature": 0, "max_tokens": 300, "response_format": {"type": "json_object"},
+            "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
+    for attempt in (0, 1):
+        request = urllib.request.Request(ai["base"] + "/chat/completions", data=json_bytes(body), method="POST",
+                                         headers={"Authorization": "Bearer " + ai["key"], "Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response:
+                return str(json.loads(response.read().decode("utf-8", errors="replace"))["choices"][0]["message"]["content"] or "")
+        except urllib.error.HTTPError as exc:
+            if attempt == 0 and exc.code in (400, 422):          # a server that does not know response_format
+                body.pop("response_format", None)
+                continue
+            raise
+    return ""
+
+
+def router_log(message: str, result: dict | None) -> None:
+    """Keeps what the router decided (on this PC only, and only while the training log is on) so it can be measured later."""
+    if not training_enabled():
+        return
+    try:
+        with TRAINING_LOCK:
+            with open(training_dir() / "router.jsonl", "a", encoding="utf-8") as handle:
+                handle.write(json.dumps({"at": int(time.time()), "message": message[:300], "decided": (result or {}).get("decided", [])}, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
+
+
+def router_registry() -> tools_registry.Registry:
+    if ROUTER["registry"] is not None:
+        return ROUTER["registry"]
+    reg = tools_registry.Registry()
+    when_desc = 'the date or time words copied from the message, e.g. "tomorrow at 5pm", "friday", "the 20th", "in 2 hours"'
+
+    def when_of(args: dict, now: datetime):
+        words = args.get("when", "")
+        parsed = planner_module.parse_when(words, now) if words else {"date": None, "time": None, "rest": ""}
+        bare = re.search(r"\bthe\s+(\d{1,2})(?:st|nd|rd|th)\b", words, re.I)
+        if parsed["date"] is None and bare and 1 <= int(bare.group(1)) <= 31:     # "the 20th": this month, or next when it has passed
+            day, month, year = int(bare.group(1)), now.month, now.year
+            for _ in range(3):
+                try:
+                    if datetime(year, month, day).date() >= now.date():
+                        parsed = planner_module.parse_when(f"{words[:bare.start()]} {day}/{month}/{year} {words[bare.end():]}", now)
+                        break
+                except ValueError:
+                    pass
+                month, year = (1, year + 1) if month == 12 else (month + 1, year)
+        return planner_module.resolve(parsed, now)
+
+    def add_task(args):
+        now = datetime.now()
+        stamp, has_time = when_of(args, now)
+        task = planner_obj().add_task(args["text"], stamp, has_time)
+        return (f"Added “{task['text']}” to your to-do list" + (f", due {planner_module.say_when(stamp, has_time, now)}" if stamp else "") + ", sir.",
+                lambda: planner_obj().delete("task", task["id"]))
+
+    def add_event(args):
+        now = datetime.now()
+        stamp, has_time = when_of(args, now)
+        if not stamp:
+            raise ValueError("When is it, sir? Tell me a day, for example “physics test on Friday at 10”.")
+        if not has_time:
+            stamp = datetime.fromtimestamp(stamp).replace(hour=9).timestamp()
+        if stamp < now.timestamp() - 60:
+            raise ValueError("That time has already passed, sir. Tell me a future date.")
+        event = planner_obj().add_event(args["title"], stamp)
+        return (f"Added “{event['title']}” to your calendar for {planner_module.say_when(stamp, True, now)}, sir.",
+                lambda: planner_obj().delete("event", event["id"]))
+
+    def complete_task(args):
+        hits = planner_obj().find("task", args["task"])
+        reply = planner_obj().done_by_hint(args["task"])
+        return (reply, (lambda: planner_obj().set_done(hits[0]["id"], False) is not None)) if len(hits) == 1 else reply
+
+    def save_note(args):
+        note = notes_obj().add(args["text"])
+        return f"Noted, sir: “{note['text']}”", lambda: notes_obj().delete(note["id"])
+
+    def search_notes(args):
+        hits = notes_obj().search(args["query"], limit=5)
+        if not hits:
+            return f"I found no note about “{args['query']}”, sir."
+        return f"I found {len(hits)} note{'s' if len(hits) != 1 else ''}, sir:\n" + "\n".join(f"• {n['text'][:200]}" for n in hits)
+
+    def set_reminder(args):
+        before = {i["id"] for i in reminders_active()}
+        reply = handle_reminder_command(f"remind me to {args['text']} {args['when']}")
+        if not reply:
+            return None
+        new = [i for i in reminders_active() if i["id"] not in before]
+        return (reply, lambda: bool(reminder_cancel(item_id=new[0]["id"]))) if new else reply
+
+    def set_timer(args):
+        before = {i["id"] for i in reminders_active()}
+        reply = handle_reminder_command(f"set a timer for {args['duration']}")
+        if not reply:
+            return None
+        new = [i for i in reminders_active() if i["id"] not in before]
+        return (reply, lambda: bool(reminder_cancel(item_id=new[0]["id"]))) if new else reply
+
+    def start_study(args):
+        topic = args.get("topic", "")
+        phrase = ("flashcards" + (f" on {topic}" if topic else "")) if args.get("kind") == "flashcards" else ("quiz me" + (f" on {topic}" if topic else ""))
+        return study_obj().command(phrase)
+
+    def weather(args):
+        loc = current_location()
+        forecast = fetch_weather(loc)
+        return weather_sentence(loc, forecast) if forecast else f"I cannot reach the weather service for {loc['name']} right now, {current_address()}."
+
+    def play_music(args):
+        return spotify_module.command(f"play {args['what']} on spotify", spotify_path(), spotify_launch)
+
+    reg.add("add_task", "Put something the person has to do on their to-do list.",
+            {"text": {"desc": "what has to be done, without the date words", "required": True}, "when": {"desc": "optional deadline: " + when_desc}},
+            add_task, r"\b(?:to-?do|task|list|need to|have to|got to|gotta|must|should|don'?t (?:let me )?forget|homework|hand in|finish|buy|bring|pack)\b",
+            risk="write", example='"I still have to hand in the art project by friday" -> {"tool":"add_task","args":{"text":"hand in the art project","when":"by friday"}}')
+    reg.add("add_event", "Put an appointment, lesson, test, meeting or other dated event in the calendar. Needs a day.",
+            {"title": {"desc": "what the event is, without the date words", "required": True}, "when": {"desc": "required: " + when_desc, "required": True}},
+            add_event, r"\b(?:calendar|schedule|agenda|diary|appointment|meeting|exam|test|lesson|class|dentist|doctor|party|birthday|match|game|trip|concert|interview|practice|training|rehearsal|event)\b",
+            risk="write", example='"I\'ve got a physics test on the 20th" -> {"tool":"add_event","args":{"title":"physics test","when":"on the 20th"}}')
+    reg.add("show_agenda", "Say what is in the calendar for a period (also answers 'am I free ...').",
+            {"period": {"desc": "which period", "required": True, "choices": ["today", "tomorrow", "this week", "next week", "this weekend",
+                                                                           "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]}},
+            lambda a: planner_obj().agenda_for(a["period"], datetime.now()),
+            r"\b(?:calendar|schedule|agenda|diary|planned|plans?|free|busy|coming up|happening|what(?:'s| is| do i have) on|today|tomorrow|week|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)day)\b")
+    reg.add("show_tasks", "Read out the open tasks on the to-do list.", {},
+            lambda a: planner_obj().tasks_text(datetime.now()), r"\b(?:to-?do|tasks?|list|left to do|still (?:have|need) to|need to do|outstanding|pending)\b")
+    reg.add("complete_task", "Tick off a task that the person says they have done.",
+            {"task": {"desc": "words naming the task", "required": True}},
+            complete_task, r"\b(?:done|finished|completed|did|ticked?|tick off|cross(?:ed)? off|handed in|sorted)\b", risk="write")
+    reg.add("save_note", "Save a piece of information as a note so it can be found later.",
+            {"text": {"desc": "the information to keep, in the person's words", "required": True}},
+            save_note, r"\b(?:notes?|jot|write (?:this |that |it )?down|remember that|keep in mind|save (?:this|that)|memo|for later)\b", risk="write")
+    reg.add("search_notes", "Look through the saved notes for something.",
+            {"query": {"desc": "the words to look for", "required": True}},
+            search_notes, r"\b(?:notes?|wrote|written|write|jotted|noted|saved|put down)\b")
+    reg.add("set_reminder", "Remind the person about something at a time.",
+            {"text": {"desc": "what to be reminded of", "required": True}, "when": {"desc": "required: " + when_desc, "required": True}},
+            set_reminder, r"\b(?:remind(?:er)?|nudge|ping me|alert me|tell me (?:when|at|in)|don'?t let me forget|wake me)\b", risk="write")
+    reg.add("set_timer", "Start a countdown timer.",
+            {"duration": {"desc": 'how long, copied from the message, e.g. "10 minutes", "an hour and a half"', "required": True}},
+            set_timer, r"\b(?:timer|countdown|time me|count down)\b", risk="write")
+    reg.add("start_study", "Start a quiz or flashcards from the person's notes and documents.",
+            {"kind": {"desc": "quiz or flashcards", "required": True, "choices": ["quiz", "flashcards"]}, "topic": {"desc": "optional topic to study"}},
+            start_study, r"\b(?:quiz|test me|flash\s?cards?|revise|revision|study|practice questions?|drill me|ask me questions)\b")
+    reg.add("evening_recap", "Summarise the person's day (tasks done, events, notes) and what comes tomorrow.", {},
+            lambda a: recap_text(), r"\b(?:recap|my day|today|summary|wrap[- ]?up|forgot|forget|achieve|get done|accomplish)\b")
+    reg.add("briefing", "Give the briefing: time, weather, reminders, mail and the plan for today.", {},
+            lambda a: build_briefing()["text"], r"\b(?:briefing|brief me|rundown|catch me up|what(?:'s| is) new|status report|fill me in)\b")
+    reg.add("weather", "Say the weather at the person's saved location now and today.", {},
+            weather, r"\b(?:weather|rain(?:ing)?|umbrella|sunny|cold|hot|warm|forecast|snow(?:ing)?|jacket|coat|temperature outside)\b")
+    reg.add("pc_health", "Report on this PC: disk space, memory, temp files, startup programs.", {},
+            lambda a: maintenance_module.report(maintenance_module.collect(system_snapshot(), maintenance_folders(), {"last": backup_module.load_config(backup_config_path()).get("last")})),
+            r"\b(?:pc|computer|laptop|disk|storage|space|memory|ram|slow|laggy|sluggish)\b")
+    reg.add("play_music", "Play a song, artist, album or playlist on Spotify.",
+            {"what": {"desc": "the song, artist, album or playlist named in the message", "required": True}},
+            play_music, r"\b(?:play|put on|listen to|spotify|music|song|playlist|album)\b")
+    ROUTER["registry"] = reg
+    return reg
 
 
 def recap_config_path() -> Path:
@@ -3679,6 +3865,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/proactive":
             self.send_json(200, proactive_public())
             return
+        if path == "/api/router":
+            self.send_json(200, {"enabled": router_enabled(), "tools": [{"name": t.name, "description": t.description, "risk": t.risk} for t in router_registry().available()]})
+            return
         if path == "/api/training":
             self.send_json(200, training_public())
             return
@@ -4224,6 +4413,9 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, proactive_public())
                 except ValueError as exc:
                     self.send_json(400, {"error": str(exc)})
+            elif path == "/api/router":
+                router_set_enabled(payload.get("enabled") is True)
+                self.send_json(200, {"enabled": router_enabled()})
             elif path in ("/api/training", "/api/feedback"):
                 try:
                     if path == "/api/training":
@@ -4787,6 +4979,10 @@ class Handler(BaseHTTPRequestHandler):
         if screen_q:
             self.analyze_screen(screen_q, ai, safe_messages[:-1][-4:] if safe_messages and safe_messages[-1]["role"] == "user" else safe_messages[-4:], payload.get("want_screenshot") is True)
             return
+        undo_reply = router_registry().undo_command(latest)
+        if undo_reply:
+            self.send_json(200, {"reply": undo_reply, "action": None})
+            return
         routine = routine_command(latest)
         if routine:
             self.start_routine(routine)
@@ -4873,6 +5069,12 @@ class Handler(BaseHTTPRequestHandler):
         if web_action:
             self.run_explicit_open(web_action, web_reply or "Opening it, sir.", want_shot)
             return
+        if not web_query and payload.get("use_documents") is not True and router_enabled():
+            routed = router_registry().handle(latest, router_ask_model, self._remote)
+            router_log(latest, routed)
+            if routed:
+                self.send_json(200, {"reply": routed["reply"], "action": None, "decided": [d["tool"] for d in routed["decided"]]})
+                return
         image_words = r"\b(image|picture|illustration|drawing|artwork|photo|wallpaper)\b"
         image_verbs = r"\b(generate|create|make|draw|paint|render|design|produce)\b"
         if not web_query and re.search(image_words, latest, re.IGNORECASE) and re.search(image_verbs, latest, re.IGNORECASE):

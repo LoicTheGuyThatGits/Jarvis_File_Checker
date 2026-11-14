@@ -117,4 +117,13 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') loadR(); });
   }
+  if ($('router-on')) {
+    var loadRouter = function () {
+      api('/api/router').then(function (d) { $('router-on').checked = d.enabled; $('router-note').textContent = d.tools.length + ' tools available to it.'; }).catch(function () {});
+    };
+    $('router-on').addEventListener('change', function () {
+      api('/api/router', { enabled: $('router-on').checked }).then(function (d) { $('router-note').textContent = d.enabled ? 'On. Jarvis shows which tool it chose under each such reply.' : 'Off.'; }).catch(function (e) { $('router-note').textContent = e.message; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
+  }
 })();

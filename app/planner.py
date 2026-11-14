@@ -394,7 +394,7 @@ class Planner:
              or re.fullmatch(rf"(?:tick|check|cross)\s+off\s+(.+?)(?:\s+(?:from|on|in)\s+{lst})?", t, re.I)
              or re.fullmatch(rf"(?:i(?:'ve| have)?\s+)?(?:finished|completed|done with|did)\s+(.+?)(?:\s+(?:from|on|in)\s+{lst})?", t, re.I)
              or re.fullmatch(rf"(?:complete|finish)\s+(?:the\s+)?(?:task\s+)?(.+)", t, re.I))
-        if m and not re.fullmatch(r"(?:it|that|this|everything|all)", m.group(1).strip(), re.I):
+        if m and not re.fullmatch(r"(?:it|that|this|everything|all)", m.group(1).strip(), re.I) and not re.match(r"(?:i|you|we|he|she|they|it|anyone|someone)\b", m.group(1).strip(), re.I):   # "did I forget anything" is a question
             return self.done_by_hint(m.group(1))
         # ---- remove ----
         if re.fullmatch(r"(?:clear|delete|remove)\s+(?:all\s+)?(?:my\s+|the\s+)?(?:done|completed|finished)\s+(?:tasks|to-?dos|items)", low):
