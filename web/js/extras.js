@@ -42,6 +42,25 @@
       api('/api/files/repair', { changed: $('files-changed').checked }).then(function (d) { $('files-report').textContent = d.text; last = null; }).catch(function (e) { $('files-report').textContent = e.message; }).then(function () { busy(false); });
     });
   }
+  if ($('train-bar')) {
+    // Rough guide to how many 👍 answers are worth having before a training run (see the README).
+    var STAGES = [[50, 'check that the pipeline works'], [300, 'fix tone and style'], [800, 'teach Jarvis\' habits and commands'], [3000, 'broad improvement']];
+    var showTrain = function (t) {
+      var up = t.up || 0, next = null, i;
+      for (i = 0; i < STAGES.length; i++) { if (up < STAGES[i][0]) { next = STAGES[i]; break; } }
+      var prev = i > 0 ? STAGES[i - 1][0] : 0;
+      $('train-bar').max = next ? next[0] - prev : 1; $('train-bar').value = next ? up - prev : 1;
+      var rate = t.exchanges > 0 ? Math.max(0.15, Math.min(0.9, up / t.exchanges)) : 0.4;
+      $('train-goal').textContent = next
+        ? up + ' answers marked good. Next goal: ' + next[0] + ' (' + next[1] + '), ' + (next[0] - up) + ' to go, roughly ' + Math.ceil((next[0] - up) / rate) + ' more exchanges at your current rating rate.'
+        : up + ' answers marked good: past every goal. More only helps if the requests stay varied.';
+      var list = $('train-stages'); list.textContent = '';
+      STAGES.forEach(function (st) { var li = document.createElement('li'); li.textContent = (up >= st[0] ? '✓ ' : '○ ') + st[0] + ': ' + st[1]; list.appendChild(li); });
+    };
+    var loadTrain = function () { api('/api/training').then(showTrain).catch(function () {}); };
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadTrain(); });
+    loadTrain();
+  }
   if ($('health-run')) {
     $('health-run').addEventListener('click', function () {
       $('health-run').disabled = true; $('health-report').textContent = 'Checking… (this can take a few seconds)';

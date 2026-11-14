@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "085d8cea4bbd23b46989c6752c285eb5a28912f7a37b906c9d67082ef5adc975",
-   "size": 44526
+   "sha256": "829f6201364c761342b3c98d908f1bf1c2552e9ba9f9ead920ac282709663df1",
+   "size": 44943
   },
   {
    "path": "app/export_training.py",
@@ -164,8 +164,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "f90ab7443f5e72e8c9eeef03fe062bc92f11adc60825e72e6cba1a7398720a8f",
-   "size": 47904
+   "sha256": "d07d0f3a5053dac2045603295d311630a16a857fb5cc126017ed50f89659e110",
+   "size": 48274
   },
   {
    "path": "web/js/app.js",
@@ -184,8 +184,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "d8696ca6634e021637d7cb6f8edfb36d62e9ce6347592aa0a4caa1704fc0b966",
-   "size": 3553
+   "sha256": "539d5a0c826e0de8af0b42689f98ac577656b6b25a9f9f9ddb64c69228f2a5d6",
+   "size": 5075
   },
   {
    "path": "web/js/features.js",

@@ -241,6 +241,11 @@
         <h2 class="settings-heading">Training log</h2>
         <label class="settings-check"><input type="checkbox" id="train-on"> Save each exchange, to train a model made just to be Jarvis later</label>
         <p class="settings-note" id="train-note"></p>
+        <div id="train-progress" class="train-progress">
+          <progress id="train-bar" max="100" value="0" aria-label="Progress toward the next training goal"></progress>
+          <p class="settings-note" id="train-goal" role="status"></p>
+          <ul class="settings-note" id="train-stages" style="list-style:none;padding:0;margin:4px 0 0"></ul>
+        </div>
         <p class="settings-note">Use 👍 and 👎 under an answer to mark the ones worth learning from. Run <code>export-training.bat</code> to turn them into a fine-tuning file.</p>
       </div>
     </div>
