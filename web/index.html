@@ -337,6 +337,13 @@
         <p class="settings-note" id="pro-status"></p>
         <p class="settings-note">An event about to start and a nearly empty battery always get through the hourly limit and “not now”; during quiet hours only events do. Everything else is held and given together afterwards. You can also say “not now”, “do not disturb for two hours” or “you can interrupt me again”. With this switched off, events and tasks still pop up as reminders.</p>
       </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Evening recap</h2>
+        <p class="settings-note">A short look back at your day (tasks done, events, notes) and ahead at tomorrow, from your own planner. Ask “evening recap” any time, or let Jarvis post it in the chat once a day. It is never spoken aloud and never sent to Telegram.</p>
+        <label class="settings-check"><input type="checkbox" id="recap-on"> Post it automatically at <input type="time" id="recap-time" value="20:30" aria-label="Recap time"></label>
+        <div class="inline-form"><button type="button" id="recap-show">Show it now</button></div>
+        <pre class="settings-note" id="recap-text" role="status" style="white-space:pre-wrap"></pre>
+      </div>
     </div>
 
     <div class="settings-pane hidden" id="pane-keys" role="tabpanel" aria-labelledby="tab-keys">

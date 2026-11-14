@@ -58,6 +58,7 @@
     'dictation anywhere': 'type typing speech to text dictate hold key microphone', 'quick actions on text': 'summarise summarize translate fix grammar explain selection clipboard hotkey',
     'phone app (android)': 'android phone link pairing code mobile app network', 'gmail': 'email mail inbox imap app password google',
     'to-do list': 'tasks todo checklist', 'import a calendar': 'timetable school lessons ics ical google outlook schedule webcal', 'notes': 'note jot write down memo remember find', 'spotify': 'music play song playlist album premium', 'file check': 'missing files repair restore github update manifest download install broken',
+    'evening recap': 'recap summary end of day daily review tomorrow wrap up planner',
     'backup': 'back up restore save data export passphrase encrypted usb new computer migrate',
     'pc health': 'maintenance disk space storage memory ram temp files startup slow cleanup',
     'study mode': 'quiz flashcards revise revision exam test homework learn practise', 'calendar': 'events agenda schedule appointments', 'alerts to your phone (telegram)': 'notifications push battery',

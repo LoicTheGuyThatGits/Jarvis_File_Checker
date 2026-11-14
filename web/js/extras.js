@@ -103,4 +103,18 @@
       api('/api/maintenance').then(function (d) { $('health-report').textContent = d.report; }).catch(function (e) { $('health-report').textContent = e.message; }).then(function () { $('health-run').disabled = false; });
     });
   }
+  if ($('recap-on')) {
+    var loadR = function () {
+      api('/api/recap').then(function (d) { $('recap-on').checked = d.enabled; if (document.activeElement !== $('recap-time')) $('recap-time').value = d.time; }).catch(function () {});
+    };
+    var saveR = function () {
+      api('/api/recap', { enabled: $('recap-on').checked, time: $('recap-time').value }).then(function (d) { $('recap-text').textContent = d.enabled ? 'Saved. Jarvis will post it after ' + d.time + ' each day.' : 'Saved. Automatic recap is off.'; }).catch(function (e) { $('recap-text').textContent = e.message; });
+    };
+    $('recap-on').addEventListener('change', saveR);
+    $('recap-time').addEventListener('change', saveR);
+    $('recap-show').addEventListener('click', function () {
+      api('/api/recap/show', {}).then(function (d) { $('recap-text').textContent = d.text; }).catch(function (e) { $('recap-text').textContent = e.message; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') loadR(); });
+  }
 })();

@@ -253,3 +253,6 @@ Ask "how's my PC?" or press **Settings > Daily > PC health > Check now**: free d
 
 ## Backup and restore
 Settings > Daily > **Backup** saves everything in your `data` folder (chats, settings, notes, tokens) into one encrypted `.jbk` file in the folder you choose (default `Documents/Jarvis-backups`, ideally a USB drive or cloud-synced folder). Pick a passphrase of at least 8 characters; it is never stored, so if you forget it the backup cannot be opened. To restore, pick a backup, type its passphrase and press Restore: your current data is first copied to `data-before-restore-<date>` next to it, so nothing is lost. Ask "when was my last backup?" in chat; the PC health report also reminds you after two weeks. Backups and restores only work at the PC, never from Telegram.
+
+## Evening recap
+Say "evening recap" (or "recap my day", "how was my day?") for a short look back and ahead: tasks you ticked off today, events that happened, notes you saved, what is still open or overdue, and tomorrow's events and due tasks. It uses only your planner and notes, so it works offline and sends nothing anywhere. Settings > Planner > **Evening recap** can also post it in the chat once a day at a time you choose (off by default; it is never spoken aloud and never pushed to Telegram, and switching it on after the chosen time waits until the next day).

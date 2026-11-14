@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "40fc74df395a928e7f8d262ab2612745b6c7a423dee86bb72079132ef1c827a5",
-   "size": 46328
+   "sha256": "112d7430da5ed0fa13be0d3c4c4e6fd1034ef0157ed78b08b81220dc10cf10ac",
+   "size": 46899
   },
   {
    "path": "app/backup.py",
@@ -73,9 +73,14 @@
    "size": 23492
   },
   {
+   "path": "app/recap.py",
+   "sha256": "6c61171299989c97ad9ccda8e912bca1836b8bf871d7946bffbcb27bc871309d",
+   "size": 5384
+  },
+  {
    "path": "app/server.py",
-   "sha256": "0520e2741e8db627faef27d14b9928ff4719ba58524a07da3a0b59d067325ce0",
-   "size": 301760
+   "sha256": "45fa43b91eee1bb6fac7f0e092bf476403fe9cede2377374b545704582ca0816",
+   "size": 303819
   },
   {
    "path": "app/set-address.py",
@@ -169,8 +174,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "b9b4855aac881ad1ea5dcbb9e1d1851a3380b831bb0e06fc40a62f85c183baa6",
-   "size": 49904
+   "sha256": "a102f5d0f2a8d29361f52f715224f3dce874811650649cc6bcfe91d5927a82d0",
+   "size": 50666
   },
   {
    "path": "web/js/app.js",
@@ -189,8 +194,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "a2db2cae1be827664af322380cefef082045605bed859a13ddc5b34cc6959276",
-   "size": 8211
+   "sha256": "a5013dad6af86333f9e9dd82ecd94c73ad2b800494434b8a29c7e294fab2f0f7",
+   "size": 9262
   },
   {
    "path": "web/js/features.js",
@@ -234,8 +239,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "a90152aa76ee6eca5a4617ebe71362149705f84fcac19e1859c2613923a9b9fe",
-   "size": 17156
+   "sha256": "ce14899caedae1da4278043685215aadbb788f2e62f13fee701646cfeff044a8",
+   "size": 17243
   },
   {
    "path": "web/js/wake.js",

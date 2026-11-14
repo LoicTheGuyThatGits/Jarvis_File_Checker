@@ -890,6 +890,7 @@ PLANNER_CACHE: dict = {"path": None, "obj": None}
 
 import followup
 import backup as backup_module
+import recap as recap_module
 
 
 def backup_config_path():
@@ -1461,6 +1462,24 @@ def mail_alert_check(notify=None) -> None:
         gmail_reader.save(mail_path(), cfg)
 
 
+def recap_config_path() -> Path:
+    return data_path("recap.json")
+
+
+def recap_text(now: datetime | None = None) -> str:
+    return recap_module.text(planner_obj().load(), notes_obj().load(), now or datetime.now())
+
+
+def recap_tick(now: datetime | None = None) -> None:
+    """Gives the evening recap once a day, after the chosen time, as a chat message (never spoken)."""
+    now = now or datetime.now()
+    cfg = recap_module.load_config(recap_config_path())
+    if not recap_module.due(cfg, now):
+        return
+    recap_module.save_config(recap_config_path(), {"last": now.date().isoformat()})
+    publish_event({"type": "proactive", "id": "recap-" + now.date().isoformat(), "text": recap_text(now), "chat": True, "speak": False})
+
+
 def alerts_tick(now: float | None = None, notify=None) -> None:
     """Called about every 20 seconds: events and tasks coming up, new mail (every 5 minutes) and a low battery."""
     now = time.time() if now is None else now
@@ -1468,6 +1487,7 @@ def alerts_tick(now: float | None = None, notify=None) -> None:
     cfg = alerts_config()
     calendar_sync_in_background()
     update_check_in_background()
+    recap_tick()
     due = planner_obj().due_notifications(now, cfg["lead_minutes"] * 60)
     if proactive_obj().config()["enabled"]:        # Proactive Jarvis decides what to say, when, and where
         proactive_tick(now, due)
@@ -3589,6 +3609,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/voice":
             self.send_json(200, voice_state())
             return
+        if path == "/api/recap":
+            cfg = recap_module.load_config(recap_config_path())
+            self.send_json(200, {"enabled": cfg["enabled"], "time": cfg["time"]})
+            return
         if path == "/api/mail":
             self.send_json(200, gmail_reader.public(gmail_reader.load(mail_path())))
             return
@@ -4065,6 +4089,20 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, cal.public())
                 except ValueError as exc:
                     self.send_json(400, {"error": str(exc)})
+            elif path in ("/api/recap", "/api/recap/show"):
+                if path == "/api/recap/show":
+                    self.send_json(200, {"text": recap_text()})
+                else:
+                    try:
+                        update = {k: payload[k] for k in ("enabled", "time") if k in payload}
+                        cfg = recap_module.save_config(recap_config_path(), update)
+                        if update.get("enabled") is True:       # switching on late in the evening should not fire at once
+                            now = datetime.now()
+                            if recap_module.due(cfg, now):
+                                recap_module.save_config(recap_config_path(), {"last": now.date().isoformat()})
+                        self.send_json(200, {"enabled": cfg["enabled"], "time": cfg["time"]})
+                    except ValueError as exc:
+                        self.send_json(400, {"error": str(exc)})
             elif path in ("/api/backup/run", "/api/backup/restore", "/api/backup/folder"):
                 if self._from_phone:
                     self.send_json(403, {"error": "Backups can only be made or restored on the PC."})
@@ -4756,6 +4794,9 @@ class Handler(BaseHTTPRequestHandler):
         brief_reply = briefing_command(latest)
         if brief_reply:
             self.send_json(200, {"reply": brief_reply, "action": None})
+            return
+        if recap_module.command(latest):
+            self.send_json(200, {"reply": recap_text(), "action": None})
             return
         backup_reply = backup_module.command(latest, backup_config_path())
         if backup_reply:
