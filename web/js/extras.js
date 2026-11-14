@@ -34,8 +34,19 @@
       busy(true); $('files-report').textContent = 'Checking…';
       return api('/api/files').then(function (d) { last = d; $('files-report').textContent = d.text; }).catch(function (e) { last = null; $('files-report').textContent = e.message; }).then(function () { busy(false); });
     };
+    var upd = null;
+    var busyU = function (on) { $('files-update').disabled = on; $('files-install').disabled = on || !upd || !(upd.missing.length || upd.updates.length || ($('files-changed').checked && (upd.conflicts.length || upd.unknown.length))); };
+    $('files-update').addEventListener('click', function () {
+      busyU(true); $('files-report').textContent = 'Looking for updates…';
+      api('/api/files/update').then(function (d) { upd = d; $('files-auto').checked = d.auto !== false; $('files-report').textContent = d.text; }).catch(function (e) { upd = null; $('files-report').textContent = e.message; }).then(function () { busyU(false); });
+    });
+    $('files-install').addEventListener('click', function () {
+      busyU(true); $('files-report').textContent = 'Downloading…';
+      api('/api/files/repair', { mode: 'update', changed: $('files-changed').checked }).then(function (d) { $('files-report').textContent = d.text; upd = null; }).catch(function (e) { $('files-report').textContent = e.message; }).then(function () { busyU(false); });
+    });
+    $('files-auto').addEventListener('change', function () { api('/api/files/auto', { on: $('files-auto').checked }).catch(function () {}); });
     $('files-check').addEventListener('click', run);
-    $('files-changed').addEventListener('change', function () { busy(false); });
+    $('files-changed').addEventListener('change', function () { busy(false); busyU(false); });
     $('files-repair').addEventListener('click', function () {
       var n = last.missing.length + ($('files-changed').checked ? last.changed.length : 0);
       busy(true); $('files-report').textContent = 'Downloading ' + n + ' file' + (n === 1 ? '' : 's') + '…';
@@ -60,6 +71,31 @@
     var loadTrain = function () { api('/api/training').then(showTrain).catch(function () {}); };
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadTrain(); });
     loadTrain();
+  }
+  if ($('backup-run')) {
+    var sel = $('backup-file');
+    var showB = function (d) {
+      if (document.activeElement !== $('backup-folder')) $('backup-folder').value = d.folder;
+      $('backup-last').textContent = 'Last backup: ' + d.last_text + '.';
+      var keep = sel.value; sel.textContent = '';
+      d.backups.forEach(function (b) { var o = document.createElement('option'); o.value = b.name; o.textContent = b.name + '  (' + new Date(b.at * 1000).toLocaleString() + ', ' + Math.max(1, Math.round(b.bytes / 1024)) + ' KB)'; sel.appendChild(o); });
+      if (!d.backups.length) { var o = document.createElement('option'); o.value = ''; o.textContent = 'No backup found in that folder'; sel.appendChild(o); }
+      if (keep) sel.value = keep;
+      $('backup-restore').disabled = !d.backups.length;
+    };
+    var loadB = function () { api('/api/backup').then(showB).catch(function () {}); };
+    var done = function (d) { $('backup-pass').value = ''; $('backup-status').textContent = d.message; showB(d.state); };
+    var fail = function (e) { $('backup-status').textContent = e.message; };
+    $('backup-run').addEventListener('click', function () {
+      $('backup-status').textContent = 'Backing up…';
+      api('/api/backup/run', { folder: $('backup-folder').value, passphrase: $('backup-pass').value }).then(done).catch(fail);
+    });
+    $('backup-restore').addEventListener('click', function () {
+      $('backup-status').textContent = 'Restoring…';
+      api('/api/backup/restore', { folder: $('backup-folder').value, file: sel.value, passphrase: $('backup-pass').value }).then(done).catch(fail);
+    });
+    $('backup-folder').addEventListener('change', function () { api('/api/backup/folder', { folder: $('backup-folder').value }).then(showB).catch(fail); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'timers') loadB(); });
   }
   if ($('health-run')) {
     $('health-run').addEventListener('click', function () {

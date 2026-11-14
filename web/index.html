@@ -384,9 +384,21 @@
 
     <div class="settings-pane hidden" id="pane-timers" role="tabpanel" aria-labelledby="tab-timers">
       <div class="settings-section">
+        <h2 class="settings-heading">Backup</h2>
+        <p class="settings-note">Saves your settings, memory, notes, planner, study history and sign-in tokens (the <code>data</code> folder) into one encrypted file that only your passphrase opens. Put it on a USB stick or OneDrive. On a new computer, install Jarvis, copy the file into the folder below and restore it here. The passphrase is never stored, so if you forget it the backup cannot be opened.</p>
+        <p class="settings-note" id="backup-last" role="status"></p>
+        <div class="settings-field"><label for="backup-folder">Backup folder</label><input type="text" id="backup-folder" maxlength="300" spellcheck="false"></div>
+        <div class="settings-field"><label for="backup-pass">Passphrase</label><input type="password" id="backup-pass" autocomplete="new-password" maxlength="200"></div>
+        <div class="inline-form"><button type="button" id="backup-run">Back up now</button></div>
+        <div class="settings-field"><label for="backup-file">Restore from</label><select id="backup-file" aria-label="Backup to restore"></select></div>
+        <div class="inline-form"><button type="button" id="backup-restore" disabled>Restore this backup</button></div>
+        <p class="settings-note" id="backup-status" role="status"></p>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">File check</h2>
         <p class="settings-note">Checks that every file Jarvis needs is in this folder, using the list in the GitHub repository (github.com/LoicTheGuyThatGits/Jarvis_File_Checker). Missing files can be downloaded again; each one is verified against its fingerprint first. You can also ask “check my files”. Your data, settings and passwords are never touched.</p>
-        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button></div>
+        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button><button type="button" id="files-update">Check for updates</button><button type="button" id="files-install" disabled>Install updates</button></div>
+        <label class="settings-check"><input type="checkbox" id="files-auto" checked> Tell me when the repository has an update</label>
         <label class="settings-check"><input type="checkbox" id="files-changed"> Also replace files that differ from the repository (the old copy is kept in data/file-backups)</label>
         <pre class="settings-note" id="files-report" style="white-space:pre-wrap" role="status"></pre>
       </div>

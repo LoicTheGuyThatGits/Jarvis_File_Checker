@@ -17,6 +17,13 @@ TEMP_AGE_DAYS, WALK_LIMIT, WALK_SECONDS, CONFIRM_SECONDS = 3, 40000, 6.0, 120
 PENDING: dict = {"at": 0.0}
 
 
+def backup_age(last) -> str:
+    if not last:
+        return "never"
+    d = (time.time() - last) / 86400
+    return "today" if d < 1 else "yesterday" if d < 2 else f"{int(d)} days ago"
+
+
 def gb(n: float) -> str:
     return f"{n / 1e9:.1f} GB" if n >= 1e8 else f"{n / 1e6:.0f} MB"
 
@@ -132,7 +139,7 @@ def folder_size(path: Path, limit_seconds: float = 4.0) -> int | None:
     return total
 
 
-def collect(snapshot: dict | None = None, extra_folders: dict | None = None) -> dict:
+def collect(snapshot: dict | None = None, extra_folders: dict | None = None, backup: dict | None = None) -> dict:
     snapshot = snapshot or {}
     drive = os.environ.get("SystemDrive", "C:") + "\\" if os.name == "nt" else "/"
     try:
@@ -141,7 +148,8 @@ def collect(snapshot: dict | None = None, extra_folders: dict | None = None) -> 
     except OSError:
         disk = None
     return {"disk": disk, "ram": snapshot.get("ram"), "uptime_s": snapshot.get("uptime_s"), "temp": temp_scan(), "startup": startup_programs(),
-            "heavy": heavy_programs(), "update": last_update(), "folders": {k: folder_size(Path(v)) for k, v in (extra_folders or {}).items()}}
+            "heavy": heavy_programs(), "update": last_update(), "folders": {k: folder_size(Path(v)) for k, v in (extra_folders or {}).items()},
+            **({"backup": backup} if backup is not None else {})}
 
 
 def report(info: dict) -> str:
@@ -178,6 +186,12 @@ def report(info: dict) -> str:
         lines.append("• Using the most memory: " + ", ".join(f"{n} ({gb(v)})" for n, v in h))
     if info.get("update"):
         lines.append(f"• Last Windows update installed: {info['update']}")
+    if "backup" in info:
+        last = info["backup"].get("last")
+        days = (time.time() - last) / 86400 if last else None
+        lines.append("• Last data backup: " + (backup_age(last)))
+        if days is None or days > 14:
+            tips.append("Your settings, notes and tokens have " + ("never been backed up" if days is None else "not been backed up for over two weeks") + ". Use Settings > Daily > Backup.")
     for name, size in (info.get("folders") or {}).items():
         if size is not None:
             lines.append(f"• {name}: {gb(size)}")
@@ -190,7 +204,7 @@ CLEAN = re.compile(r"(?:clean\s*(?:up)?|clear|delete|remove|empty|free\s+up)\s+(
 YES = re.compile(r"(?:yes|yeah|yep|ok|okay|sure|go ahead|confirm|do it)[,.! ]*(?:please[,.! ]*)?(?:clean(?:\s+(?:them|it|up|the temp files))?|delete(?:\s+them)?|go ahead|do it)?|clean\s+them|delete\s+them|confirm\s+cleanup", re.I)
 
 
-def command(text: str, snapshot_fn, remote: bool = False, folders: dict | None = None, now: float | None = None) -> str | None:
+def command(text: str, snapshot_fn, remote: bool = False, folders: dict | None = None, now: float | None = None, backup: dict | None = None) -> str | None:
     t = re.sub(r"\s+", " ", (text or "").strip())
     t = re.sub(r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?)?", "", t, flags=re.I)
     t = re.sub(r"\s*(?:please|for me|now)?\s*[.!?]*$", "", t, flags=re.I).strip()
@@ -213,5 +227,5 @@ def command(text: str, snapshot_fn, remote: bool = False, folders: dict | None =
         PENDING["at"] = now
         return f"I can delete {scan['old_files']} temp files older than {TEMP_AGE_DAYS} days, about {gb(scan['old'])}{' (at least)' if scan['partial'] else ''}. Files in use are skipped. Say “yes, clean them” within two minutes to go ahead."
     if HEALTH.fullmatch(t):
-        return report(collect(snapshot_fn(), folders))
+        return report(collect(snapshot_fn(), folders, backup))
     return None

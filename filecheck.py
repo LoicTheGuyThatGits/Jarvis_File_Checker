@@ -3,6 +3,8 @@
     python filecheck.py                 check and report
     python filecheck.py --repair        download the missing files (asks first)
     python filecheck.py --repair --all  also replace files that differ from the repository (the old copy is kept in data/file-backups)
+    python filecheck.py --update        show what changed in the repository since your last update and install it (asks first)
+    python filecheck.py --update --all  also replace files you changed yourself (the old copy is kept in data/file-backups)
     python filecheck.py --ref v1.2      use a tag or commit instead of the main branch
     python filecheck.py --offline       compare with the manifest.json in this folder only
 
@@ -31,6 +33,7 @@ TEXT_EXT = {".py", ".js", ".html", ".css", ".md", ".txt", ".bat", ".json", ".yml
 NEVER = ("data", ".venv", "model", ".git", "workspace", "piper")           # never listed, never written
 ALLOWED_TOP = {"app", "web", "tools", ".github"}                            # folders a manifest may write into (plus plain files in the root)
 PENDING: dict = {"at": 0.0, "paths": [], "all": False}
+STATE_NAME = "filecheck-state.json"
 CONFIRM_SECONDS = 180
 
 
@@ -136,6 +139,95 @@ def check(root: Path, manifest: dict) -> dict:
     return {"missing": missing, "changed": changed, "ok": ok, "total": len(manifest["files"])}
 
 
+def load_state(root: Path) -> dict:
+    try:
+        st = json.loads((Path(root) / "data" / STATE_NAME).read_text(encoding="utf-8"))
+        if isinstance(st, dict) and isinstance(st.get("applied"), dict):
+            return st
+    except (OSError, ValueError):
+        pass
+    return {"applied": {}}
+
+
+def save_state(root: Path, state: dict) -> None:
+    path = Path(root) / "data" / STATE_NAME
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(state, indent=1), encoding="utf-8")
+        tmp.replace(path)
+    except OSError:
+        pass
+
+
+def record_applied(root: Path, manifest: dict, paths: list[str]) -> None:
+    """Remember which repository version each of these files now matches, so a later change in the repository can be told apart from your own edits."""
+    by_path = {f["path"]: f["sha256"] for f in manifest["files"]}
+    state = load_state(root)
+    for rel in paths:
+        if rel in by_path:
+            state["applied"][rel] = by_path[rel]
+    save_state(root, state)
+
+
+def classify(root: Path, manifest: dict) -> dict:
+    """Sorts every file: ok / missing / updates (the repository changed, your copy is untouched) / local (you changed it, the repository did not) /
+    conflicts (both changed) / unknown (differs, and there is no record of where it came from)."""
+    root = Path(root)
+    state = load_state(root)
+    applied = state["applied"]
+    out = {"ok": 0, "missing": [], "updates": [], "local": [], "conflicts": [], "unknown": [], "total": len(manifest["files"])}
+    matched = []
+    for f in manifest["files"]:
+        rel, remote = f["path"], f["sha256"]
+        p = root / rel
+        if not p.is_file():
+            out["missing"].append(rel)
+            continue
+        try:
+            here = fingerprint(p.read_bytes(), rel)
+        except OSError:
+            out["unknown"].append(rel)
+            continue
+        old = applied.get(rel)
+        if here == remote:
+            out["ok"] += 1
+            if old != remote:
+                matched.append(rel)
+        elif old is None:
+            out["unknown"].append(rel)
+        elif here == old:
+            out["updates"].append(rel)
+        elif remote == old:
+            out["local"].append(rel)
+        else:
+            out["conflicts"].append(rel)
+    if matched:
+        record_applied(root, manifest, matched)
+    return out
+
+
+def describe_update(plan: dict, source: str = "") -> str:
+    lines = []
+    def block(title: str, items: list[str]) -> None:
+        if items:
+            lines.append(f"{title} ({len(items)}):")
+            lines.extend("  • " + p for p in items[:20])
+            if len(items) > 20:
+                lines.append(f"  • …and {len(items) - 20} more")
+    block("New or missing files", plan["missing"])
+    block("Updated in the repository", plan["updates"])
+    block("Changed in both places, not touched unless you ask", plan["conflicts"])
+    block("Different from the repository (no record of why)", plan["unknown"])
+    if plan["local"]:
+        lines.append(f"{len(plan['local'])} file{'s' if len(plan['local']) != 1 else ''} you changed yourself are left alone.")
+    if not plan["missing"] and not plan["updates"]:
+        lines.insert(0, f"Jarvis is up to date ({plan['ok']} of {plan['total']} files match the repository" + (f", {source}" if source else "") + ").")
+    else:
+        lines.insert(0, "An update is available" + (f" ({source})" if source else "") + ":")
+    return "\n".join(lines)
+
+
 def describe(result: dict, source: str = "") -> str:
     lines = [f"Checked {result['total']} files" + (f" against {source}" if source else "") + f": {result['ok']} fine."]
     if result["missing"]:
@@ -179,6 +271,8 @@ def repair(root: Path, manifest: dict, paths: list[str], ref: str) -> dict:
             done.append(rel)
         except (CheckError, OSError) as exc:
             failed.append((rel, str(exc)))
+    if done:
+        record_applied(root, manifest, done)
     return {"done": done, "failed": failed, "backed_up": backed_up, "backup_folder": f"data/file-backups/{stamp}" if backed_up else ""}
 
 
@@ -209,7 +303,8 @@ def ref_for(root: Path) -> str:
 ASK = re.compile(r"(?:check|verify|scan|test|inspect)\s+(?:all\s+)?(?:my\s+|the\s+)?(?:jarvis\s+)?(?:files|install(?:ation)?|program files)(?:\s+(?:are|is)\s+(?:all\s+)?(?:there|here|ok|okay|present|complete))?"
                  r"|(?:is|are)\s+(?:there\s+)?(?:anything|any\s+files?|any\s+file|something|everything|all\s+(?:my\s+)?files?)\s+(?:missing|there|here|ok|okay|present|complete)(?:\s+(?:from|in)\s+(?:jarvis|my\s+jarvis(?:\s+folder)?|the\s+jarvis\s+folder))?"
                  r"|(?:check|look)\s+for\s+missing\s+(?:jarvis\s+)?files|(?:jarvis\s+)?file\s*check(?:er)?|(?:run\s+)?(?:the\s+)?file\s+check(?:er)?", re.I)
-YES = re.compile(r"(?:yes|yeah|yep|ok|okay|sure|go ahead|confirm|do it)[,.! ]*(?:please[,.! ]*)?(?:restore(?:\s+(?:them|it|the files|the missing files))?|download(?:\s+them)?|repair(?:\s+them)?)|restore\s+them|repair\s+them|restore\s+(?:the\s+)?missing\s+files", re.I)
+ASK_UPDATE = re.compile(r"(?:check\s+(?:for\s+)?(?:an?\s+)?(?:jarvis\s+)?updates?|(?:is|are)\s+there\s+(?:an?\s+|any\s+)?(?:new\s+|jarvis\s+)?updates?(?:\s+(?:for\s+jarvis|available))?|(?:any|new)\s+(?:jarvis\s+)?updates?(?:\s+(?:for\s+jarvis|available))?|update\s+(?:jarvis|yourself|myself|the\s+program|everything)|get\s+the\s+latest(?:\s+(?:version|files))?(?:\s+of\s+jarvis)?|(?:am\s+i|are\s+you)\s+up\s+to\s+date|upgrade\s+(?:jarvis|yourself))", re.I)
+YES = re.compile(r"(?:yes|yeah|yep|ok|okay|sure|go ahead|confirm|do it)[,.! ]*(?:please[,.! ]*)?(?:restore(?:\s+(?:them|it|the files|the missing files))?|download(?:\s+them)?|repair(?:\s+them)?|update(?:\s+(?:them|now|jarvis|everything|yourself))?)|restore\s+them|update\s+(?:them|now)|repair\s+them|restore\s+(?:the\s+)?missing\s+files", re.I)
 
 
 def command(text: str, root: Path, remote: bool = False, now: float | None = None, ref: str | None = None) -> str | None:
@@ -229,6 +324,21 @@ def command(text: str, root: Path, remote: bool = False, now: float | None = Non
             return describe_repair(repair(root, manifest, paths, ref))
         except CheckError as exc:
             return "I could not restore the files: " + str(exc)
+    if ASK_UPDATE.fullmatch(t):
+        PENDING["at"] = 0.0
+        try:
+            manifest, source = load_manifest(root, ref)
+        except CheckError as exc:
+            return str(exc)
+        plan = classify(root, manifest)
+        out = describe_update(plan, source)
+        todo = plan["missing"] + plan["updates"]
+        if todo:
+            if remote:
+                return out + "\nInstalling has to be asked at the PC itself, sir."
+            PENDING.update(at=now, paths=todo, all=False)
+            out += "\nSay “yes, update” within three minutes and I will download them (the old copies are kept in data/file-backups). Restart Jarvis afterwards."
+        return out
     if ASK.fullmatch(t):
         PENDING["at"] = 0.0
         try:
@@ -249,7 +359,7 @@ def command(text: str, root: Path, remote: bool = False, now: float | None = Non
 # ---------------- command line ----------------
 def main(argv: list[str]) -> int:
     root = Path(__file__).resolve().parent
-    ref, offline, do_repair, include_changed, yes = ref_for(root), False, False, False, False
+    ref, offline, do_repair, include_changed, yes, do_update = ref_for(root), False, False, False, False, False
     it = iter(argv)
     for a in it:
         if a == "--ref":
@@ -260,6 +370,8 @@ def main(argv: list[str]) -> int:
             do_repair = True
         elif a == "--all":
             include_changed = True
+        elif a == "--update":
+            do_update = True
         elif a in ("--yes", "-y"):
             yes = True
         else:
@@ -270,6 +382,21 @@ def main(argv: list[str]) -> int:
     except CheckError as exc:
         print(exc)
         return 1
+    if do_update:
+        plan = classify(root, manifest)
+        print(describe_update(plan, source))
+        todo = plan["missing"] + plan["updates"] + (plan["conflicts"] + plan["unknown"] if include_changed else [])
+        if not todo:
+            return 0
+        if offline:
+            print("Offline: nothing can be downloaded.")
+            return 1
+        if not yes and input(f"\nDownload {len(todo)} file(s) from github.com/{REPO} ({ref})? [y/N] ").strip().lower() not in ("y", "yes"):
+            print("Nothing was changed.")
+            return 1
+        out = repair(root, manifest, todo, ref)
+        print(describe_repair(out))
+        return 0 if not out["failed"] else 1
     res = check(root, manifest)
     print(describe(res, source))
     todo = res["missing"] + (res["changed"] if include_changed else [])

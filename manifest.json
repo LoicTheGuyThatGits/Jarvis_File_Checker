@@ -9,8 +9,13 @@
   },
   {
    "path": "README.md",
-   "sha256": "829f6201364c761342b3c98d908f1bf1c2552e9ba9f9ead920ac282709663df1",
-   "size": 44943
+   "sha256": "40fc74df395a928e7f8d262ab2612745b6c7a423dee86bb72079132ef1c827a5",
+   "size": 46328
+  },
+  {
+   "path": "app/backup.py",
+   "sha256": "02855a841b139f82e6ca9de69407f4a0f426d48a87032e6fd2cab4de2387df01",
+   "size": 9758
   },
   {
    "path": "app/export_training.py",
@@ -44,8 +49,8 @@
   },
   {
    "path": "app/maintenance.py",
-   "sha256": "88d429217b13195b6668461d96d7e24e2cf90cc511275e20391677e1cf1aa9e2",
-   "size": 10629
+   "sha256": "5b148d3a90494df30787764cd8789ef4f907252b32f5a3894afb8aa1baeb235b",
+   "size": 11372
   },
   {
    "path": "app/notes.py",
@@ -69,8 +74,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "fec5918591214ed187f178e255e05f79c359855600470feb24be71923472ae93",
-   "size": 295339
+   "sha256": "0520e2741e8db627faef27d14b9928ff4719ba58524a07da3a0b59d067325ce0",
+   "size": 301760
   },
   {
    "path": "app/set-address.py",
@@ -114,8 +119,8 @@
   },
   {
    "path": "filecheck.py",
-   "sha256": "bdb3e1b238a0852a14f2f7ec33ba058741446eed9c9e7ca9bfabf3ef636c1df1",
-   "size": 13552
+   "sha256": "c1bcf08b03789ad5d19ca9c75d0c7a7cacc01d8607ee1b8bddb9939cae54b400",
+   "size": 19424
   },
   {
    "path": "install-jarvis.bat",
@@ -164,8 +169,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "d07d0f3a5053dac2045603295d311630a16a857fb5cc126017ed50f89659e110",
-   "size": 48274
+   "sha256": "b9b4855aac881ad1ea5dcbb9e1d1851a3380b831bb0e06fc40a62f85c183baa6",
+   "size": 49904
   },
   {
    "path": "web/js/app.js",
@@ -184,8 +189,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "539d5a0c826e0de8af0b42689f98ac577656b6b25a9f9f9ddb64c69228f2a5d6",
-   "size": 5075
+   "sha256": "a2db2cae1be827664af322380cefef082045605bed859a13ddc5b34cc6959276",
+   "size": 8211
   },
   {
    "path": "web/js/features.js",
@@ -229,8 +234,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "e8affa1ed4367b5800dbbb7314fb4be3982930dd43efe3799fe260ed10f35154",
-   "size": 17060
+   "sha256": "a90152aa76ee6eca5a4617ebe71362149705f84fcac19e1859c2613923a9b9fe",
+   "size": 17156
   },
   {
    "path": "web/js/wake.js",

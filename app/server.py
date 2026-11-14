@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import random
+import hashlib
 import json
 import base64
 import ctypes
@@ -888,9 +889,72 @@ PLANNER_CACHE: dict = {"path": None, "obj": None}
 
 
 import followup
+import backup as backup_module
+
+
+def backup_config_path():
+    return data_path("backup.json")
+
+
+def backup_state() -> dict:
+    cfg = backup_module.load_config(backup_config_path())
+    folder = cfg.get("folder") or backup_module.default_folder()
+    return {"folder": folder, "default_folder": backup_module.default_folder(), "last": cfg.get("last"), "last_text": backup_module.age_text(cfg.get("last")),
+            "backups": backup_module.list_backups(Path(folder))}
+
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))                    # filecheck.py lives in the Jarvis folder itself so it still works when app/ is damaged
 import filecheck
+UPDATE_STATE: dict = {"at": time.time() - 11.5 * 3600, "running": False, "todo": 0}     # first look about 30 minutes after start, then every 12 hours
+
+
+def filecheck_config() -> dict:
+    try:
+        cfg = json.loads((ROOT / "data" / "filecheck.json").read_text(encoding="utf-8"))
+        return cfg if isinstance(cfg, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def filecheck_save(cfg: dict) -> None:
+    path = ROOT / "data" / "filecheck.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(cfg, indent=1), encoding="utf-8")
+    tmp.replace(path)
+
+
+def update_check_in_background(force: bool = False) -> None:
+    """Looks at the GitHub repository now and then and says once when files there have changed. Runs on its own thread."""
+    if UPDATE_STATE["running"] or (not force and (not filecheck_config().get("auto", True) or time.time() - UPDATE_STATE["at"] < 12 * 3600)):
+        return
+    UPDATE_STATE["running"], UPDATE_STATE["at"] = True, time.time()
+
+    def work():
+        try:
+            manifest, source = filecheck.load_manifest(ROOT, filecheck.ref_for(ROOT))
+            if "GitHub" not in source:
+                return
+            plan = filecheck.classify(ROOT, manifest)
+            todo = plan["updates"] + plan["missing"]
+            UPDATE_STATE["todo"] = len(todo)
+            if not todo:
+                return
+            by = {f["path"]: f["sha256"] for f in manifest["files"]}
+            signature = hashlib.sha256("|".join(sorted(p + by[p] for p in todo)).encode()).hexdigest()[:16]
+            cfg = filecheck_config()
+            if cfg.get("notified") == signature:
+                return
+            cfg["notified"] = signature
+            filecheck_save(cfg)
+            publish_event({"type": "proactive", "id": "update-" + signature, "text": f"An update for Jarvis is available ({len(todo)} file{'s' if len(todo) != 1 else ''}). Say “update Jarvis”, or open Settings > Daily > File check.",
+                           "chat": True, "speak": False, "urgent": False, "at": time.time()})
+        except Exception:
+            pass
+        finally:
+            UPDATE_STATE["running"] = False
+    threading.Thread(target=work, daemon=True).start()
+
 import spotify as spotify_module
 import maintenance as maintenance_module
 
@@ -1403,6 +1467,7 @@ def alerts_tick(now: float | None = None, notify=None) -> None:
     notify = notify or phone_notify
     cfg = alerts_config()
     calendar_sync_in_background()
+    update_check_in_background()
     due = planner_obj().due_notifications(now, cfg["lead_minutes"] * 60)
     if proactive_obj().config()["enabled"]:        # Proactive Jarvis decides what to say, when, and where
         proactive_tick(now, due)
@@ -3548,6 +3613,18 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(page)
             return
+        if path == "/api/backup":
+            self.send_json(200, backup_state())
+            return
+        if path == "/api/files/update":
+            try:
+                ref = filecheck.ref_for(ROOT)
+                manifest, source = filecheck.load_manifest(ROOT, ref)
+                plan = filecheck.classify(ROOT, manifest)
+                self.send_json(200, {**plan, "source": source, "ref": ref, "text": filecheck.describe_update(plan, source), "auto": filecheck_config().get("auto", True)})
+            except filecheck.CheckError as exc:
+                self.send_json(502, {"error": str(exc)})
+            return
         if path == "/api/files":
             try:
                 ref = filecheck.ref_for(ROOT)
@@ -3558,7 +3635,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(502, {"error": str(exc)})
             return
         if path == "/api/maintenance":
-            self.send_json(200, {"report": maintenance_module.report(maintenance_module.collect(system_snapshot(), maintenance_folders()))})
+            self.send_json(200, {"report": maintenance_module.report(maintenance_module.collect(system_snapshot(), maintenance_folders(), {"last": backup_module.load_config(backup_config_path()).get("last")}))})
             return
         if path == "/api/study":
             self.send_json(200, study_obj().public())
@@ -3988,6 +4065,37 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, cal.public())
                 except ValueError as exc:
                     self.send_json(400, {"error": str(exc)})
+            elif path in ("/api/backup/run", "/api/backup/restore", "/api/backup/folder"):
+                if self._from_phone:
+                    self.send_json(403, {"error": "Backups can only be made or restored on the PC."})
+                else:
+                    try:
+                        cfg = backup_module.load_config(backup_config_path())
+                        folder = str(payload.get("folder") or cfg.get("folder") or backup_module.default_folder()).strip()[:300]
+                        passphrase = str(payload.get("passphrase") or "")
+                        if path == "/api/backup/folder":
+                            cfg["folder"] = folder
+                            backup_module.save_config(backup_config_path(), cfg)
+                            self.send_json(200, backup_state())
+                        elif path == "/api/backup/run":
+                            res = backup_module.make_backup(ROOT / "data", Path(folder), passphrase)
+                            cfg.update(folder=folder, last=time.time())
+                            backup_module.save_config(backup_config_path(), cfg)
+                            audit(f"data backup written ({res['files']} files)")
+                            self.send_json(200, {**res, "message": f"Backed up {res['files']} files to {res['path']}.", "state": backup_state()})
+                        else:
+                            name = Path(str(payload.get("file") or "")).name
+                            res = backup_module.restore_backup(Path(folder) / name, passphrase, ROOT / "data", ROOT)
+                            audit(f"data restored from a backup ({res['restored']} files)")
+                            msg = f"Restored {res['restored']} files." + (f" What was there before is kept in the folder {res['kept']} next to data." if res["kept"] else "") + " Restart Jarvis to use them."
+                            self.send_json(200, {**res, "message": msg, "state": backup_state()})
+                    except backup_module.BackupError as exc:
+                        self.send_json(400, {"error": str(exc)})
+            elif path == "/api/files/auto":
+                cfg = filecheck_config()
+                cfg["auto"] = payload.get("on") is True
+                filecheck_save(cfg)
+                self.send_json(200, {"auto": cfg["auto"]})
             elif path == "/api/files/repair":
                 if self._from_phone:
                     self.send_json(403, {"error": "Files can only be restored on the PC."})
@@ -3995,8 +4103,12 @@ class Handler(BaseHTTPRequestHandler):
                     try:
                         ref = filecheck.ref_for(ROOT)
                         manifest, _ = filecheck.load_manifest(ROOT, ref)
-                        res = filecheck.check(ROOT, manifest)
-                        todo = res["missing"] + (res["changed"] if payload.get("changed") is True else [])
+                        if payload.get("mode") == "update":
+                            plan = filecheck.classify(ROOT, manifest)
+                            todo = plan["missing"] + plan["updates"] + (plan["conflicts"] + plan["unknown"] if payload.get("changed") is True else [])
+                        else:
+                            res = filecheck.check(ROOT, manifest)
+                            todo = res["missing"] + (res["changed"] if payload.get("changed") is True else [])
                         out = filecheck.repair(ROOT, manifest, todo, ref)
                         self.send_json(200, {**out, "text": filecheck.describe_repair(out)})
                     except filecheck.CheckError as exc:
@@ -4645,6 +4757,10 @@ class Handler(BaseHTTPRequestHandler):
         if brief_reply:
             self.send_json(200, {"reply": brief_reply, "action": None})
             return
+        backup_reply = backup_module.command(latest, backup_config_path())
+        if backup_reply:
+            self.send_json(200, {"reply": backup_reply, "action": None})
+            return
         files_reply = filecheck.command(latest, ROOT, self._remote)
         if files_reply:
             self.send_json(200, {"reply": files_reply, "action": None})
@@ -4653,7 +4769,7 @@ class Handler(BaseHTTPRequestHandler):
         if spotify_reply:
             self.send_json(200, {"reply": spotify_reply, "action": None})
             return
-        health_reply = maintenance_module.command(latest, system_snapshot, self._remote, maintenance_folders())
+        health_reply = maintenance_module.command(latest, system_snapshot, self._remote, maintenance_folders(), None, {"last": backup_module.load_config(backup_config_path()).get("last")})
         if health_reply:
             self.send_json(200, {"reply": health_reply, "action": None})
             return
