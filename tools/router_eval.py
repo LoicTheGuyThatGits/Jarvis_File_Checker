@@ -1,6 +1,6 @@
 """Measures Smart commands: how often does your AI model pick the right tool?
 
-    python tools/router_eval.py            run the 166 labelled examples through your model and print the scores
+    python tools/router_eval.py            run the 182 labelled examples through your model and print the scores
     python tools/router_eval.py --label    go through your own logged messages and say which tool each one wanted
     python tools/router_eval.py --mine     also score those (your labels stay in data/, on this PC)
     python tools/router_eval.py --limit 30 a quick run on the first 30 examples

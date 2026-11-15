@@ -111,7 +111,10 @@ class Registry:
     # ---- carrying it out ----
     def handle(self, text: str, ask_model, remote: bool = False, now: datetime | None = None) -> dict | None:
         """ask_model(system, user) -> the model's reply text. Returns {"reply", "decided"} or None (answer as normal chat)."""
-        steps = self.decide(text, ask_model, remote, now)
+        return self.run(self.decide(text, ask_model, remote, now))
+
+    def run(self, steps: list[dict] | None) -> dict | None:
+        """Carries out a checked plan from decide(). Returns {"reply", "decided"} or None (answer as normal chat)."""
         if not steps:
             return None
         replies, decided, undos = [], [], []

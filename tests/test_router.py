@@ -68,7 +68,7 @@ asked=[]; answer={"v":'{"steps": []}'}
 S.router_ask_model=lambda system,user:(asked.append((system,user)) or answer["v"])
 chatted=[]
 orig=S.Handler.proxy_chat if hasattr(S.Handler,"proxy_chat") else None
-s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==15 and all(t["risk"] in ("read","write") for t in d["tools"])
+s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==16 and all(t["risk"] in ("read","write") for t in d["tools"])
 names={t["name"] for t in d["tools"]}; assert not any(w in n for n in names for w in ("delete","mail","backup","restore","clean","update","file","command")), names
 # off: the model is never asked
 answer["v"]=J(("add_event",{"title":"physics test","when":"on the 20th"}))
@@ -115,6 +115,13 @@ try:
     answer["v"]=J(("add_task",{"text":"email the head teacher about the trip"})); before=len(S.planner_obj().public()["tasks"]); r=chat("I need to sort out my life"); assert "decided" not in r and len(S.planner_obj().public()["tasks"])==before, "invented task refused"
     answer["v"]="I would say add a task."; r=chat("I need to think about my list"); assert "decided" not in r
     n=len(asked); r=chat("explain how photosynthesis works"); assert len(asked)==n, "plain questions never reach the router"
+    # a web search in words no command knows is handed to the normal web-research path
+    looked=[]; real_research=S.web_research.research
+    S.web_research.research=lambda q,**k:(looked.append(q) or {"sources":[],"error":"offline in the test","context":""})
+    answer["v"]=J(("web_search",{"query":"the new Zelda game"})); r=chat("see what the internet says about the new Zelda game")
+    assert looked==["the new Zelda game"] and "could not search the web" in r["reply"], (looked,r)
+    answer["v"]=J(("web_search",{"query":"the secret plans of my neighbour"})); r=chat("how does the internet work"); assert len(looked)==1, "an invented search is refused"
+    S.web_research.research=real_research
 finally:
     S.urllib.request.urlopen=real
 # what it decided is kept for measuring later
@@ -159,7 +166,7 @@ with sync_playwright() as pw:
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(400)
     pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-ai")
-    pg.wait_for_function("document.querySelector('#router-on').checked && document.querySelector('#router-note').textContent.includes('15 tools')",timeout=8000)
+    pg.wait_for_function("document.querySelector('#router-on').checked && document.querySelector('#router-note').textContent.includes('16 tools')",timeout=8000)
     pg.uncheck("#router-on"); pg.wait_for_function("document.querySelector('#router-note').textContent==='Off.'",timeout=8000); assert S.router_enabled() is False
     pg.check("#router-on"); pg.wait_for_function("document.querySelector('#router-note').textContent.startsWith('On.')",timeout=8000); assert S.router_enabled() is True
     pg.keyboard.press("Escape")

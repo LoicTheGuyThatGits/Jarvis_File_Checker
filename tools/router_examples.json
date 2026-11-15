@@ -991,6 +991,94 @@
   {
    "text": "are you an AI",
    "tool": null
+  },
+  {
+   "text": "could you find out online when the next solar eclipse is",
+   "tool": "web_search",
+   "args": {
+    "query": "solar eclipse"
+   }
+  },
+  {
+   "text": "go on the internet and see who won the Tour de France this year",
+   "tool": "web_search",
+   "args": {
+    "query": "Tour de France"
+   }
+  },
+  {
+   "text": "I'd like you to check the web for the opening hours of the Louvre",
+   "tool": "web_search",
+   "args": {
+    "query": "Louvre"
+   }
+  },
+  {
+   "text": "what are the latest headlines about the Mars mission, have a look online",
+   "tool": "web_search",
+   "args": {
+    "query": "Mars mission"
+   }
+  },
+  {
+   "text": "see what the internet says about the new Zelda game",
+   "tool": "web_search",
+   "args": {
+    "query": "Zelda"
+   }
+  },
+  {
+   "text": "find out on the web how much a train ticket from Paris to Lyon costs",
+   "tool": "web_search",
+   "args": {
+    "query": "train ticket"
+   }
+  },
+  {
+   "text": "any news on the SpaceX launch today",
+   "tool": "web_search",
+   "args": {
+    "query": "SpaceX"
+   }
+  },
+  {
+   "text": "have a look online for a good pancake recipe",
+   "tool": "web_search",
+   "args": {
+    "query": "pancake recipe"
+   }
+  },
+  {
+   "text": "how does the internet work",
+   "tool": null
+  },
+  {
+   "text": "what is a web browser",
+   "tool": null
+  },
+  {
+   "text": "why is google called google",
+   "tool": null
+  },
+  {
+   "text": "is online school a good idea",
+   "tool": null
+  },
+  {
+   "text": "what does a search engine do",
+   "tool": null
+  },
+  {
+   "text": "who invented the world wide web",
+   "tool": null
+  },
+  {
+   "text": "I read the news every morning",
+   "tool": null
+  },
+  {
+   "text": "explain how spiders build a web",
+   "tool": null
   }
  ]
 }

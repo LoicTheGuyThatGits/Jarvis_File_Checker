@@ -1649,6 +1649,10 @@ def router_registry() -> tools_registry.Registry:
     reg.add("play_music", "Play a song, artist, album or playlist on Spotify.",
             {"what": {"desc": "the song, artist, album or playlist named in the message", "required": True}},
             play_music, r"\b(?:play|put on|listen to|spotify|music|song|playlist|album)\b")
+    reg.add("web_search", "Look something up on the internet and answer from what is found. Only when the person asks to search, look up, check or find out online, or wants today's news or other up-to-the-minute facts. Not for things you can simply explain.",
+            {"query": {"desc": "what to search for, in the person's words", "required": True}},
+            lambda a: None, r"\b(?:internet|online|web|google|look(?:ing)?\s+(?:it\s+|that\s+|this\s+)?up|search(?:ing)?|find out|news|latest|headlines|(?:re)?cherche[rz]?)\b",
+            example='"could you find out online when the next solar eclipse is" -> {"tool":"web_search","args":{"query":"when the next solar eclipse is"}}')
     ROUTER["registry"] = reg
     return reg
 
@@ -5075,8 +5079,14 @@ class Handler(BaseHTTPRequestHandler):
             self.run_explicit_open(web_action, web_reply or "Opening it, sir.", want_shot)
             return
         if not web_query and payload.get("use_documents") is not True and router_enabled():
-            routed = router_registry().handle(latest, router_ask_model, self._remote)
-            router_log(latest, routed)
+            steps = router_registry().decide(latest, router_ask_model, self._remote)
+            if steps and len(steps) == 1 and steps[0]["tool"] == "web_search":      # handed to the normal web-research path below
+                web_query = steps[0]["args"]["query"]
+                router_log(latest, {"decided": steps})
+                steps = None
+            routed = router_registry().run(steps)
+            if not web_query:
+                router_log(latest, routed)
             if routed:
                 self.send_json(200, {"reply": routed["reply"], "action": None, "decided": [d["tool"] for d in routed["decided"]]})
                 return

@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "b85fba4d031b6ec6b6ac4f34195741844a0fea2aa0a9e530cab1508c9c2200d8",
-   "size": 48907
+   "sha256": "1f5a891a530971d0ce34fab22140323f7248d97603de57a1a64c83ce5398d7fb",
+   "size": 48919
   },
   {
    "path": "app/backup.py",
@@ -79,8 +79,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "d4eabc5952c2fb82ab461ef1482c674dc7000daab3b32acc076225c2d52e0a92",
-   "size": 318146
+   "sha256": "41039f5967976f4517079bd8e8f350338db3842d119adc860493e206b2c581a8",
+   "size": 319188
   },
   {
    "path": "app/set-address.py",
@@ -109,8 +109,8 @@
   },
   {
    "path": "app/tools_registry.py",
-   "sha256": "f3ce7e35d5f2c678e5f65f4505710dc3e43ac3886370657a0824f0e62caae45c",
-   "size": 11896
+   "sha256": "05aaa3f48d88263bb4eaee472ca5b96ed5270c79c5d4f7687e568a7d7d21049e",
+   "size": 12084
   },
   {
    "path": "app/voice_listener.py",
@@ -169,13 +169,13 @@
   },
   {
    "path": "tools/router_eval.py",
-   "sha256": "428c945a61784434bb9a02daeba475ff8d79b36edfab6d6076104349a886c871",
+   "sha256": "b2fba6708c8f97dc97403dfe6a86af28803a2a6de334f2e8ba6f23c1349bc94e",
    "size": 10147
   },
   {
    "path": "tools/router_examples.json",
-   "sha256": "ef32a544e1e73e32c129c1a0a7982bea518c2c0efd496ba56e5affc56d676d01",
-   "size": 18546
+   "sha256": "0a4d83730998a59ec56e2e1500cb3649c4e5221f4107f5821d3bf94b66499e66",
+   "size": 20287
   },
   {
    "path": "web/css/app.css",
@@ -194,8 +194,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "a9de84581c9fa15c544c9426c5e01c10efb68ed6abd097bd00b9d8fb642d4c3e",
-   "size": 51519
+   "sha256": "f0f32e8f8d04bed462910eefd005bc37e02209c5eaac595a18e461a889b8c30b",
+   "size": 51533
   },
   {
    "path": "web/js/app.js",
