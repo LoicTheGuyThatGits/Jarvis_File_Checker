@@ -90,7 +90,8 @@ class Registry:
             '{"steps": [{"tool": "<tool name>", "args": {"<argument>": "<value>"}}]}\n\n'
             "Rules:\n"
             '- If the message is a general question, an opinion, small talk, or anything no tool does, reply {"steps": []}. When unsure, reply {"steps": []}.\n'
-            "- Use a tool only when the person clearly wants that thing done now.\n"
+            "- Use a tool only when the person wants that thing done or looked up for themselves now. A tool with no arguments is the right answer whenever the message asks for what it reports, however it is worded.\n"
+            "- Questions about the world in general, other places, other people, the past, or how something works are not for tools.\n"
             "- Copy argument values from the message in the person's own words. Never invent names, tasks or times.\n"
             '- For times and dates copy the words as written ("tomorrow at 5pm", "the 20th", "in 2 hours"). Do not work out dates yourself.\n'
             f"- Usually one step. At most {MAX_STEPS}, only when the message asks for several things.\n"

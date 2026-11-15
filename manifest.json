@@ -79,8 +79,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "82359b1d7eff0662484102bd543b304b361153ae7f73d25802614a013af22dbc",
-   "size": 317057
+   "sha256": "c35dfaaf7132cdab04a11c4a46591dc590684d0ea31ca603eaaa1ae13d8a97bd",
+   "size": 318076
   },
   {
    "path": "app/set-address.py",
@@ -109,8 +109,8 @@
   },
   {
    "path": "app/tools_registry.py",
-   "sha256": "0a6e2f9c8bdb72261fd4856156f0675574cada458072bc84fccf511f590397ae",
-   "size": 11626
+   "sha256": "f3ce7e35d5f2c678e5f65f4505710dc3e43ac3886370657a0824f0e62caae45c",
+   "size": 11896
   },
   {
    "path": "app/voice_listener.py",

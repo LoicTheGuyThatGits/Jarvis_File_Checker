@@ -1614,9 +1614,10 @@ def router_registry() -> tools_registry.Registry:
             r"\b(?:calendar|schedule|agenda|diary|planned|plans?|free|busy|coming up|happening|what(?:'s| is| do i have) on|today|tomorrow|week|weekend|(?:mon|tues|wednes|thurs|fri|satur|sun)day)\b")
     reg.add("show_tasks", "Read out the open tasks on the to-do list.", {},
             lambda a: planner_obj().tasks_text(datetime.now()), r"\b(?:to-?do|tasks?|list|left to do|still (?:have|need) to|need to do|outstanding|pending)\b")
-    reg.add("complete_task", "Tick off a task that the person says they have done.",
+    reg.add("complete_task", "Tick off a task that the person says they have done, finished, bought, sent or handed in, even when said in passing.",
             {"task": {"desc": "words naming the task", "required": True}},
-            complete_task, r"\b(?:done|finished|completed|did|bought|sent|ticked?|tick(?:ed)?(?: \w+)? off|cross(?:ed)?(?: \w+)? off|handed in|sorted)\b", risk="write")
+            complete_task, r"\b(?:done|finished|completed|did|bought|sent|ticked?|tick(?:ed)?(?: \w+)? off|cross(?:ed)?(?: \w+)? off|handed in|sorted)\b", risk="write",
+            example='"right, the geography poster is sent" -> {"tool":"complete_task","args":{"task":"geography poster"}}')
     reg.add("save_note", "Save a piece of information as a note so it can be found later.",
             {"text": {"desc": "the information to keep, in the person's words", "required": True}},
             save_note, r"\b(?:notes?|jot|write (?:this |that |it )?down|remember that|keep in mind|save (?:this|that)|memo|for later)\b", risk="write")
@@ -1632,15 +1633,19 @@ def router_registry() -> tools_registry.Registry:
     reg.add("start_study", "Start a quiz or flashcards from the person's notes and documents.",
             {"kind": {"desc": "quiz or flashcards", "required": True, "choices": ["quiz", "flashcards"]}, "topic": {"desc": "optional topic to study"}},
             start_study, r"\b(?:quiz|test me|flash\s?cards?|revise|revision|study|practice questions?|drill me|ask me questions)\b")
-    reg.add("evening_recap", "Summarise the person's day (tasks done, events, notes) and what comes tomorrow.", {},
-            lambda a: recap_text(), r"\b(?:recap|my day|today|summary|wrap[- ]?up|forgot|forget|achieve|get done|accomplish)\b")
-    reg.add("briefing", "Give the briefing: time, weather, reminders, mail and the plan for today.", {},
-            lambda a: build_briefing()["text"], r"\b(?:briefing|brief me|rundown|catch me up|what(?:'s| is) new|status report|fill me in)\b")
-    reg.add("weather", "Say the weather at the person's saved location now and today.", {},
-            weather, r"\b(?:weather|rain(?:ing)?|umbrella|sunny|cold|hot|warm|forecast|snow(?:ing)?|jacket|coat|temperature outside)\b")
-    reg.add("pc_health", "Report on this PC: disk space, memory, temp files, startup programs.", {},
+    reg.add("evening_recap", "Look back at the person's own day: what they got done, what they missed or forgot, and what comes tomorrow. Use it for any question about how their day went.", {},
+            lambda a: recap_text(), r"\b(?:recap|my day|today|summary|wrap[- ]?up|forgot|forget|achieve|get done|accomplish)\b",
+            example='"have I missed something today" -> {"tool":"evening_recap","args":{}}')
+    reg.add("briefing", "Give the briefing: time, weather, reminders, mail and the plan for today. Use it whenever the person asks in general terms to be brought up to date, with no particular topic.", {},
+            lambda a: build_briefing()["text"], r"\b(?:briefing|brief me|rundown|catch me up|up to (?:speed|date)|what(?:'s| is) new|what did i miss|status report|fill me in|update me)\b",
+            example='"bring me up to speed" -> {"tool":"briefing","args":{}}')
+    reg.add("weather", "Say the weather where the person lives, now and today. Also for indirect questions: whether it will rain, how warm or cold it is outside, or what to wear or take because of the weather.", {},
+            weather, r"\b(?:weather|rain(?:ing|y)?|umbrella|sunny|cold|hot|warm|freezing|windy|wet|forecast|snow(?:ing)?|jacket|coat|scarf|gloves|shorts|temperature outside)\b",
+            example='"is a jacket enough for this evening" -> {"tool":"weather","args":{}}')
+    reg.add("pc_health", "Check this PC: disk space, memory in use, temp files, startup programs. Use it when the person asks about those or complains that the PC is slow or full.", {},
             lambda a: maintenance_module.report(maintenance_module.collect(system_snapshot(), maintenance_folders(), {"last": backup_module.load_config(backup_config_path()).get("last")})),
-            r"\b(?:pc|computer|laptop|disk|storage|space|memory|ram|slow|laggy|sluggish)\b")
+            r"\b(?:pc|computer|laptop|disk|storage|space|memory|ram|slow|laggy|sluggish)\b",
+            example='"this machine is so laggy today" -> {"tool":"pc_health","args":{}}')
     reg.add("play_music", "Play a song, artist, album or playlist on Spotify.",
             {"what": {"desc": "the song, artist, album or playlist named in the message", "required": True}},
             play_music, r"\b(?:play|put on|listen to|spotify|music|song|playlist|album)\b")
