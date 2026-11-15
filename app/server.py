@@ -4630,7 +4630,7 @@ class Handler(BaseHTTPRequestHandler):
     @staticmethod
     def explicit_web_request(text: str) -> tuple[dict | None, str | None]:
         """Understand plain-English web requests (search for X, go to Y) without needing the AI model."""
-        t = re.sub(r"\s+", " ", text.strip())
+        t = re.sub(r"\s+", " ", web_research.french_command(text).strip())      # "cherche X sur YouTube" works too
         t = re.sub(r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would)\s+you\s+(?:please\s+)?)?", "", t, flags=re.IGNORECASE)
         t = re.sub(r"\s*(?:please|for me)?\s*[.!?]*$", "", t, flags=re.IGNORECASE).strip()
         if not t:

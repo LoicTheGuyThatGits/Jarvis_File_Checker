@@ -79,8 +79,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "c35dfaaf7132cdab04a11c4a46591dc590684d0ea31ca603eaaa1ae13d8a97bd",
-   "size": 318076
+   "sha256": "d4eabc5952c2fb82ab461ef1482c674dc7000daab3b32acc076225c2d52e0a92",
+   "size": 318146
   },
   {
    "path": "app/set-address.py",
@@ -119,8 +119,8 @@
   },
   {
    "path": "app/web_research.py",
-   "sha256": "57a56b84f99a099268f23cbe44a88a5b3173019d28a74509bf5ddb4b1a1791e9",
-   "size": 21202
+   "sha256": "b345dfcafc11876e31913dda79791a9f6d20f34e8ff109b6aba5a2a2ac8fc019",
+   "size": 22913
   },
   {
    "path": "evaluate-smart-commands.bat",

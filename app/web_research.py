@@ -39,12 +39,40 @@ STOPWORDS = frozenset(
 
 
 # ---------------- is this a request to research something? ----------------
+FR_WEB = r"(?:(?:l['’]\s*)?internet|le\s+web|le\s+net|la\s+toile|en\s+ligne)"
+FR_FIND = r"(?:(?:re)?cherche[rz]?|trouve[rz]?|regarde[rz]?)(?:[- ]moi)?"
+
+
+def french_command(text: str) -> str:
+    """A French web-search request rewritten as the English command Jarvis knows; anything else comes back untouched.
+
+    "cherche X sur internet" -> "search the internet for X";  "cherche X sur YouTube" -> "search YouTube for X"
+    """
+    t = re.sub(r"\s+", " ", (text or "").strip())
+    core = re.sub(r"^(?:(?:hey\s+|dis\s+)?jarvis[,.:]?\s+)?(?:s['’]il\s+(?:te|vous)\s+pla[iî]t[,.]?\s+)?(?:(?:est-ce\s+que\s+)?(?:tu\s+)?(?:peux|pourrais)(?:-tu)?\s+)?", "", t, flags=re.IGNORECASE)
+    core = re.sub(r"\s*,?\s*(?:s['’]il\s+(?:te|vous)\s+pla[iî]t|stp|svp|pour\s+moi|merci)?\s*[.!?]*$", "", core, flags=re.IGNORECASE).strip()
+    if not core or len(core) > 600:
+        return text
+    m = re.fullmatch(rf"{FR_FIND}\s+(.+?)\s+sur\s+({SITE_WORDS})", core, re.IGNORECASE)
+    if m:
+        return f"search {m.group(2)} for {m.group(1)}"
+    for pattern in (
+        rf"{FR_FIND}\s+(?:sur|dans)\s+{FR_WEB}\s+(.+)",                                        # cherche sur internet qui est X
+        rf"{FR_FIND}\s+(.+?)\s+(?:sur\s+|dans\s+)?{FR_WEB}",                                    # cherche X sur internet / en ligne
+        rf"(?:fai[st]|faire|lance[rz]?)\s+une\s+recherche\s+(?:(?:sur\s+|dans\s+)?{FR_WEB}\s+)?(?:sur|à\s+propos\s+d[e'’]|concernant|pour|de)\s*(.+?)(?:\s+(?:sur\s+|dans\s+)?{FR_WEB})?",
+    ):
+        m = re.fullmatch(pattern, core, re.IGNORECASE)
+        if m and len(m.group(1).strip()) >= 2:
+            return f"search the internet for {m.group(1).strip()}"
+    return text
+
+
 def research_request(text: str, previous: str = "") -> str | None:
     """Return what to search for when the message asks Jarvis to look something up on the web, else None.
 
     `previous` is the user's earlier message, used for "look it up online".
     """
-    t = re.sub(r"\s+", " ", (text or "").strip())
+    t = re.sub(r"\s+", " ", french_command(text).strip())
     t = re.sub(r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?)?(?:go\s+(?:and\s+)?)?", "", t, flags=re.IGNORECASE)
     t = re.sub(r"\s*(?:,?\s*please|\s+for\s+me)?\s*[.!?]*$", "", t, flags=re.IGNORECASE).strip()
     if not t or len(t) > 600:
