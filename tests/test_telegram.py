@@ -81,7 +81,7 @@ def last(): return tg["sent"][-1] if tg["sent"] else None
 st,d=js("/api/telegram"); assert d["configured"] is False
 st,d=js("/api/telegram",{"token":"nonsense"}); assert st==400 and "token" in d["error"]
 st,d=js("/api/telegram",{"token":TOKEN}); assert st==200 and d["configured"] and not d["paired"] and re.fullmatch(r"\d{6}",d["pair_code"]) and TOKEN not in json.dumps(d)
-code=d["pair_code"]; bot.stop.set(); bot.thread.join(3)      # drive the bot by hand from here
+code=d["pair_code"]; bot.stop.set(); bot.thread.join(3); _ensure=bot.ensure_running; bot.ensure_running=lambda: None      # drive the bot by hand from here (a second poller would answer some messages twice)
 # 2. pairing
 push("hello",user=111); assert "pairing code" in last()["text"]
 push("000000" if code!="000000" else "111111",user=111); assert "pairing code" in last()["text"] and not bot.load().get("owner_id")
@@ -261,7 +261,7 @@ st,r=js("/api/screen/check",{"task":"x","reply":"y"}); assert st==400, (st,r)
 push("/help"); assert "/look" in last()["text"]
 print("screen analysis ok")
 # 9. the background loop, status and a bad token
-bot.stop.clear(); bot.token_in_use=None; bot.username=""; bot.ensure_running()
+bot.ensure_running=_ensure; bot.stop.clear(); bot.token_in_use=None; bot.username=""; bot.ensure_running()
 tg["uid"]+=1; tg["updates"].append({"update_id":tg["uid"],"message":{"message_id":99,"chat":{"id":111,"type":"private"},"from":{"id":111},"text":"/status"}})
 for _ in range(60):
     if last() and "Jarvis is running" in last()["text"] and bot.state=="running": break

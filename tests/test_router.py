@@ -120,6 +120,38 @@ finally:
 # what it decided is kept for measuring later
 log=[json.loads(l) for l in (tmp/"data"/"training"/"router.jsonl").read_text().splitlines()]
 assert any(e["decided"] and e["decided"][0]["tool"]=="add_event" for e in log) and any(e["decided"]==[] for e in log)
+# ---------- measuring it (tools/router_eval.py) with pretend models ----------
+sys.path.insert(0,"tools"); import router_eval as ev
+EX=json.load(open("tools/router_examples.json"))["examples"]; reg=S.router_registry()
+assert len(EX)>=150 and sum(1 for e in EX if not e["tool"])>=45 and all(set(ev.expected_tools(e))<=set(reg.tools) for e in EX)
+assert all(set((e.get("args") or {}))<=set(reg.tools[e["tool"]].params) for e in EX if isinstance(e["tool"],str))
+byt={e["text"]:e for e in EX}
+def perfect(system,user):
+    e=byt[user]; tools=ev.expected_tools(e); steps=[]
+    for t in tools:
+        args={}
+        for k,spec in reg.tools[t].params.items():
+            if len(tools)==1 and k in (e.get("args") or {}): args[k]=e["args"][k]
+            elif spec.get("required"): args[k]=spec["choices"][0] if spec.get("choices") else " ".join(user.split()[:4])
+        steps.append({"tool":t,"args":args})
+    return json.dumps({"steps":steps})
+r=ev.evaluate(reg,perfect,EX,None); assert r["right_tool_pct"]==100.0 and r["false_alarm_pct"]==0.0 and r["mistakes"]==[], r["mistakes"]     # Jarvis's own rules block no example
+assert "good enough to switch on" in ev.summary(r)
+r=ev.evaluate(reg,lambda s,u:'{"steps": []}',EX,None); assert r["right_tool_pct"]==0.0 and r["missed_pct"]==100.0 and r["false_alarm_pct"]==0.0 and "keep it off" in ev.summary(r)
+eager=lambda s,u:json.dumps({"steps":[{"tool":"add_task","args":{"text":" ".join(u.split()[:3])}}]})
+r=ev.evaluate(reg,eager,EX,None); print("eager model: false alarms",r["false_alarm_pct"],"wrong tool",r["wrong_tool_pct"]); assert 0<r["false_alarm_pct"]<40, r["false_alarm_pct"]     # the keyword rule stops most of an over-eager model
+assert ev.judge({"text":"x","tool":"add_task","args":{"text":"milk"}},[{"tool":"add_task","args":{"text":"buy bread"}}])==("right",False)
+# labelling your own logged messages
+tdir=tmp/"data"/"training"; tdir.mkdir(parents=True,exist_ok=True)
+for old in tdir.glob("exchanges-*.jsonl"): old.unlink()
+rows=[{"id":"a"*16,"messages":[{"role":"user","content":"I need to sort my bag out tomorrow"}],"reply":"ok"},{"id":"b"*16,"messages":[{"role":"user","content":"explain gravity"}],"reply":"ok"},
+      {"id":"c"*16,"messages":[{"role":"user","content":"is it going to rain"}],"reply":"ok"},{"id":"d"*16,"messages":[{"role":"user","content":"I need to sort my bag out tomorrow"}],"reply":"ok"}]
+(tdir/"exchanges-2026-11.jsonl").write_text("\n".join(json.dumps(x) for x in rows)+"\nnot json\n")
+assert ev.logged_messages(tdir,reg)==["I need to sort my bag out tomorrow","is it going to rain"]
+names=sorted(reg.tools); answers=iter([str(names.index("add_task")+1),"0"]); out=[]
+assert ev.label(tdir,reg,tmp/"data"/"router-labels.json",ask=lambda q:next(answers),show=out.append)==2
+assert json.loads((tmp/"data"/"router-labels.json").read_text())==[{"text":"I need to sort my bag out tomorrow","tool":"add_task"},{"text":"is it going to rain","tool":None}]
+assert ev.label(tdir,reg,tmp/"data"/"router-labels.json",ask=lambda q:"q",show=out.append)==0 and "No new logged messages" in out[-1]
 # ---------- settings page ----------
 from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:

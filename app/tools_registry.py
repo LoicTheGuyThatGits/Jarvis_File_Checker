@@ -97,16 +97,20 @@ class Registry:
             "- All argument values are text."
         )
 
-    # ---- carrying it out ----
-    def handle(self, text: str, ask_model, remote: bool = False, now: datetime | None = None) -> dict | None:
-        """ask_model(system, user) -> the model's reply text. Returns {"reply", "decided"} or None (answer as normal chat)."""
+    def decide(self, text: str, ask_model, remote: bool = False, now: datetime | None = None) -> list[dict] | None:
+        """Which tools the model picks for this message, checked, without running anything. None or [] means: just chat."""
         if not self.gate(text, remote):
             return None
         try:
             raw = ask_model(self.prompt(remote, now), text.strip())
         except Exception:
             return None
-        steps = parse(raw, self, text, remote)
+        return parse(raw, self, text, remote)
+
+    # ---- carrying it out ----
+    def handle(self, text: str, ask_model, remote: bool = False, now: datetime | None = None) -> dict | None:
+        """ask_model(system, user) -> the model's reply text. Returns {"reply", "decided"} or None (answer as normal chat)."""
+        steps = self.decide(text, ask_model, remote, now)
         if not steps:
             return None
         replies, decided, undos = [], [], []

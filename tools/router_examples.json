@@ -1,0 +1,996 @@
+{
+ "about": "Labelled examples for measuring Smart commands. tool = the tool that should be chosen (null = none, a list = several in that order); args = words that must appear in that argument.",
+ "examples": [
+  {
+   "text": "I still have to hand in the art project by friday",
+   "tool": "add_task",
+   "args": {
+    "text": "art project",
+    "when": "friday"
+   }
+  },
+  {
+   "text": "ugh I need to buy a new calculator before monday",
+   "tool": "add_task",
+   "args": {
+    "text": "calculator",
+    "when": "monday"
+   }
+  },
+  {
+   "text": "don't let me forget to bring my PE kit tomorrow",
+   "tool": "add_task",
+   "args": {
+    "text": "PE kit",
+    "when": "tomorrow"
+   }
+  },
+  {
+   "text": "I've got to finish the history essay this weekend",
+   "tool": "add_task",
+   "args": {
+    "text": "history essay"
+   }
+  },
+  {
+   "text": "I must return the library books",
+   "tool": "add_task",
+   "args": {
+    "text": "library books"
+   }
+  },
+  {
+   "text": "got to pack my bag for the trip",
+   "tool": "add_task",
+   "args": {
+    "text": "pack"
+   }
+  },
+  {
+   "text": "I should really clean my room at some point, put it on the list",
+   "tool": "add_task",
+   "args": {
+    "text": "clean my room"
+   }
+  },
+  {
+   "text": "homework: page 42 exercises 3 to 7 for thursday",
+   "tool": "add_task",
+   "args": {
+    "text": "page 42",
+    "when": "thursday"
+   }
+  },
+  {
+   "text": "mum wants me to buy bread on the way home, stick that on my list",
+   "tool": "add_task",
+   "args": {
+    "text": "bread"
+   }
+  },
+  {
+   "text": "I have to email my teacher about the internship by wednesday",
+   "tool": "add_task",
+   "args": {
+    "text": "email my teacher",
+    "when": "wednesday"
+   }
+  },
+  {
+   "text": "one more task for me: water the plants",
+   "tool": "add_task",
+   "args": {
+    "text": "water the plants"
+   }
+  },
+  {
+   "text": "need to finish the chemistry lab report tonight",
+   "tool": "add_task",
+   "args": {
+    "text": "lab report"
+   }
+  },
+  {
+   "text": "ugh, I've got a physics test on the 20th",
+   "tool": "add_event",
+   "args": {
+    "title": "physics test",
+    "when": "20th"
+   }
+  },
+  {
+   "text": "dentist appointment next tuesday at 4pm",
+   "tool": "add_event",
+   "args": {
+    "title": "dentist",
+    "when": "tuesday"
+   }
+  },
+  {
+   "text": "there's a football match on saturday at 10",
+   "tool": "add_event",
+   "args": {
+    "title": "football match",
+    "when": "saturday"
+   }
+  },
+  {
+   "text": "my maths exam is on december 3rd at 9am",
+   "tool": "add_event",
+   "args": {
+    "title": "maths exam",
+    "when": "december 3"
+   }
+  },
+  {
+   "text": "Theo's birthday party is on friday at 7pm",
+   "tool": "add_event",
+   "args": {
+    "title": "birthday party",
+    "when": "friday"
+   }
+  },
+  {
+   "text": "schedule cinema with Lea tomorrow at 6",
+   "tool": "add_event",
+   "args": {
+    "title": "cinema",
+    "when": "tomorrow"
+   }
+  },
+  {
+   "text": "orchestra rehearsal is this thursday at 5pm",
+   "tool": "add_event",
+   "args": {
+    "title": "rehearsal",
+    "when": "thursday"
+   }
+  },
+  {
+   "text": "we have a class trip to the museum on the 27th",
+   "tool": "add_event",
+   "args": {
+    "title": "trip",
+    "when": "27th"
+   }
+  },
+  {
+   "text": "doctor on monday morning at 8:30",
+   "tool": "add_event",
+   "args": {
+    "title": "doctor",
+    "when": "monday"
+   }
+  },
+  {
+   "text": "there is a concert I'm going to on 12 december at 8pm",
+   "tool": "add_event",
+   "args": {
+    "title": "concert",
+    "when": "12 december"
+   }
+  },
+  {
+   "text": "parents evening meeting, wednesday 6:30pm",
+   "tool": "add_event",
+   "args": {
+    "title": "parents evening",
+    "when": "wednesday"
+   }
+  },
+  {
+   "text": "basketball training got moved to sunday at 11",
+   "tool": "add_event",
+   "args": {
+    "title": "basketball training",
+    "when": "sunday"
+   }
+  },
+  {
+   "text": "am I free tomorrow afternoon",
+   "tool": "show_agenda",
+   "args": {
+    "period": "tomorrow"
+   }
+  },
+  {
+   "text": "anything happening this weekend?",
+   "tool": "show_agenda",
+   "args": {
+    "period": "this weekend"
+   }
+  },
+  {
+   "text": "how busy am I next week",
+   "tool": "show_agenda",
+   "args": {
+    "period": "next week"
+   }
+  },
+  {
+   "text": "what have I got going on thursday",
+   "tool": "show_agenda",
+   "args": {
+    "period": "thursday"
+   }
+  },
+  {
+   "text": "do I have plans today",
+   "tool": "show_agenda",
+   "args": {
+    "period": "today"
+   }
+  },
+  {
+   "text": "is there something planned for saturday",
+   "tool": "show_agenda",
+   "args": {
+    "period": "saturday"
+   }
+  },
+  {
+   "text": "how does my week look",
+   "tool": "show_agenda",
+   "args": {
+    "period": "this week"
+   }
+  },
+  {
+   "text": "what's coming up tomorrow",
+   "tool": "show_agenda",
+   "args": {
+    "period": "tomorrow"
+   }
+  },
+  {
+   "text": "am I busy on friday evening",
+   "tool": "show_agenda",
+   "args": {
+    "period": "friday"
+   }
+  },
+  {
+   "text": "what's still left to do",
+   "tool": "show_tasks",
+   "args": {}
+  },
+  {
+   "text": "what do I still need to do",
+   "tool": "show_tasks",
+   "args": {}
+  },
+  {
+   "text": "tell me what's pending on my list",
+   "tool": "show_tasks",
+   "args": {}
+  },
+  {
+   "text": "which tasks are outstanding",
+   "tool": "show_tasks",
+   "args": {}
+  },
+  {
+   "text": "what's on my to-do list at the moment",
+   "tool": "show_tasks",
+   "args": {}
+  },
+  {
+   "text": "tell me everything I still have to do",
+   "tool": "show_tasks",
+   "args": {}
+  },
+  {
+   "text": "the art project is finally handed in",
+   "tool": "complete_task",
+   "args": {
+    "task": "art project"
+   }
+  },
+  {
+   "text": "I just finished the history essay",
+   "tool": "complete_task",
+   "args": {
+    "task": "history essay"
+   }
+  },
+  {
+   "text": "bought the bread, cross it off",
+   "tool": "complete_task",
+   "args": {
+    "task": "bread"
+   }
+  },
+  {
+   "text": "library books are sorted",
+   "tool": "complete_task",
+   "args": {
+    "task": "library books"
+   }
+  },
+  {
+   "text": "ok the lab report is done",
+   "tool": "complete_task",
+   "args": {
+    "task": "lab report"
+   }
+  },
+  {
+   "text": "I already did the plants thing",
+   "tool": "complete_task",
+   "args": {
+    "task": "plants"
+   }
+  },
+  {
+   "text": "you can tick off the calculator",
+   "tool": "complete_task",
+   "args": {
+    "task": "calculator"
+   }
+  },
+  {
+   "text": "the wifi code at grandma's is tulip42, save that for later",
+   "tool": "save_note",
+   "args": {
+    "text": "tulip42"
+   }
+  },
+  {
+   "text": "jot down that my locker number is 214",
+   "tool": "save_note",
+   "args": {
+    "text": "214"
+   }
+  },
+  {
+   "text": "write this down: Mr Bernard's office is room B12",
+   "tool": "save_note",
+   "args": {
+    "text": "B12"
+   }
+  },
+  {
+   "text": "make a note that the bike lock code is 4471",
+   "tool": "save_note",
+   "args": {
+    "text": "4471"
+   }
+  },
+  {
+   "text": "save this for later: the book Lea recommended is called Dune",
+   "tool": "save_note",
+   "args": {
+    "text": "Dune"
+   }
+  },
+  {
+   "text": "note to self, the printer is in the library on the second floor",
+   "tool": "save_note",
+   "args": {
+    "text": "printer"
+   }
+  },
+  {
+   "text": "quick memo: Paul owes me 5 euros",
+   "tool": "save_note",
+   "args": {
+    "text": "5 euros"
+   }
+  },
+  {
+   "text": "write down that the science fair theme is renewable energy",
+   "tool": "save_note",
+   "args": {
+    "text": "renewable energy"
+   }
+  },
+  {
+   "text": "where did I write the wifi code again",
+   "tool": "search_notes",
+   "args": {
+    "query": "wifi"
+   }
+  },
+  {
+   "text": "what did I note about my locker",
+   "tool": "search_notes",
+   "args": {
+    "query": "locker"
+   }
+  },
+  {
+   "text": "did I write down the bike lock code somewhere",
+   "tool": "search_notes",
+   "args": {
+    "query": "bike lock"
+   }
+  },
+  {
+   "text": "look in my notes for the book Lea recommended",
+   "tool": "search_notes",
+   "args": {
+    "query": "book"
+   }
+  },
+  {
+   "text": "find the note about Mr Bernard's office",
+   "tool": "search_notes",
+   "args": {
+    "query": "Bernard"
+   }
+  },
+  {
+   "text": "what was it I jotted about the science fair",
+   "tool": "search_notes",
+   "args": {
+    "query": "science fair"
+   }
+  },
+  {
+   "text": "check my notes for who owes me money",
+   "tool": "search_notes",
+   "args": {
+    "query": "owes"
+   }
+  },
+  {
+   "text": "nudge me in 2 hours to call mum",
+   "tool": "set_reminder",
+   "args": {
+    "text": "call mum",
+    "when": "2 hours"
+   }
+  },
+  {
+   "text": "ping me at 6pm about taking the bins out",
+   "tool": "set_reminder",
+   "args": {
+    "text": "bins",
+    "when": "6pm"
+   }
+  },
+  {
+   "text": "don't let me forget the oven, tell me in 25 minutes",
+   "tool": "set_reminder",
+   "args": {
+    "text": "oven",
+    "when": "25 minutes"
+   }
+  },
+  {
+   "text": "I want a reminder tomorrow at 7am to pack my lunch",
+   "tool": "set_reminder",
+   "args": {
+    "text": "lunch",
+    "when": "tomorrow"
+   }
+  },
+  {
+   "text": "can you alert me at 9pm that I need to charge my laptop",
+   "tool": "set_reminder",
+   "args": {
+    "text": "charge",
+    "when": "9pm"
+   }
+  },
+  {
+   "text": "wake me at 6:45 tomorrow",
+   "tool": "set_reminder",
+   "args": {
+    "when": "6:45"
+   }
+  },
+  {
+   "text": "tell me in half an hour to check the washing machine",
+   "tool": "set_reminder",
+   "args": {
+    "text": "washing machine",
+    "when": "half an hour"
+   }
+  },
+  {
+   "text": "remind me about the form when it's 5pm",
+   "tool": "set_reminder",
+   "args": {
+    "text": "form",
+    "when": "5pm"
+   }
+  },
+  {
+   "text": "give me a nudge at noon to drink water",
+   "tool": "set_reminder",
+   "args": {
+    "text": "drink water",
+    "when": "noon"
+   }
+  },
+  {
+   "text": "time me for 10 minutes while the pasta cooks",
+   "tool": "set_timer",
+   "args": {
+    "duration": "10 minutes"
+   }
+  },
+  {
+   "text": "start a countdown of 45 minutes for my revision",
+   "tool": "set_timer",
+   "args": {
+    "duration": "45 minutes"
+   }
+  },
+  {
+   "text": "I need a 5 minute timer",
+   "tool": "set_timer",
+   "args": {
+    "duration": "5 minute"
+   }
+  },
+  {
+   "text": "count down 90 seconds",
+   "tool": "set_timer",
+   "args": {
+    "duration": "90 seconds"
+   }
+  },
+  {
+   "text": "put a timer on for an hour",
+   "tool": "set_timer",
+   "args": {
+    "duration": "hour"
+   }
+  },
+  {
+   "text": "timer, 20 minutes, go",
+   "tool": "set_timer",
+   "args": {
+    "duration": "20 minutes"
+   }
+  },
+  {
+   "text": "test me on chapter 4 of biology",
+   "tool": "start_study",
+   "args": {
+    "kind": "quiz",
+    "topic": "biology"
+   }
+  },
+  {
+   "text": "can you drill me on french irregular verbs",
+   "tool": "start_study",
+   "args": {
+    "kind": "quiz",
+    "topic": "french"
+   }
+  },
+  {
+   "text": "I want to revise the water cycle with flash cards",
+   "tool": "start_study",
+   "args": {
+    "kind": "flashcards",
+    "topic": "water cycle"
+   }
+  },
+  {
+   "text": "ask me questions about the french revolution",
+   "tool": "start_study",
+   "args": {
+    "kind": "quiz",
+    "topic": "french revolution"
+   }
+  },
+  {
+   "text": "let's do some practice questions on fractions",
+   "tool": "start_study",
+   "args": {
+    "kind": "quiz",
+    "topic": "fractions"
+   }
+  },
+  {
+   "text": "make flashcards for my chemistry notes",
+   "tool": "start_study",
+   "args": {
+    "kind": "flashcards",
+    "topic": "chemistry"
+   }
+  },
+  {
+   "text": "I need to study for geography, quiz time",
+   "tool": "start_study",
+   "args": {
+    "kind": "quiz",
+    "topic": "geography"
+   }
+  },
+  {
+   "text": "help me revise cell division with a quiz please",
+   "tool": "start_study",
+   "args": {
+    "kind": "quiz",
+    "topic": "cell division"
+   }
+  },
+  {
+   "text": "did I forget anything today",
+   "tool": "evening_recap",
+   "args": {}
+  },
+  {
+   "text": "what did I actually accomplish today",
+   "tool": "evening_recap",
+   "args": {}
+  },
+  {
+   "text": "give me a wrap-up of my day",
+   "tool": "evening_recap",
+   "args": {}
+  },
+  {
+   "text": "so how did my day go, a summary please",
+   "tool": "evening_recap",
+   "args": {}
+  },
+  {
+   "text": "what did I achieve since this morning, recap",
+   "tool": "evening_recap",
+   "args": {}
+  },
+  {
+   "text": "catch me up",
+   "tool": "briefing",
+   "args": {}
+  },
+  {
+   "text": "fill me in on everything",
+   "tool": "briefing",
+   "args": {}
+  },
+  {
+   "text": "give me the rundown",
+   "tool": "briefing",
+   "args": {}
+  },
+  {
+   "text": "what's new this morning",
+   "tool": "briefing",
+   "args": {}
+  },
+  {
+   "text": "status report please",
+   "tool": "briefing",
+   "args": {}
+  },
+  {
+   "text": "do I need an umbrella",
+   "tool": "weather",
+   "args": {}
+  },
+  {
+   "text": "is it going to rain later",
+   "tool": "weather",
+   "args": {}
+  },
+  {
+   "text": "should I wear a coat today",
+   "tool": "weather",
+   "args": {}
+  },
+  {
+   "text": "how cold is it outside right now",
+   "tool": "weather",
+   "args": {}
+  },
+  {
+   "text": "will it be sunny this afternoon",
+   "tool": "weather",
+   "args": {}
+  },
+  {
+   "text": "what's the forecast looking like",
+   "tool": "weather",
+   "args": {}
+  },
+  {
+   "text": "why is my computer so slow",
+   "tool": "pc_health",
+   "args": {}
+  },
+  {
+   "text": "am I running out of storage",
+   "tool": "pc_health",
+   "args": {}
+  },
+  {
+   "text": "how much ram is being used",
+   "tool": "pc_health",
+   "args": {}
+  },
+  {
+   "text": "my laptop feels sluggish, check it",
+   "tool": "pc_health",
+   "args": {}
+  },
+  {
+   "text": "is my disk nearly full",
+   "tool": "pc_health",
+   "args": {}
+  },
+  {
+   "text": "put on something by Daft Punk",
+   "tool": "play_music",
+   "args": {
+    "what": "Daft Punk"
+   }
+  },
+  {
+   "text": "I want to listen to lofi beats",
+   "tool": "play_music",
+   "args": {
+    "what": "lofi"
+   }
+  },
+  {
+   "text": "some Coldplay would be nice, play it",
+   "tool": "play_music",
+   "args": {
+    "what": "Coldplay"
+   }
+  },
+  {
+   "text": "stick my study playlist on",
+   "tool": "play_music",
+   "args": {
+    "what": "study"
+   }
+  },
+  {
+   "text": "can we have the album Thriller",
+   "tool": "play_music",
+   "args": {
+    "what": "Thriller"
+   }
+  },
+  {
+   "text": "play that song Blinding Lights",
+   "tool": "play_music",
+   "args": {
+    "what": "Blinding Lights"
+   }
+  },
+  {
+   "text": "music please, something calm",
+   "tool": "play_music",
+   "args": {
+    "what": "calm"
+   }
+  },
+  {
+   "text": "I need to buy glue, and am I free tomorrow",
+   "tool": [
+    "add_task",
+    "show_agenda"
+   ]
+  },
+  {
+   "text": "note that the test covers chapters 3 to 5 and put the physics test in my calendar for friday",
+   "tool": [
+    "save_note",
+    "add_event"
+   ]
+  },
+  {
+   "text": "set a 15 minute timer and play some jazz",
+   "tool": [
+    "set_timer",
+    "play_music"
+   ]
+  },
+  {
+   "text": "what's the weather and what's on my calendar today",
+   "tool": [
+    "weather",
+    "show_agenda"
+   ]
+  },
+  {
+   "text": "what is a to-do list app you would recommend",
+   "tool": null
+  },
+  {
+   "text": "why do people forget things they need to do",
+   "tool": null
+  },
+  {
+   "text": "explain how a calendar leap year works",
+   "tool": null
+  },
+  {
+   "text": "who invented the timer",
+   "tool": null
+  },
+  {
+   "text": "write a poem about rain",
+   "tool": null
+  },
+  {
+   "text": "is it sunny on Mars",
+   "tool": null
+  },
+  {
+   "text": "how does weather forecasting work",
+   "tool": null
+  },
+  {
+   "text": "what's the best way to study for exams",
+   "tool": null
+  },
+  {
+   "text": "should I learn to play the guitar",
+   "tool": null
+  },
+  {
+   "text": "tell me about the history of the computer",
+   "tool": null
+  },
+  {
+   "text": "how much memory does a goldfish have",
+   "tool": null
+  },
+  {
+   "text": "what does RAM stand for",
+   "tool": null
+  },
+  {
+   "text": "why is the sky blue today of all days",
+   "tool": null
+  },
+  {
+   "text": "I had a test today and it went badly",
+   "tool": null
+  },
+  {
+   "text": "my friend finished a marathon",
+   "tool": null
+  },
+  {
+   "text": "how do flashcards help memory",
+   "tool": null
+  },
+  {
+   "text": "what's a good song for a birthday party",
+   "tool": null
+  },
+  {
+   "text": "is friday the 13th unlucky",
+   "tool": null
+  },
+  {
+   "text": "how long should a meeting be",
+   "tool": null
+  },
+  {
+   "text": "I need to vent, today was awful",
+   "tool": null
+  },
+  {
+   "text": "what happens if you forget to water plants",
+   "tool": null
+  },
+  {
+   "text": "how do I write a good note-taking system",
+   "tool": null
+  },
+  {
+   "text": "which is better, spotify or apple music",
+   "tool": null
+  },
+  {
+   "text": "translate 'I have to go to the dentist' into spanish",
+   "tool": null
+  },
+  {
+   "text": "what should I buy my mum for her birthday",
+   "tool": null
+  },
+  {
+   "text": "how many days are in a week on Mars",
+   "tool": null
+  },
+  {
+   "text": "do you think I study too much",
+   "tool": null
+  },
+  {
+   "text": "what is the plural of memo",
+   "tool": null
+  },
+  {
+   "text": "why do I always feel tired on monday",
+   "tool": null
+  },
+  {
+   "text": "tell me a joke about a slow computer",
+   "tool": null
+  },
+  {
+   "text": "how was the weather when the Titanic sank",
+   "tool": null
+  },
+  {
+   "text": "what rhymes with tomorrow",
+   "tool": null
+  },
+  {
+   "text": "can you explain what a quiz bowl is",
+   "tool": null
+  },
+  {
+   "text": "I wonder whether I should finish this series",
+   "tool": null
+  },
+  {
+   "text": "explain photosynthesis",
+   "tool": null
+  },
+  {
+   "text": "what is the capital of Australia",
+   "tool": null
+  },
+  {
+   "text": "how do black holes form",
+   "tool": null
+  },
+  {
+   "text": "write a haiku about autumn",
+   "tool": null
+  },
+  {
+   "text": "what's 17 times 23",
+   "tool": null
+  },
+  {
+   "text": "who was Napoleon",
+   "tool": null
+  },
+  {
+   "text": "give me a fun fact",
+   "tool": null
+  },
+  {
+   "text": "how do I center a div in css",
+   "tool": null
+  },
+  {
+   "text": "what does 'ubiquitous' mean",
+   "tool": null
+  },
+  {
+   "text": "summarise the plot of Hamlet",
+   "tool": null
+  },
+  {
+   "text": "why do cats purr",
+   "tool": null
+  },
+  {
+   "text": "how far is the moon",
+   "tool": null
+  },
+  {
+   "text": "hello there",
+   "tool": null
+  },
+  {
+   "text": "thanks, that was helpful",
+   "tool": null
+  },
+  {
+   "text": "what are you able to help with",
+   "tool": null
+  },
+  {
+   "text": "are you an AI",
+   "tool": null
+  }
+ ]
+}

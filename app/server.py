@@ -1616,7 +1616,7 @@ def router_registry() -> tools_registry.Registry:
             lambda a: planner_obj().tasks_text(datetime.now()), r"\b(?:to-?do|tasks?|list|left to do|still (?:have|need) to|need to do|outstanding|pending)\b")
     reg.add("complete_task", "Tick off a task that the person says they have done.",
             {"task": {"desc": "words naming the task", "required": True}},
-            complete_task, r"\b(?:done|finished|completed|did|ticked?|tick off|cross(?:ed)? off|handed in|sorted)\b", risk="write")
+            complete_task, r"\b(?:done|finished|completed|did|bought|sent|ticked?|tick(?:ed)?(?: \w+)? off|cross(?:ed)?(?: \w+)? off|handed in|sorted)\b", risk="write")
     reg.add("save_note", "Save a piece of information as a note so it can be found later.",
             {"text": {"desc": "the information to keep, in the person's words", "required": True}},
             save_note, r"\b(?:notes?|jot|write (?:this |that |it )?down|remember that|keep in mind|save (?:this|that)|memo|for later)\b", risk="write")

@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "cb5861d2ef635ac491fdc07793d73807358aecb12934d53d317c72b94ef87c1e",
-   "size": 48298
+   "sha256": "b85fba4d031b6ec6b6ac4f34195741844a0fea2aa0a9e530cab1508c9c2200d8",
+   "size": 48907
   },
   {
    "path": "app/backup.py",
@@ -79,8 +79,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "a5723f06e37aa6ac6715b9341789981f12998701967b3ff2267c3c03f3d620b7",
-   "size": 317020
+   "sha256": "82359b1d7eff0662484102bd543b304b361153ae7f73d25802614a013af22dbc",
+   "size": 317057
   },
   {
    "path": "app/set-address.py",
@@ -109,8 +109,8 @@
   },
   {
    "path": "app/tools_registry.py",
-   "sha256": "d3b36968d0bc38071355f341e72391bd77b540d054417343e2d08c6899d60ba5",
-   "size": 11328
+   "sha256": "0a6e2f9c8bdb72261fd4856156f0675574cada458072bc84fccf511f590397ae",
+   "size": 11626
   },
   {
    "path": "app/voice_listener.py",
@@ -121,6 +121,11 @@
    "path": "app/web_research.py",
    "sha256": "57a56b84f99a099268f23cbe44a88a5b3173019d28a74509bf5ddb4b1a1791e9",
    "size": 21202
+  },
+  {
+   "path": "evaluate-smart-commands.bat",
+   "sha256": "0d2c563bf0ae2078dd2f6e27457e0249600b8aba9bf70e2aedf9e66e9d0fe02e",
+   "size": 357
   },
   {
    "path": "export-training.bat",
@@ -161,6 +166,16 @@
    "path": "tools/make_manifest.py",
    "sha256": "2bce4da355be7c58801e20d3810d1ac5e28b83d6c0928cc5c1436982af73b6a9",
    "size": 3393
+  },
+  {
+   "path": "tools/router_eval.py",
+   "sha256": "428c945a61784434bb9a02daeba475ff8d79b36edfab6d6076104349a886c871",
+   "size": 10147
+  },
+  {
+   "path": "tools/router_examples.json",
+   "sha256": "ef32a544e1e73e32c129c1a0a7982bea518c2c0efd496ba56e5affc56d676d01",
+   "size": 18546
   },
   {
    "path": "web/css/app.css",
