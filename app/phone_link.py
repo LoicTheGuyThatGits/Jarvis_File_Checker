@@ -31,11 +31,11 @@ def load(path: Path) -> dict:
     except (OSError, ValueError):
         data = {}
     code = str(data.get("code") or "")
-    return {"enabled": bool(data.get("enabled")), "code": code if len(code) >= 8 else ""}
+    return {"enabled": bool(data.get("enabled")), "code": code if len(code) >= 8 else "", "control": bool(data.get("control"))}
 
 
 def save(path: Path, cfg: dict) -> dict:
-    cfg = {"enabled": bool(cfg.get("enabled")), "code": str(cfg.get("code") or "") or new_code()}
+    cfg = {"enabled": bool(cfg.get("enabled")), "code": str(cfg.get("code") or "") or new_code(), "control": bool(cfg.get("control"))}
     tmp = path.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(cfg), encoding="utf-8")
     tmp.replace(path)

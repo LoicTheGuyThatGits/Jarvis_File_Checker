@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "c249c5059a1d59fcbf6987505a2635bceb48afc2ef25402390b81a41da89d1fa",
-   "size": 52847
+   "sha256": "d4639b23204d62c62f038ee5c0e554904c13c6b8d514d610f78942ddfaafbc48",
+   "size": 54719
   },
   {
    "path": "app/backup.py",
@@ -39,8 +39,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "b2e2ee374775b23a92b8e857f5e739f481e52e1d90c9f1af72158f3a65bbfd6b",
-   "size": 21926
+   "sha256": "59889bc998217f2dc8a471f79fe06bd2a2190a65ea704f9cae45eb4dd192630a",
+   "size": 22646
   },
   {
    "path": "app/gmail_reader.py",
@@ -79,8 +79,8 @@
   },
   {
    "path": "app/phone_link.py",
-   "sha256": "b677dfbca0779cd8fd9bcabca9ecba27cad5393234f8181287a0d6d3c6edb7c1",
-   "size": 3114
+   "sha256": "30ee96865d30d3326376430407ea86091039cf15b53f5696c13e1a4a41540d1b",
+   "size": 3189
   },
   {
    "path": "app/planner.py",
@@ -98,14 +98,19 @@
    "size": 5759
   },
   {
+   "path": "app/screenmap.py",
+   "sha256": "9629c0b37dfe608478bdab09703b4680fefb107bdc944591e873fa9effa37905",
+   "size": 12608
+  },
+  {
    "path": "app/search_all.py",
    "sha256": "df2da203bcab2fe6c2819bc8f8189ded492cef442da1586f559724aa58c0750e",
    "size": 5690
   },
   {
    "path": "app/server.py",
-   "sha256": "4263b3cf1ef83e877ab84ad057f0f799d59b56cdfd39c6940aacd1cc045a8445",
-   "size": 332582
+   "sha256": "f3763fd8a946aef9bc2ba892aa018fc19e00226621fad842ebb97cab6a01065d",
+   "size": 343541
   },
   {
    "path": "app/set-address.py",
@@ -219,8 +224,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "9bb465e502777fd00d526db6f6e3c3b14539672a1c0ca21d2d3c915d2d9438bf",
-   "size": 54303
+   "sha256": "8d39f74ccdf6376b496efb60ee0e50f0135a3cea6a222141fd88d08f9d312124",
+   "size": 54718
   },
   {
    "path": "web/js/app.js",
@@ -259,8 +264,8 @@
   },
   {
    "path": "web/js/phone.js",
-   "sha256": "3f995be7ae5d002e9ea42819df351d795d6a2e5ad65e43dc077fb5faa8701cb6",
-   "size": 1720
+   "sha256": "1bb4c59c0caca13ef7e56bc90878926b33286f464d0ab0d4997a754eee6169ea",
+   "size": 1949
   },
   {
    "path": "web/js/planner.js",

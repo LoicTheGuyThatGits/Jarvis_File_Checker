@@ -12,12 +12,14 @@
     $('phone-details').classList.toggle('hidden', !d.enabled);
     $('phone-address').textContent = (d.addresses.length ? d.addresses : ['(no network address found)']).map(function (a) { return a + ':' + d.port; }).join('   or   ');
     $('phone-code').textContent = d.code;
+    if ($('phone-control')) $('phone-control').checked = !!d.control;
     $('phone-status').textContent = d.enabled === d.listening
       ? (d.enabled ? 'On. Phones on your network can connect with the pairing code.' : 'Off. Jarvis only answers on this PC.')
       : 'Saved. Restart Jarvis to ' + (d.enabled ? 'start' : 'stop') + ' listening on the network. Windows may ask to allow it through the firewall: choose private networks.';
   }
   function fail(e) { $('phone-status').textContent = e.message; }
   $('phone-enabled').addEventListener('change', function () { api({ enabled: $('phone-enabled').checked }).then(show).catch(fail); });
+  if ($('phone-control')) $('phone-control').addEventListener('change', function () { api({ control: $('phone-control').checked }).then(show).catch(fail); });
   $('phone-new-code').addEventListener('click', function () { api({ new_code: true }).then(show).catch(fail); });
   $('tab-timers').addEventListener('click', function () { api().then(show).catch(fail); });
   api().then(show).catch(function () {});

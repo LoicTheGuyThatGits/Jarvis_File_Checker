@@ -258,6 +258,12 @@ RULES: list[tuple[str, object]] = [
     (r"où\s+(?:est-ce\s+que\s+j['’]ai|ai-je)\s+(?:vu|mis|noté|écrit|parlé\s+de)\s+(.+)", lambda m, now: f"where did I see {m.group(1)}"),
     (r"(?:quels?\s+(?:sont\s+les\s+)?appareils\s+(?:sont\s+)?(?:connectés|branchés)?(?:\s+(?:au|sur\s+le|à\s+mon)\s+(?:wi-?fi|réseau|reseau))?|qui\s+est\s+(?:connecté\s+)?(?:sur|à)\s+(?:mon|le)\s+(?:wi-?fi|réseau|reseau)|(?:montre|liste)(?:[- ]moi)?\s+les\s+appareils(?:\s+(?:du|sur\s+le)\s+(?:wi-?fi|réseau|reseau))?)", "what devices are on my wifi"),
     (r"(?:pourquoi\s+(?:est-ce\s+que\s+)?(?:le\s+|mon\s+)?(?:wi-?fi|internet|réseau|reseau|la\s+connexion)\s+(?:est|rame)\s*(?:si\s+|aussi\s+|tellement\s+)?(?:lente?|mauvaise?)?|(?:le\s+|mon\s+)?(?:wi-?fi|internet|la\s+connexion)\s+(?:est\s+(?:très\s+|trop\s+|super\s+)?lente?|rame|lag(?:ue)?)|(?:vérifie[rz]?|verifie[rz]?|teste[rz]?|analyse[rz]?)\s+(?:le\s+|mon\s+|ma\s+)?(?:wi-?fi|connexion|réseau|reseau|internet))", "why is my wifi slow"),
+    # --- the screen ---
+    (r"double[- ]?clique[rz]?\s+sur\s+(?:le\s+bouton\s+|le\s+lien\s+|l['’]onglet\s+)?(.+)", lambda m, now: f"double click {m.group(1)}"),
+    (r"(?:clic\s+droit|clique[rz]?\s+droit)\s+sur\s+(.+)", lambda m, now: f"right click {m.group(1)}"),
+    (r"(?:clique[rz]?|appuie[rz]?)\s+sur\s+le\s+bouton\s+(.+)", lambda m, now: f"click the {m.group(1)} button"),
+    (r"clique[rz]?\s+sur\s+(?:le\s+lien\s+|l['’]onglet\s+|le\s+menu\s+)?(.+)", lambda m, now: f"click on {m.group(1)}"),
+    (r"(?:qu['’]est-ce\s+qu['’]il\s+y\s+a|qu['’]y\s+a-t-il|c['’]est\s+quoi)\s+(?:sur|à)\s+(?:mon\s+|l['’])écran|regarde[rz]?\s+(?:mon\s+|l['’])écran", "what's on my screen"),
     # --- music ---
     (r"(?:mets?|joue[rz]?|lance[rz]?)\s+(.+?)\s+sur\s+spotify", lambda m, now: f"play {m.group(1)} on spotify"),
     # --- updates, backup, PC health ---
@@ -268,7 +274,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîû]|\b(?:moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîû]|\b(?:moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|clique[rz]?|clic|écran|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:
