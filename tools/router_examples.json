@@ -1079,6 +1079,187 @@
   {
    "text": "explain how spiders build a web",
    "tool": null
+  },
+  {
+   "text": "how far off are my tests",
+   "tool": "exam_countdown",
+   "args": {}
+  },
+  {
+   "text": "how much revision have I got left before the exams",
+   "tool": "exam_countdown",
+   "args": {}
+  },
+  {
+   "text": "which exam comes first",
+   "tool": "exam_countdown",
+   "args": {}
+  },
+  {
+   "text": "am I on track with revising for my tests",
+   "tool": "exam_countdown",
+   "args": {}
+  },
+  {
+   "text": "I've got three tests next week, help me get organised with revising",
+   "tool": "plan_revision",
+   "args": {}
+  },
+  {
+   "text": "sort out a study plan for the chemistry exam",
+   "tool": "plan_revision",
+   "args": {
+    "subject": "chemistry"
+   }
+  },
+  {
+   "text": "spread my revision over the days I have left",
+   "tool": "plan_revision",
+   "args": {}
+  },
+  {
+   "text": "I need to prepare for the maths mock, set up the revision",
+   "tool": "plan_revision",
+   "args": {
+    "subject": "maths"
+   }
+  },
+  {
+   "text": "I need to get my head down on the essay for 40 minutes without distractions",
+   "tool": "start_focus",
+   "args": {
+    "duration": "40 minutes",
+    "subject": "essay"
+   }
+  },
+  {
+   "text": "help me concentrate for half an hour",
+   "tool": "start_focus",
+   "args": {
+    "duration": "half an hour"
+   }
+  },
+  {
+   "text": "pomodoro time, I'm doing physics",
+   "tool": "start_focus",
+   "args": {
+    "subject": "physics"
+   }
+  },
+  {
+   "text": "no distractions for the next 20 minutes please",
+   "tool": "start_focus",
+   "args": {
+    "duration": "20 minutes"
+   }
+  },
+  {
+   "text": "I know I stored the gym locker combination somewhere, dig it out",
+   "tool": "search_everything",
+   "args": {
+    "query": "gym locker combination"
+   }
+  },
+  {
+   "text": "where on earth did I put the info about the school trip",
+   "tool": "search_everything",
+   "args": {
+    "query": "school trip"
+   }
+  },
+  {
+   "text": "have I got anything saved about Mr Bernard",
+   "tool": "search_everything",
+   "args": {
+    "query": "Bernard"
+   }
+  },
+  {
+   "text": "look through all my things for the orthodontist",
+   "tool": "search_everything",
+   "args": {
+    "query": "orthodontist"
+   }
+  },
+  {
+   "text": "netflix keeps buffering, what's up with the internet",
+   "tool": "wifi_check",
+   "args": {}
+  },
+  {
+   "text": "the connection keeps dropping in my room",
+   "tool": "wifi_check",
+   "args": {}
+  },
+  {
+   "text": "everything online is lagging tonight",
+   "tool": "wifi_check",
+   "args": {}
+  },
+  {
+   "text": "my ping is awful, is it our router",
+   "tool": "wifi_check",
+   "args": {}
+  },
+  {
+   "text": "is the neighbour on our wifi or something",
+   "tool": "wifi_devices",
+   "args": {}
+  },
+  {
+   "text": "how many gadgets are hooked up to the router",
+   "tool": "wifi_devices",
+   "args": {}
+  },
+  {
+   "text": "is anyone else connected to our network right now",
+   "tool": "wifi_devices",
+   "args": {}
+  },
+  {
+   "text": "see who's using the wifi besides me",
+   "tool": "wifi_devices",
+   "args": {}
+  },
+  {
+   "text": "how do I focus better in class",
+   "tool": null
+  },
+  {
+   "text": "what is the pomodoro technique",
+   "tool": null
+  },
+  {
+   "text": "why do exams make people nervous",
+   "tool": null
+  },
+  {
+   "text": "where is the Eiffel Tower",
+   "tool": null
+  },
+  {
+   "text": "how does wifi work",
+   "tool": null
+  },
+  {
+   "text": "which router should I buy",
+   "tool": null
+  },
+  {
+   "text": "is 5G the same as wifi 5",
+   "tool": null
+  },
+  {
+   "text": "where did the dinosaurs go",
+   "tool": null
+  },
+  {
+   "text": "what's a good revision technique",
+   "tool": null
+  },
+  {
+   "text": "I failed my test and feel awful",
+   "tool": null
   }
  ]
 }

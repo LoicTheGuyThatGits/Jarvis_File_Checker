@@ -239,7 +239,7 @@
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Smart commands (experimental)</h2>
-        <p class="settings-note">When you ask for something in words Jarvis's built-in commands do not recognise (“I've got a physics test on the 20th”), let the AI model work out which tool you mean: calendar, to-do list, notes, reminders, timers, quizzes, recap, weather, PC health, music or a web search. It never deletes anything, never touches mail or files, and “undo that” takes back the last change. It adds one short question to the model, so replies to such messages are a little slower. Off until you switch it on.</p>
+        <p class="settings-note">When you ask for something in words Jarvis's built-in commands do not recognise (“I've got a physics test on the 20th”), let the AI model work out which tool you mean: calendar, to-do list, notes, reminders, timers, quizzes, recap, weather, PC health, music, exams, the focus timer, a search of your own things, the Wi-Fi check or a web search. It never deletes anything, never touches mail or files, and “undo that” takes back the last change. It adds one short question to the model, so replies to such messages are a little slower. Off until you switch it on.</p>
         <label class="settings-check"><input type="checkbox" id="router-on"> Let the AI model pick a tool when no command matches</label>
         <p class="settings-note" id="router-note" role="status"></p>
       </div>
@@ -344,6 +344,20 @@
         <p class="settings-note">An event about to start and a nearly empty battery always get through the hourly limit and “not now”; during quiet hours only events do. Everything else is held and given together afterwards. You can also say “not now”, “do not disturb for two hours” or “you can interrupt me again”. With this switched off, events and tasks still pop up as reminders.</p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">Exams and revision</h2>
+        <p class="settings-note">Any calendar event called an exam or test counts. Jarvis shows the days left and spreads “Revise …” tasks over them (closer together as the exam approaches, at 18:00). Ask “exam countdown” or “plan my revision” in chat.</p>
+        <div class="inline-form"><input type="text" id="exam-subject" placeholder="Subject, e.g. Chemistry" aria-label="Exam subject"><input type="date" id="exam-date" aria-label="Exam date"><input type="time" id="exam-time" value="09:00" aria-label="Exam time"><button type="button" id="exam-add">Add and plan</button></div>
+        <div class="inline-form"><button type="button" id="exam-plan">Plan revision for all exams</button></div>
+        <ul class="settings-list" id="exam-list"></ul>
+        <p class="settings-note" id="exam-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Focus timer</h2>
+        <p class="settings-note">A block of concentrated work, then a short break. Jarvis keeps its own messages back while it runs and adds the minutes to your evening recap. In chat: “focus for 25 minutes on maths”, “stop focus”.</p>
+        <div class="inline-form"><input type="number" id="focus-minutes" min="1" max="240" value="25" aria-label="Minutes"><input type="text" id="focus-label" placeholder="What are you working on? (optional)" aria-label="Focus subject"><button type="button" id="focus-start">Start</button><button type="button" id="focus-stop">Stop</button></div>
+        <p class="settings-note" id="focus-status" role="status"></p>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Evening recap</h2>
         <p class="settings-note">A short look back at your day (tasks done, events, notes) and ahead at tomorrow, from your own planner. Ask “evening recap” any time, or let Jarvis post it in the chat once a day. It is never spoken aloud and never sent to Telegram.</p>
         <label class="settings-check"><input type="checkbox" id="recap-on"> Post it automatically at <input type="time" id="recap-time" value="20:30" aria-label="Recap time"></label>
@@ -420,6 +434,13 @@
         <p class="settings-note">Checks disk space, memory, how long the PC has been on, temp files, startup programs and the heaviest programs. You can also ask “how's my PC?”. Say “clean up my temp files” to delete old ones (Jarvis asks you to confirm; it only touches temp files older than 3 days).</p>
         <div class="inline-form"><button type="button" id="health-run">Check now</button></div>
         <pre class="settings-note" id="health-report" style="white-space:pre-wrap"></pre>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Wi-Fi and network</h2>
+        <p class="settings-note">See which devices are on your home network and find out why the connection is slow: signal, delay to the router and to the internet, crowded channel, and what this PC itself is using. A PC cannot see how much data other devices use; only the router knows that. In chat: “what devices are on my wifi”, “why is my wifi slow”.</p>
+        <div class="inline-form"><button type="button" id="net-check">Check the connection</button><button type="button" id="net-devices">Show devices</button><button type="button" id="net-mine" hidden>It is my own network: scan</button></div>
+        <label class="settings-check"><input type="checkbox" id="net-watch"> Tell me when the connection gets clearly slower than usual or a new device joins</label>
+        <pre class="settings-note" id="net-report" role="status" style="white-space:pre-wrap"></pre>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Startup briefing</h2>

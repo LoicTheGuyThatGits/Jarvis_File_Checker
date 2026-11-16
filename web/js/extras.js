@@ -126,4 +126,55 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
   }
+  if ($('exam-add')) {
+    var drawExams = function (d) {
+      var list = $('exam-list'); list.textContent = '';
+      (d.exams || []).forEach(function (e) {
+        var li = document.createElement('li');
+        var when = new Date(e.start * 1000);
+        li.textContent = e.title + ': ' + (e.days === 0 ? 'today' : e.days === 1 ? 'tomorrow' : 'in ' + e.days + ' days') + ' (' + when.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' }) + ') · '
+          + (e.planned ? e.done + ' of ' + e.planned + ' revision sessions done' : 'no revision planned yet');
+        list.append(li);
+      });
+      if (!(d.exams || []).length) { var li = document.createElement('li'); li.textContent = 'No exams in your calendar.'; list.append(li); }
+    };
+    var loadExams = function () { api('/api/exams').then(drawExams).catch(function () {}); };
+    $('exam-add').addEventListener('click', function () {
+      api('/api/exams', { subject: $('exam-subject').value, date: $('exam-date').value, time: $('exam-time').value }).then(function (d) { drawExams(d); $('exam-status').textContent = d.text; $('exam-subject').value = ''; }).catch(function (e) { $('exam-status').textContent = e.message; });
+    });
+    $('exam-plan').addEventListener('click', function () {
+      api('/api/exams/plan', {}).then(function (d) { drawExams(d); $('exam-status').textContent = d.text; }).catch(function (e) { $('exam-status').textContent = e.message; });
+    });
+    var drawFocus = function (d) {
+      var mins = function (m) { return m >= 60 ? Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0') : m + ' min'; };
+      var a = d.active;
+      $('focus-status').textContent = (d.text ? d.text + ' ' : (a ? (a.phase === 'work' ? 'Focusing' + (a.label ? ' on ' + a.label : '') : 'On a break') + ': ' + Math.ceil(a.left / 60) + ' min left. ' : 'No session running. '))
+        + 'Today: ' + mins(d.today) + ' · this week: ' + mins(d.week) + '.';
+    };
+    var loadFocus = function () { api('/api/focus').then(drawFocus).catch(function () {}); };
+    $('focus-start').addEventListener('click', function () {
+      api('/api/focus', { action: 'start', minutes: Number($('focus-minutes').value), label: $('focus-label').value }).then(drawFocus).catch(function (e) { $('focus-status').textContent = e.message; });
+    });
+    $('focus-stop').addEventListener('click', function () { api('/api/focus', { action: 'stop' }).then(drawFocus).catch(function (e) { $('focus-status').textContent = e.message; }); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') { loadExams(); loadFocus(); } });
+  }
+  if ($('net-check')) {
+    var netBusy = function (on, msg) { ['net-check', 'net-devices', 'net-mine'].forEach(function (id) { $(id).disabled = on; }); if (msg) $('net-report').textContent = msg; };
+    var netShow = function (d) { $('net-report').textContent = d.text || ''; $('net-mine').hidden = !d.confirm; };
+    var netFail = function (e) { $('net-report').textContent = e.message; };
+    $('net-check').addEventListener('click', function () {
+      netBusy(true, 'Measuring… (about 20 seconds)'); $('net-mine').hidden = true;
+      api('/api/network/check', {}).then(netShow).catch(netFail).then(function () { netBusy(false); });
+    });
+    $('net-devices').addEventListener('click', function () {
+      netBusy(true, 'Looking for devices… (about 15 seconds)');
+      api('/api/network/devices', {}).then(netShow).catch(netFail).then(function () { netBusy(false); });
+    });
+    $('net-mine').addEventListener('click', function () {
+      netBusy(true, 'Scanning… (about 15 seconds)');
+      api('/api/network/devices', { mine: true }).then(netShow).catch(netFail).then(function () { netBusy(false); });
+    });
+    $('net-watch').addEventListener('change', function () { api('/api/network', { watch: $('net-watch').checked }).catch(netFail); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'timers') api('/api/network').then(function (d) { $('net-watch').checked = d.watch; }).catch(function () {}); });
+  }
 })();

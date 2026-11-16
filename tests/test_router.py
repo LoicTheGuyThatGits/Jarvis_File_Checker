@@ -68,7 +68,7 @@ asked=[]; answer={"v":'{"steps": []}'}
 S.router_ask_model=lambda system,user:(asked.append((system,user)) or answer["v"])
 chatted=[]
 orig=S.Handler.proxy_chat if hasattr(S.Handler,"proxy_chat") else None
-s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==16 and all(t["risk"] in ("read","write") for t in d["tools"])
+s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==22 and all(t["risk"] in ("read","write") for t in d["tools"])
 names={t["name"] for t in d["tools"]}; assert not any(w in n for n in names for w in ("delete","mail","backup","restore","clean","update","file","command")), names
 # off: the model is never asked
 answer["v"]=J(("add_event",{"title":"physics test","when":"on the 20th"}))
@@ -92,7 +92,7 @@ assert [t for t in S.planner_obj().public()["tasks"] if "art project" in t["text
 chat("undo that"); assert [t for t in S.planner_obj().public()["tasks"] if "art project" in t["text"]][0]["done"] is False
 # notes
 answer["v"]=J(("save_note",{"text":"the wifi code at grandma's is tulip42"})); d=chat("the wifi code at grandma's is tulip42, save that for later"); assert d["decided"]==["save_note"] and "tulip42" in d["reply"]
-answer["v"]=J(("search_notes",{"query":"wifi code"})); d=chat("where did I write the wifi code again"); assert "tulip42" in d["reply"] and d["decided"]==["search_notes"]
+answer["v"]=J(("search_notes",{"query":"wifi code"})); d=chat("what was it I jotted about the wifi code"); assert "tulip42" in d["reply"] and d["decided"]==["search_notes"]
 # reminder and timer go through the existing code
 answer["v"]=J(("set_reminder",{"text":"call mum","when":"in 2 hours"})); d=chat("nudge me in 2 hours to call mum"); assert d["decided"]==["set_reminder"] and len(S.reminders_active())==1, d
 chat("undo that"); assert S.reminders_active()==[]
@@ -166,7 +166,7 @@ with sync_playwright() as pw:
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(400)
     pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-ai")
-    pg.wait_for_function("document.querySelector('#router-on').checked && document.querySelector('#router-note').textContent.includes('16 tools')",timeout=8000)
+    pg.wait_for_function("document.querySelector('#router-on').checked && document.querySelector('#router-note').textContent.includes('22 tools')",timeout=8000)
     pg.uncheck("#router-on"); pg.wait_for_function("document.querySelector('#router-note').textContent==='Off.'",timeout=8000); assert S.router_enabled() is False
     pg.check("#router-on"); pg.wait_for_function("document.querySelector('#router-note').textContent.startsWith('On.')",timeout=8000); assert S.router_enabled() is True
     pg.keyboard.press("Escape")

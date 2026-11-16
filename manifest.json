@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "1f5a891a530971d0ce34fab22140323f7248d97603de57a1a64c83ce5398d7fb",
-   "size": 48919
+   "sha256": "c249c5059a1d59fcbf6987505a2635bceb48afc2ef25402390b81a41da89d1fa",
+   "size": 52847
   },
   {
    "path": "app/backup.py",
@@ -18,14 +18,29 @@
    "size": 9758
   },
   {
+   "path": "app/exams.py",
+   "sha256": "5802571762ce18c613ee84e3c422eddf1eb7d70e5fa033e49e2ba25a90eaf2d8",
+   "size": 12802
+  },
+  {
    "path": "app/export_training.py",
    "sha256": "f5ee8681810476bcc1f36c56cd60a2f77a5a9a971170d91efecab76fd093c6f3",
    "size": 3536
   },
   {
+   "path": "app/focus.py",
+   "sha256": "d69b8418c6accb1969ff2be0383cfb4892c1c93caf70a117019bbaf46b39fae9",
+   "size": 10098
+  },
+  {
    "path": "app/followup.py",
    "sha256": "6b4b51603251f4b9e095aa9b60e0871eb2f7059a5b75172c9ed3dec1f6cc6cb9",
    "size": 4621
+  },
+  {
+   "path": "app/french.py",
+   "sha256": "b2e2ee374775b23a92b8e857f5e739f481e52e1d90c9f1af72158f3a65bbfd6b",
+   "size": 21926
   },
   {
    "path": "app/gmail_reader.py",
@@ -53,6 +68,11 @@
    "size": 11372
   },
   {
+   "path": "app/network.py",
+   "sha256": "7f014cb22cd77d72713e43fdea3b36c6e64e7580fd87eb472f4fffdf2e0a75db",
+   "size": 27284
+  },
+  {
    "path": "app/notes.py",
    "sha256": "58028a00197da5c4f21c3fcba075f735125ef35492522e1a79cad2fb019e343c",
    "size": 8572
@@ -74,13 +94,18 @@
   },
   {
    "path": "app/recap.py",
-   "sha256": "6c61171299989c97ad9ccda8e912bca1836b8bf871d7946bffbcb27bc871309d",
-   "size": 5384
+   "sha256": "d0483de4b800267bd2b327eb02fbfda731ec7ab841f461bcfa086b7cb4d57bee",
+   "size": 5759
+  },
+  {
+   "path": "app/search_all.py",
+   "sha256": "df2da203bcab2fe6c2819bc8f8189ded492cef442da1586f559724aa58c0750e",
+   "size": 5690
   },
   {
    "path": "app/server.py",
-   "sha256": "41039f5967976f4517079bd8e8f350338db3842d119adc860493e206b2c581a8",
-   "size": 319188
+   "sha256": "4263b3cf1ef83e877ab84ad057f0f799d59b56cdfd39c6940aacd1cc045a8445",
+   "size": 332582
   },
   {
    "path": "app/set-address.py",
@@ -169,13 +194,13 @@
   },
   {
    "path": "tools/router_eval.py",
-   "sha256": "b2fba6708c8f97dc97403dfe6a86af28803a2a6de334f2e8ba6f23c1349bc94e",
+   "sha256": "052e366d2e1ea03127c9ba3a13a60c84d786b06acbd6339c4531f5d4daa046ff",
    "size": 10147
   },
   {
    "path": "tools/router_examples.json",
-   "sha256": "0a4d83730998a59ec56e2e1500cb3649c4e5221f4107f5821d3bf94b66499e66",
-   "size": 20287
+   "sha256": "061deff2aaddb36acb3e5885e669e02d921bc4362a3c759314f1b475fae6c446",
+   "size": 23960
   },
   {
    "path": "web/css/app.css",
@@ -194,8 +219,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "f0f32e8f8d04bed462910eefd005bc37e02209c5eaac595a18e461a889b8c30b",
-   "size": 51533
+   "sha256": "9bb465e502777fd00d526db6f6e3c3b14539672a1c0ca21d2d3c915d2d9438bf",
+   "size": 54303
   },
   {
    "path": "web/js/app.js",
@@ -214,8 +239,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "625661732d9e69b28a160e899df097b918bd9cbe351233729f2960fb04596e3d",
-   "size": 9965
+   "sha256": "0207a8f788642f68d7e22ba9cbcaf044956683bdb043bf0a1bb6628a3531db4e",
+   "size": 14097
   },
   {
    "path": "web/js/features.js",
@@ -259,8 +284,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "ca906e692d8385d17d2d7019b480604d51b2db9fa6ab0eacb49e4bda0d428d88",
-   "size": 17357
+   "sha256": "980dcc6da7df049de6d5becc7f6ee81bf756ebad18fb0778c1985413635a3426",
+   "size": 17639
   },
   {
    "path": "web/js/wake.js",

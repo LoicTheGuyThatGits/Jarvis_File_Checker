@@ -750,6 +750,8 @@ def build_briefing(weather: bool = True, reminders: bool = True, system: bool = 
             plan_line = planner_obj().brief_line(now)
             if plan_line:
                 parts.append(plan_line)
+            for exam_line in exams_module.nudges(planner_obj().load(), study_obj().load(), focus_obj().load()["log"], now, within=5)[:2]:
+                parts.append(exam_line)
         if system:
             snap = system_snapshot()
             notes = []
@@ -892,6 +894,11 @@ import followup
 import backup as backup_module
 import recap as recap_module
 import tools_registry
+import french as french_module
+import exams as exams_module
+import focus as focus_module
+import search_all
+import network as network_module
 
 
 def backup_config_path():
@@ -1432,7 +1439,7 @@ def proactive_tick(now: float, due: list[dict]) -> None:
     if watch["mail"] and now - ALERT_STATE["mail_at"] >= 300:
         ALERT_STATE["mail_at"] = now
         threading.Thread(target=proactive_mail_check, daemon=True).start()
-    message = engine.next_message(now)
+    message = None if focus_obj().quiet(now) else engine.next_message(now)      # nothing interrupts a focus session
     if message:
         threading.Thread(target=proactive_deliver, args=(message, cfg), daemon=True).start()
 
@@ -1649,6 +1656,33 @@ def router_registry() -> tools_registry.Registry:
     reg.add("play_music", "Play a song, artist, album or playlist on Spotify.",
             {"what": {"desc": "the song, artist, album or playlist named in the message", "required": True}},
             play_music, r"\b(?:play|put on|listen to|spotify|music|song|playlist|album)\b")
+    reg.add("exam_countdown", "Say which exams and tests are coming up, how many days are left and how much revision is done.", {},
+            lambda a: exams_module.countdown_text(planner_obj().load(), study_obj().load(), focus_obj().load()["log"], datetime.now()),
+            r"\b(?:exams?|tests?|finals?|mocks?|revision|revise|revised)\b",
+            example='"how far off are my tests" -> {"tool":"exam_countdown","args":{}}')
+    reg.add("plan_revision", "Spread revision sessions over the days left before the person's exams and put them on the to-do list.",
+            {"subject": {"desc": "optional: only for this subject"}},
+            lambda a: exams_module.plan_all(planner_obj(), datetime.now(), a.get("subject", "")),
+            r"\b(?:revision|revise|revising|study plan|prepare|prep|cram)\b", risk="write",
+            example='"I\'ve got three tests next week, help me get organised with revising" -> {"tool":"plan_revision","args":{}}')
+    reg.add("start_focus", "Start a focus timer (a block of concentrated work, then a break).",
+            {"duration": {"desc": 'optional length copied from the message, e.g. "25 minutes"'}, "subject": {"desc": "optional: what the person will work on"}},
+            lambda a: focus_obj().start(focus_module.minutes_of(a.get("duration", "")), a.get("subject", "")),
+            r"\b(?:focus|concentrate|concentrating|pomodoro|deep work|distract(?:ed|ions?)?|head down|get to work|knuckle down)\b", risk="write",
+            example='"I need to get my head down on the essay for 40 minutes without distractions" -> {"tool":"start_focus","args":{"duration":"40 minutes","subject":"the essay"}}')
+    reg.add("search_everything", "Look through everything the person has stored with Jarvis (notes, to-do list, calendar, memory, documents) for something, when they do not say where it is.",
+            {"query": {"desc": "the words to look for", "required": True}},
+            lambda a: search_everything(a["query"]),
+            r"\b(?:where|anywhere|everywhere|everything|somewhere|find|search|look|locate|dig|stored|saved|kept|put|have\s+(?:anything|something))\b",
+            example='"I know I stored the gym locker combination somewhere, dig it out" -> {"tool":"search_everything","args":{"query":"gym locker combination"}}')
+    reg.add("wifi_check", "Measure the home connection and say why the Wi-Fi or internet is slow (signal, delay, crowded channel, this PC's own traffic).", {},
+            lambda a: network_module.command("why is my wifi slow", network_obj(), False),
+            r"\b(?:wi-?fi|internet|network|connection|router|broadband|buffering|lag(?:ging|gy|s)?|ping|bandwidth)\b",
+            example='"netflix keeps buffering, what\'s up with the internet" -> {"tool":"wifi_check","args":{}}')
+    reg.add("wifi_devices", "List the devices connected to the person's own home network.", {},
+            lambda a: network_module.command("what devices are on my wifi", network_obj(), False),
+            r"\b(?:devices?|gadgets?|connected|who|someone|anyone|freeloader|neighbou?rs?)\b.*\b(?:wi-?fi|network|router|internet)\b|\b(?:wi-?fi|network|router)\b.*\b(?:devices?|connected|who|someone|anyone)\b",
+            remote=False, example='"is the neighbour on our wifi or something" -> {"tool":"wifi_devices","args":{}}')
     reg.add("web_search", "Look something up on the internet and answer from what is found. Only when the person asks to search, look up, check or find out online, or wants today's news or other up-to-the-minute facts. Not for things you can simply explain.",
             {"query": {"desc": "what to search for, in the person's words", "required": True}},
             lambda a: None, r"\b(?:internet|online|web|google|look(?:ing)?\s+(?:it\s+|that\s+|this\s+)?up|search(?:ing)?|find out|news|latest|headlines|(?:re)?cherche[rz]?)\b",
@@ -1661,8 +1695,96 @@ def recap_config_path() -> Path:
     return data_path("recap.json")
 
 
+FOCUS_CACHE: dict = {"path": None, "obj": None}
+
+
+def focus_obj():
+    path = data_path("focus.json")
+    if FOCUS_CACHE["path"] != path:
+        FOCUS_CACHE["path"], FOCUS_CACHE["obj"] = path, focus_module.Focus(path)
+    return FOCUS_CACHE["obj"]
+
+
+def focus_tick(now: float | None = None) -> None:
+    for message in focus_obj().tick(now):
+        publish_event({"type": "proactive", "id": "focus-" + secrets.token_hex(4), "text": message, "chat": True, "speak": True})
+
+
+def exams_command(text: str) -> str | None:
+    return exams_module.command(text, planner_obj(), study_obj().load(), focus_obj().load()["log"], datetime.now(), planner_module.parse_when, planner_module.resolve)
+
+
+def exams_public() -> list[dict]:
+    now, data = datetime.now(), planner_obj().load()
+    return [{**e, **exams_module.progress(e, data, study_obj().load(), focus_obj().load()["log"])} for e in exams_module.upcoming(data, now)]
+
+
+NETWORK_CACHE: dict = {"path": None, "obj": None, "watching": False}
+
+
+def network_throughput() -> dict | None:
+    """How much this PC is sending and receiving right now, and (when that is a lot) its busiest programs."""
+    if not psutil:
+        return None
+    def programs() -> dict:
+        out = {}
+        for proc in psutil.process_iter(["name"]):
+            try:
+                io = proc.io_counters()
+                out[proc.pid] = (proc.info.get("name") or "", io.read_bytes + io.write_bytes + getattr(io, "other_bytes", 0))
+            except Exception:
+                pass
+        return out
+    before, first, started = psutil.net_io_counters(), programs(), time.time()
+    time.sleep(1.5)
+    after, second, took = psutil.net_io_counters(), programs(), max(0.5, time.time() - started)
+    down = (after.bytes_recv - before.bytes_recv) * 8 / took / 1e6
+    up = (after.bytes_sent - before.bytes_sent) * 8 / took / 1e6
+    top = []
+    if down >= 8 or up >= 3:
+        moved: dict[str, int] = {}
+        for pid, (name, total) in second.items():
+            if pid in first and name and name.lower() not in ("system", "system idle process", "python.exe", "pythonw.exe"):
+                moved[name] = moved.get(name, 0) + max(0, total - first[pid][1])
+        top = [name.removesuffix(".exe") for name, n in sorted(moved.items(), key=lambda kv: -kv[1])[:3] if n > 500_000]
+    return {"down": max(0.0, down), "up": max(0.0, up), "programs": top}
+
+
+def network_obj():
+    path = data_path("network.json")
+    if NETWORK_CACHE["path"] != path:
+        NETWORK_CACHE["path"], NETWORK_CACHE["obj"] = path, network_module.Network(path, throughput=network_throughput)
+    return NETWORK_CACHE["obj"]
+
+
+def network_watch_in_background() -> None:
+    """The quiet connection check (only when switched on, and only on a network the person confirmed as theirs)."""
+    net = network_obj()
+    if NETWORK_CACHE["watching"] or time.time() - net.last_watch < network_module.WATCH_EVERY or not net.load()["watch"]:
+        return
+    NETWORK_CACHE["watching"] = True
+
+    def work():
+        try:
+            message = net.watch()
+            if message:
+                publish_event({"type": "proactive", "id": "net-" + secrets.token_hex(4), "text": message, "chat": True, "speak": False})
+        except Exception as exc:
+            print(f"[jarvis] network watch failed: {exc}")
+        finally:
+            NETWORK_CACHE["watching"] = False
+    threading.Thread(target=work, daemon=True).start()
+
+
+def search_everything(query: str) -> str:
+    results = search_all.search(query, planner_obj().load(), lambda q: notes_obj().search(q, limit=5), memory_find, lambda q: docs_search(q, limit=4))
+    return search_all.report(query, results)
+
+
 def recap_text(now: datetime | None = None) -> str:
-    return recap_module.text(planner_obj().load(), notes_obj().load(), now or datetime.now())
+    now = now or datetime.now()
+    data = planner_obj().load()
+    return recap_module.text(data, notes_obj().load(), now, focus_obj().totals(now), exams_module.nudges(data, study_obj().load(), focus_obj().load()["log"], now))
 
 
 def recap_tick(now: datetime | None = None) -> None:
@@ -1683,6 +1805,8 @@ def alerts_tick(now: float | None = None, notify=None) -> None:
     calendar_sync_in_background()
     update_check_in_background()
     recap_tick()
+    focus_tick()
+    network_watch_in_background()
     due = planner_obj().due_notifications(now, cfg["lead_minutes"] * 60)
     if proactive_obj().config()["enabled"]:        # Proactive Jarvis decides what to say, when, and where
         proactive_tick(now, due)
@@ -3607,6 +3731,7 @@ def explicit_assistant_command(text: str) -> str | None:
 class Handler(BaseHTTPRequestHandler):
     server_version = "JarvisLocal/0.1"
     _stream_started = False  # True once a chat reply has started streaming to the browser
+    _reply_lang = None       # "fr" while a French request for a built-in command is being answered
     _stream_dead = False     # True if the browser went away mid-stream
 
     def log_message(self, fmt: str, *args: object) -> None:
@@ -3720,6 +3845,9 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self, status: int, obj: object) -> None:
         if isinstance(obj, dict) and isinstance(obj.get("reply"), str):
             obj = {**obj, "reply": personalize(obj["reply"])}
+            if getattr(self, "_reply_lang", None) and status == 200 and obj["reply"].strip():
+                obj["reply"] = ai_translate(obj["reply"], self._reply_lang) or obj["reply"]
+                self._reply_lang = None
             if getattr(self, "_doc_sources", None) is not None and "sources" not in obj and not obj.get("cancelled"):
                 obj["sources"] = self._doc_sources
         if self._stream_started:
@@ -3803,6 +3931,16 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/voice":
             self.send_json(200, voice_state())
+            return
+        if path == "/api/network":
+            state = network_obj().load()
+            self.send_json(200, {"watch": state["watch"], "trusted": len(state["trusted"]), "known_devices": len(state["seen"])})
+            return
+        if path == "/api/exams":
+            self.send_json(200, {"exams": exams_public()})
+            return
+        if path == "/api/focus":
+            self.send_json(200, focus_obj().public())
             return
         if path == "/api/recap":
             cfg = recap_module.load_config(recap_config_path())
@@ -4286,6 +4424,61 @@ class Handler(BaseHTTPRequestHandler):
                         cal.sync_all(force=True)
                     self.send_json(200, cal.public())
                 except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
+            elif path in ("/api/network", "/api/network/devices", "/api/network/check"):
+                net = network_obj()
+                if path == "/api/network":
+                    with net.lock:
+                        state = net.load()
+                        state["watch"] = payload.get("watch") is True
+                        net.save(state)
+                    self.send_json(200, {"watch": state["watch"]})
+                else:
+                    iface = net.interface()
+                    if not iface:
+                        self.send_json(200, {"text": "This PC does not seem to be on a home network right now."})
+                    elif path == "/api/network/check":
+                        mac = net.gateway_mac(iface)
+                        devices = net.scan(iface, sweep=False) if net.trusted(mac) else None
+                        self.send_json(200, {"text": personalize(net.diagnose_text(net.measure(iface, full=True), devices, iface["gateway"]))})
+                    else:
+                        mac = net.gateway_mac(iface)
+                        if not net.trusted(mac) and payload.get("mine") is not True:
+                            name = (net.wifi().get("ssid") if iface["wifi"] else None) or "this network"
+                            self.send_json(200, {"confirm": True, "text": f"Jarvis has not scanned “{name}” before. A scan lists the devices of everyone on the network, "
+                                                                          "so only do it on a network that is yours (not at school, at work or on public Wi-Fi)."})
+                        elif not mac:
+                            self.send_json(200, {"text": "I could not identify the router, so I did not scan."})
+                        else:
+                            if not net.trusted(mac):
+                                net.trust(mac, (net.wifi().get("ssid") or "") if iface["wifi"] else "")
+                                audit("network: marked as the user's own network")
+                            self.send_json(200, {"text": personalize(net.devices_text(net.scan(iface, sweep=True)))})
+            elif path in ("/api/exams", "/api/exams/plan"):
+                try:
+                    if path == "/api/exams":
+                        subject = re.sub(r"\s+", " ", str(payload.get("subject") or "")).strip()[:80]
+                        day = datetime.strptime(str(payload.get("date") or ""), "%Y-%m-%d")
+                        hh, mm = (int(x) for x in (str(payload.get("time") or "09:00") + ":00").split(":")[:2])
+                        stamp = day.replace(hour=hh, minute=mm).timestamp()
+                        if not subject:
+                            raise ValueError("Give the exam a subject.")
+                        if stamp < time.time():
+                            raise ValueError("That date has already passed.")
+                        title = subject if exams_module.is_exam(subject) else subject + " exam"
+                        planner_obj().add_event(title[:1].upper() + title[1:], stamp)
+                    text = exams_module.plan_all(planner_obj(), datetime.now())
+                    self.send_json(200, {"exams": exams_public(), "text": text})
+                except (ValueError, TypeError) as exc:
+                    self.send_json(400, {"error": str(exc) if "date" in str(exc) or "subject" in str(exc) else "Use a date like 2026-12-03 and a time like 09:00."})
+            elif path == "/api/focus":
+                try:
+                    if payload.get("action") == "stop":
+                        text = focus_obj().stop()
+                    else:
+                        text = focus_obj().start(int(payload.get("minutes") or 0) or None, str(payload.get("label") or ""))
+                    self.send_json(200, {**focus_obj().public(), "text": text})
+                except (ValueError, TypeError) as exc:
                     self.send_json(400, {"error": str(exc)})
             elif path in ("/api/recap", "/api/recap/show"):
                 if path == "/api/recap/show":
@@ -4988,6 +5181,10 @@ class Handler(BaseHTTPRequestHandler):
         if screen_q:
             self.analyze_screen(screen_q, ai, safe_messages[:-1][-4:] if safe_messages and safe_messages[-1]["role"] == "user" else safe_messages[-4:], payload.get("want_screenshot") is True)
             return
+        self._reply_lang = None
+        french_command = french_module.to_english(latest)
+        if french_command:                      # a French request for a built-in command: run the English one, answer in French
+            latest, self._reply_lang = french_command, "fr"
         undo_reply = router_registry().undo_command(latest)
         if undo_reply:
             self.send_json(200, {"reply": undo_reply, "action": None})
@@ -4999,6 +5196,22 @@ class Handler(BaseHTTPRequestHandler):
         brief_reply = briefing_command(latest)
         if brief_reply:
             self.send_json(200, {"reply": brief_reply, "action": None})
+            return
+        network_reply = network_module.command(latest, network_obj(), self._remote)
+        if network_reply:
+            self.send_json(200, {"reply": network_reply, "action": None})
+            return
+        everything_query = search_all.query_of(latest)
+        if everything_query:
+            self.send_json(200, {"reply": search_everything(everything_query), "action": None})
+            return
+        focus_reply = focus_obj().command(latest)
+        if focus_reply:
+            self.send_json(200, {"reply": focus_reply, "action": None})
+            return
+        exams_reply = exams_command(latest)
+        if exams_reply:
+            self.send_json(200, {"reply": exams_reply, "action": None})
             return
         if recap_module.command(latest):
             self.send_json(200, {"reply": recap_text(), "action": None})
@@ -5090,6 +5303,7 @@ class Handler(BaseHTTPRequestHandler):
             if routed:
                 self.send_json(200, {"reply": routed["reply"], "action": None, "decided": [d["tool"] for d in routed["decided"]]})
                 return
+        self._reply_lang = None                 # from here on the chat model answers, in whatever language it was asked
         image_words = r"\b(image|picture|illustration|drawing|artwork|photo|wallpaper)\b"
         image_verbs = r"\b(generate|create|make|draw|paint|render|design|produce)\b"
         if not web_query and re.search(image_words, latest, re.IGNORECASE) and re.search(image_verbs, latest, re.IGNORECASE):

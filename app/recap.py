@@ -76,7 +76,7 @@ def _plural(n: int, word: str) -> str:
     return f"{n} {word}{'' if n == 1 else 's'}"
 
 
-def text(planner: dict, notes: list[dict], now: datetime) -> str:
+def text(planner: dict, notes: list[dict], now: datetime, focus: dict | None = None, exams: list[str] | None = None) -> str:
     start = datetime.combine(now.date(), dtime.min)
     day0, day1, day2 = start.timestamp(), (start + timedelta(days=1)).timestamp(), (start + timedelta(days=2)).timestamp()
     tasks, events = planner.get("tasks", []), planner.get("events", [])
@@ -96,6 +96,9 @@ def text(planner: dict, notes: list[dict], now: datetime) -> str:
         lines.append("• Happened today: " + "; ".join(f"{e['title']} ({datetime.fromtimestamp(e['start']).strftime('%H:%M')})" for e in held[:5]) + ".")
     if today_notes:
         lines.append(f"• You saved {_plural(len(today_notes), 'note')} today.")
+    if focus and focus.get("today"):
+        h, m = divmod(int(focus["today"]), 60)
+        lines.append(f"• Focus time today: {(str(h) + ' h ' + format(m, '02d')) if h else (str(m) + ' min')} over {_plural(focus['today_sessions'], 'session')}.")
     left_today = [t for t in open_tasks if t.get("due") and day0 <= t["due"] < day1]
     if left_today:
         lines.append("• Still open from today: " + "; ".join(t["text"] for t in left_today[:5]) + ".")
@@ -109,6 +112,8 @@ def text(planner: dict, notes: list[dict], now: datetime) -> str:
         lines.append("Tomorrow: nothing in the calendar yet.")
     if due_tomorrow:
         lines.append(f"{_plural(len(due_tomorrow), 'task')} due tomorrow: " + "; ".join(t["text"] for t in due_tomorrow[:4]) + ".")
+    for line in exams or []:
+        lines.append("Exam: " + line)
     if len(open_tasks) and not due_tomorrow:
         lines.append(f"You have {_plural(len(open_tasks), 'open task')} in total.")
     return "\n".join(lines)

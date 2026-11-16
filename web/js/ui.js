@@ -59,8 +59,11 @@
     'phone app (android)': 'android phone link pairing code mobile app network', 'gmail': 'email mail inbox imap app password google',
     'to-do list': 'tasks todo checklist', 'import a calendar': 'timetable school lessons ics ical google outlook schedule webcal', 'notes': 'note jot write down memo remember find', 'spotify': 'music play song playlist album premium', 'file check': 'missing files repair restore github update manifest download install broken',
     'smart commands (experimental)': 'tool router brain understand natural language function calling agent undo',
+    'exams and revision': 'exam test countdown revise study plan schedule days left',
+    'focus timer': 'pomodoro concentrate deep work study session break timer',
     'evening recap': 'recap summary end of day daily review tomorrow wrap up planner',
     'backup': 'back up restore save data export passphrase encrypted usb new computer migrate',
+    'wi-fi and network': 'wifi internet slow connection devices router scan signal lag ping speed who is connected',
     'pc health': 'maintenance disk space storage memory ram temp files startup slow cleanup',
     'study mode': 'quiz flashcards revise revision exam test homework learn practise', 'calendar': 'events agenda schedule appointments', 'alerts to your phone (telegram)': 'notifications push battery',
     'interface style': 'theme colour color look appearance dark light', 'telegram': 'bot token phone remote'
