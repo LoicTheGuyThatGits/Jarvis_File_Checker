@@ -341,6 +341,7 @@
         api('/api/proactive/mute', {}).then(function (r) { quiet.textContent = 'Quiet until ' + fmtClock(r.muted_until); }).catch(function () { quiet.disabled = false; });
       });
       bar.appendChild(quiet); row.after(bar);
+      if (ev.download && typeof window.addDownloadCard === 'function') window.addDownloadCard(ev.download, bar);
     }
     if (ev.speak !== false && !ev.missed) window.dispatchEvent(new CustomEvent('jarvis:reply', { detail: { text: text, streamed: false } }));
   }

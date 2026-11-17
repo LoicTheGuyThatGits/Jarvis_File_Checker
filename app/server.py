@@ -18,6 +18,7 @@ import subprocess
 import sys
 import threading
 import time
+import mimetypes
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -901,6 +902,7 @@ import search_all
 import network as network_module
 import screenmap
 import filetypes
+import docedit
 
 
 def backup_config_path():
@@ -1836,6 +1838,107 @@ def install_text() -> str:
             f"• Running since: {datetime.fromtimestamp(info['started']).strftime('%d %B %Y, %H:%M')}")
 
 
+# ---------------- changing documents the user gave Jarvis ----------------
+EDIT_STATE: dict = {"recent": None, "at": 0.0, "versions": {}, "busy": None}
+EDIT_LOCK = threading.Lock()
+RECENT_SECONDS = 1800
+
+
+def edited_dir() -> Path:
+    return docs_dir() / "edited"
+
+
+def pdf_plain_text(data: bytes) -> str:
+    """A PDF's text as paragraphs: lines are joined until one ends a sentence."""
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        raise ValueError("PDF files need the pypdf package. From the Jarvis folder run: .venv\\Scripts\\pip install pypdf")
+    reader = PdfReader(io.BytesIO(data))
+    paragraphs, current = [], []
+    for page in reader.pages:
+        for line in (page.extract_text() or "").splitlines():
+            line = line.strip()
+            if not line:
+                if current:
+                    paragraphs.append(" ".join(current)); current = []
+                continue
+            current.append(line)
+            if re.search(r"[.!?:»”\"]$", line) or len(line) < 40:
+                paragraphs.append(" ".join(current)); current = []
+    if current:
+        paragraphs.append(" ".join(current))
+    if not paragraphs:
+        raise ValueError("I could not find any text in that PDF. It may be a scan.")
+    return "\n\n".join(paragraphs)
+
+
+def doc_source(name: str, from_original: bool = False) -> tuple[str, bytes]:
+    """The bytes to edit: the latest edited version of that document (so edits build on each other), or the original."""
+    item = next((i for i in docs_load_index() if i["name"].casefold() == name.casefold()), None)
+    if item is None:
+        raise ValueError(f"I do not have “{name}” any more. Add it again with the + button.")
+    latest = None if from_original else EDIT_STATE["versions"].get(name.casefold())
+    if latest and Path(latest).is_file():
+        return Path(latest).name, Path(latest).read_bytes()
+    original = next(iter(sorted((docs_dir() / "originals").glob(f"{item['id']}.*"))), None)
+    if original is None:
+        raise ValueError(f"I only kept the text of “{name}”, not the file itself (it was added before Jarvis could change documents). Add it again with the + button, then ask me again.")
+    return item["name"], original.read_bytes()
+
+
+def save_edited(source_name: str, new_name: str, data: bytes) -> Path:
+    """Saves next to the other edited files without overwriting: 'essay (edited).docx', 'essay (edited 2).docx'…"""
+    folder = edited_dir()
+    folder.mkdir(parents=True, exist_ok=True)
+    stem, ext = Path(new_name).stem, Path(new_name).suffix
+    m = re.fullmatch(r"(.*)\(edited([^)]*)\)", stem)
+    base, label = (m.group(1).rstrip(), m.group(2).strip()) if m else (stem, "")
+    n = 1
+    while True:
+        tag = " ".join(x for x in (label, str(n) if n > 1 else "") if x)
+        candidate = folder / f"{base} (edited{' ' + tag if tag else ''}){ext}"
+        if not candidate.exists():
+            candidate.write_bytes(data)
+            return candidate
+        n += 1
+
+
+def edit_document(req: dict, progress=None) -> dict:
+    """Carries out one edit request. Returns {"text", "path"} (path None when nothing changed)."""
+    from_original = bool(req.get("instruction") and re.search(r"\b(?:from|on|use|start\s+again\s+from)\s+the\s+original\b|\bdepuis\s+l['’]original\b", req["instruction"], re.I))
+    source_name, data = doc_source(req["doc"], from_original)
+    doc = docedit.load(source_name, data, pdf_plain_text)
+    address = current_address()
+    if req["kind"] == "replace":
+        count = docedit.replace(doc, req["old"], req["new"])
+        if not count:
+            return {"text": f"“{req['old']}” does not appear in {source_name}, {address}. Nothing was changed.", "path": None}
+        summary = f"Replaced “{req['old']}” with “{req['new']}” {count} time{'s' if count != 1 else ''} in {source_name}, {address}."
+    else:
+        result = docedit.edit_with_model(doc, req["instruction"], lambda system, user: llm_once(system, user, timeout=240), progress)
+        if not doc.changed_count():
+            why = " The AI model did not give me usable answers; a larger model may do better." if result["failed_batches"] else ""
+            return {"text": f"I went through {source_name} and found nothing to change, {address}.{why}", "path": None}
+        summary = f"Done, {address}: I changed {doc.changed_count()} paragraph{'s' if doc.changed_count() != 1 else ''} of {source_name}."
+        if result["failed_batches"]:
+            summary += f" {result['failed_batches']} of {result['batches']} parts could not be edited (the model's answer was unusable) and were left as they were."
+        for old, new in result["examples"][:2]:
+            summary += f"\n• Before: {docedit.short(old)}\n  After: {docedit.short(new) if new else '(removed)'}"
+    new_name, out = doc.save()
+    path = save_edited(source_name, new_name, out)
+    with EDIT_LOCK:
+        EDIT_STATE["versions"][req["doc"].casefold()] = str(path)
+        EDIT_STATE.update(recent=req["doc"], at=time.time())
+    note = " PDFs cannot be changed in place, so the result is a Word file." if doc.kind == "pdf" else ""
+    remember_found([{"path": str(path)}])
+    return {"text": summary + f"\nThe new file is {path.name}; your original is unchanged.{note}", "path": path}
+
+
+def download_info(path: Path | None) -> dict | None:
+    return {"name": path.name, "url": "/api/documents/edited?name=" + urllib.parse.quote(path.name), "path": str(path)} if path else None
+
+
 def reveal_in_explorer(path: str) -> None:
     """Opens the file's folder in Explorer with the file selected."""
     if os.name == "nt":
@@ -2390,6 +2493,8 @@ def docs_add(name: str, data: bytes) -> dict:
         items = docs_load_index()
         for old in [i for i in items if i["name"].casefold() == name.casefold()]:
             (docs_dir() / f"{old['id']}.json").unlink(missing_ok=True)
+            for f in (docs_dir() / "originals").glob(f"{old['id']}.*"):
+                f.unlink(missing_ok=True)
             _DOC_CACHE.pop(old["id"], None)
         items = [i for i in items if i["name"].casefold() != name.casefold()]
         if len(items) >= DOCS_MAX:
@@ -2397,6 +2502,9 @@ def docs_add(name: str, data: bytes) -> dict:
         doc_id = secrets.token_hex(6)
         docs_dir().mkdir(parents=True, exist_ok=True)
         (docs_dir() / f"{doc_id}.json").write_text(json.dumps(kept, ensure_ascii=False), encoding="utf-8")
+        originals = docs_dir() / "originals"
+        originals.mkdir(parents=True, exist_ok=True)
+        (originals / f"{doc_id}{Path(name).suffix.lower()}").write_bytes(data)      # kept so Jarvis can change the document later
         item = {"id": doc_id, "name": name, "kind": kind, "size": len(data), "added": time.time(), "chunks": len(kept), "truncated": len(kept) < len(chunks)}
         items.append(item)
         docs_save_index(items)
@@ -2408,6 +2516,8 @@ def docs_delete(doc_id: str) -> list[dict]:
         items = docs_load_index()
         for old in [i for i in items if i["id"] == doc_id]:
             (docs_dir() / f"{old['id']}.json").unlink(missing_ok=True)
+            for f in (docs_dir() / "originals").glob(f"{old['id']}.*"):
+                f.unlink(missing_ok=True)
             _DOC_CACHE.pop(old["id"], None)
         items = [i for i in items if i["id"] != doc_id]
         docs_save_index(items)
@@ -4080,6 +4190,20 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, self.phone_status() if not self._from_phone else {"ok": True, "name": socket.gethostname(), "address": current_address(),
                                                                                     "control": phone_link.load(data_path("phone.json"))["control"]})
             return
+        if path == "/api/documents/edited":
+            wanted = (parse_qs(urlparse(self.path).query).get("name") or [""])[0]
+            target = edited_dir() / Path(wanted).name
+            if not wanted or Path(wanted).name != wanted or not target.is_file():
+                self.send_json(404, {"error": "That file is not there any more."})
+                return
+            data = target.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", mimetypes.guess_type(target.name)[0] or "application/octet-stream")
+            self.send_header("Content-Disposition", "attachment; filename*=UTF-8''" + urllib.parse.quote(target.name))
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+            return
         if path == "/api/install":
             self.send_json(200, install_info())
             return
@@ -4404,6 +4528,9 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
             return
+        with EDIT_LOCK:
+            EDIT_STATE.update(recent=item["name"], at=time.time())
+            EDIT_STATE["versions"].pop(item["name"].casefold(), None)      # a new copy: later edits start from it
         self.send_json(200, {"item": docs_public([item])[0], "truncated": bool(item.get("truncated")), "items": docs_public(docs_load_index())})
 
     def transcribe_upload(self) -> None:
@@ -5148,6 +5275,50 @@ class Handler(BaseHTTPRequestHandler):
                 return
         webbrowser.open(url)
 
+    def start_document_edit(self, req: dict) -> None:
+        """A plain replacement is done at once; an AI edit runs in the background and posts the new file in the chat when ready."""
+        if req.get("french"):
+            self._reply_lang = "fr"
+        if req["kind"] == "replace" or self._remote:
+            try:
+                result = edit_document(req)
+            except ValueError as exc:
+                self.send_json(200, {"reply": str(exc), "action": None})
+                return
+            reply = result["text"] + (f"\nIt is saved on the PC at {result['path']}" if self._remote and result["path"] else "")
+            self.send_json(200, {"reply": reply, "action": None, "download": None if self._remote else download_info(result["path"])})
+            return
+        with EDIT_LOCK:
+            if EDIT_STATE["busy"]:
+                self.send_json(200, {"reply": f"I am still working on {EDIT_STATE['busy']}, {current_address()}. I will post it here when it is ready; ask again after that.", "action": None})
+                return
+            EDIT_STATE["busy"] = req["doc"]
+        try:
+            doc_source(req["doc"], False)                  # say at once when the file is missing
+        except ValueError as exc:
+            with EDIT_LOCK:
+                EDIT_STATE["busy"] = None
+            self.send_json(200, {"reply": str(exc), "action": None})
+            return
+        lang = self._reply_lang
+
+        def work():
+            try:
+                result = edit_document(req)
+                text, dl = result["text"], download_info(result["path"])
+            except Exception as exc:
+                text, dl = f"I could not change {req['doc']}: {exc}", None
+            finally:
+                with EDIT_LOCK:
+                    EDIT_STATE["busy"] = None
+            if lang:
+                text = ai_translate(text, lang) or text
+            publish_event({"type": "proactive", "id": "doc-" + secrets.token_hex(4), "text": text, "chat": True, "speak": False, "download": dl})
+        threading.Thread(target=work, daemon=True).start()
+        ai = ai_settings()
+        where = "" if ai["is_local"] else f" Its text goes to {ai['provider']} ({ai['model']}), your chosen AI model."
+        self.send_json(200, {"reply": f"Working on {req['doc']}, {current_address()}. Your original stays as it is; I will post the new file here when it is ready. A long document can take a few minutes.{where}", "action": None})
+
     def find_files_by_type(self, request: dict) -> None:
         """'search for .pdf files in Documents': names, sizes and dates only, newest first, with a time limit."""
         roots, label = filetypes.roots_for(request["where"], Path.home())
@@ -5495,6 +5666,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(200, {"reply": f"Opened {ROOT}, {current_address()}.", "action": None})
             else:
                 self.send_json(200, {"reply": install_text(), "action": None})
+            return
+        with EDIT_LOCK:
+            recent = EDIT_STATE["recent"] if time.time() - EDIT_STATE["at"] < RECENT_SECONDS else None
+        edit_req = docedit.request(latest, [i["name"] for i in docs_load_index()], recent)
+        if edit_req:
+            self.start_document_edit(edit_req)
             return
         click = screenmap.click_request(latest)
         if click:

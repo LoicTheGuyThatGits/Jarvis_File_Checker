@@ -298,3 +298,16 @@ Any calendar event whose title says exam, test, quiz, contrôle, examen and so o
 
 ## Which folder Jarvis runs from
 The bottom of the chat list always shows the folder this copy of Jarvis is running from. Settings > Look > **This Jarvis** shows it in full with the data folder (chats, settings, notes), the Python it uses (and whether that is Jarvis's own `.venv`), the computer's name and when the program files last changed, with buttons to open either folder in Explorer or copy the path. In chat: "where are you running from?", "which folder is Jarvis in?", "open the Jarvis folder", "où es-tu installé ?". From Telegram it only tells you; it opens nothing.
+
+## Changing documents
+Add a document with the **+** button next to the message box (or drop it on the chat), then ask for a change in plain words:
+- "fix the spelling mistakes in essay.docx", "make my cover letter more formal", "translate report.docx into French", "shorten the history report", "corrige les fautes dans essay.docx"
+- "in budget.xlsx, replace 2025 with 2026", "replace "Mr Smith" with "Mrs Jones" in essay" (done at once, without the AI model)
+- follow-ups work on the result: "now make it shorter"; "from the original, …" starts again from the file you gave.
+
+You get a new file ("essay (edited).docx") with **Download** and **Show in folder** buttons; your original is never changed. Edits made by the AI model run in the background and the new file appears in the chat when ready.
+- **Word, PowerPoint, Excel:** only the text that changes is rewritten; styles, tables, pictures, headers and footers are copied as they are. A paragraph the model rewrites takes the formatting of its first word (bold words in the middle of it become plain); a plain replacement keeps all formatting. In Excel, text cells can be changed by the model and both text and number cells by a replacement; formulas are never touched.
+- **Text, Markdown, CSV and code files:** edited paragraph by paragraph, keeping the file's encoding and line endings.
+- **PDF:** cannot be changed in place, so the result is a Word file with the edited text (the layout is not kept).
+- The whole document goes to your chosen AI model in parts. With a cloud model it is sent to that provider; with Ollama it stays on this PC. Small local models make more mistakes, so read the result.
+- Documents added before this version only have their text saved, not the file: add them again to change them. Edited files are kept in `data\documents\edited`.

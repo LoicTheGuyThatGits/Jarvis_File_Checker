@@ -562,3 +562,6 @@ html[data-boot="play"] .boot{display:flex}
 .install-info code{overflow-wrap:anywhere;word-break:break-all}
 @media (max-width:560px){.install-info{grid-template-columns:minmax(0,1fr)}.install-info dt{padding-top:6px}}
 .install-mark{contain:inline-size}
+.download-card .download-name{display:block;margin:8px 0 6px;font-size:14px;font-weight:500;overflow-wrap:anywhere}
+.download-actions{display:flex;gap:8px;flex-wrap:wrap}
+.download-actions a.file-reveal{text-decoration:none;display:inline-block}

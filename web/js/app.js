@@ -170,6 +170,21 @@ function addMessage(role, text) {
   if (role === 'assistant') { const avatar = document.createElement('div'); avatar.className='avatar'; avatar.textContent='J'; row.append(avatar); }
   const bubble = document.createElement('div'); bubble.className='bubble'; if(role==='assistant')renderBubble(bubble,text); else bubble.textContent=text; row.append(bubble); conversation.append(row); scrollDown(); return row;
 }
+function addDownloadCard(dl, after=null) {
+  if(!dl||!dl.url)return null;
+  const card=document.createElement('section');card.className='file-results download-card';
+  const heading=document.createElement('div');heading.className='file-results-heading';heading.textContent='EDITED DOCUMENT';card.append(heading);
+  const name=document.createElement('strong');name.className='download-name';name.textContent=dl.name;card.append(name);
+  const row=document.createElement('div');row.className='download-actions';
+  const link=document.createElement('a');link.className='file-reveal';link.href=dl.url;link.download=dl.name;link.textContent='Download';row.append(link);
+  if(dl.path){const show=document.createElement('button');show.type='button';show.className='file-reveal';show.textContent='Show in folder';
+    show.addEventListener('click',async()=>{show.disabled=true;try{const r=await fetch('/api/files/reveal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:dl.path})});const d=await r.json();show.textContent=r.ok?'Opened':(d.error||'Could not open')}catch(e){show.textContent='Could not open'}setTimeout(()=>{show.disabled=false;show.textContent='Show in folder'},2500)});row.append(show)}
+  card.append(row);
+  if(after)after.after(card);else conversation.append(card);
+  if(typeof scrollDown==='function')scrollDown();
+  return card;
+}
+window.addDownloadCard=addDownloadCard;
 function addFileResults(files, truncated=false, noteText='', headingText='') {
   if(!Array.isArray(files)||!files.length)return;
   const section=document.createElement('section');section.className='file-results';
@@ -282,7 +297,7 @@ async function sendMessage(text) {
     if(live.row&&data.cancelled&&live.text){history.push({role:'assistant',content:live.text})}
     let replyRow=live.row;
     if(live.row&&!data.cancelled)renderBubble(live.bubble,reply);else replyRow=addMessage('assistant',reply);
-    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);
+    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);
   } catch(error) {
     if(error.name==='AbortError'){
       window.dispatchEvent(new CustomEvent('jarvis:stop'));const stopped='Stopped the current prompt, '+(window.JARVIS_ADDRESS||'sir')+'.';if(live.text)history.push({role:'assistant',content:live.text});history.push({role:'assistant',content:stopped});saveHistory();addMessage('assistant',stopped);
