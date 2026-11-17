@@ -2263,11 +2263,21 @@ def self_checks() -> list:
             return "skip", "phone app link is off"
         return ("ok" if PHONE_LISTENING else "warn"), ("listening for the phone app" if PHONE_LISTENING else "switched on, but Jarvis was not started with it: restart Jarvis") + ("; the phone may control mouse and keyboard" if cfg["control"] else "")
 
+    def own_model():
+        st = jarvis_model_status()
+        if not st["ollama"]:
+            return "skip", "Ollama is not installed"
+        if not st["ollama_running"]:
+            return "warn", "Ollama is not running"
+        if not st["installed"]:
+            return "warn", f"not built yet (base {st['base']}): say \u201cbuild the Jarvis model\u201d or run build-jarvis-model.bat"
+        return ("ok" if st["in_use"] else "warn"), f"installed, built on {st['base']}" + ("" if st["in_use"] else f"; the local model in use is {st['local_model']}")
+
     def voice():
         exe, voices = piper_setup()
         return ("ok" if exe and voices else "warn"), ("offline voice ready" if exe and voices else "offline voice (piper) not installed; the cloud or browser voice is used")
 
-    return [("Python packages", packages), ("Data folder", data_folder), ("AI model", model), ("Picture model", vision), ("Screenshot", screenshot),
+    return [("Python packages", packages), ("Data folder", data_folder), ("AI model", model), ("Jarvis model", own_model), ("Picture model", vision), ("Screenshot", screenshot),
             ("Reading controls on screen", screen_controls), ("Reading text on screen (OCR)", screen_ocr), ("Windows list", windows_list), ("Mouse and keyboard", computer_control),
             ("Network and Wi-Fi", network), ("File search", file_search), ("Document editing", documents), ("Phone app link", phone), ("Offline voice", voice)]
 
@@ -3021,6 +3031,90 @@ def ensure_ollama(base: str, wait: float = 25.0) -> bool:
             time.sleep(0.5)
         return False
 
+
+
+# ============================================================
+#  The "jarvis" model (model\\Modelfile built into Ollama)
+# ============================================================
+import jarvis_model
+
+JARVIS_MODEL_BUILDER: "jarvis_model.Builder | None" = None
+
+
+def ollama_exe() -> str | None:
+    local = os.environ.get("LOCALAPPDATA") or ""
+    for c in (shutil.which("ollama"), str(Path(local) / "Programs" / "Ollama" / "ollama.exe") if local else ""):
+        if c and Path(c).exists():
+            return c
+    return None
+
+
+def ollama_models(base: str) -> list[str] | None:
+    """Names of the models Ollama has, or None when it cannot be asked."""
+    root = re.sub(r"/v1/?$", "", base.rstrip("/"))
+    try:
+        with urllib.request.urlopen(root + "/api/tags", timeout=4) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        return [str(m.get("name") or "") for m in data.get("models") or []]
+    except Exception:
+        return None
+
+
+def has_model(names: list[str] | None, name: str) -> bool:
+    return bool(names) and any(n == name or n == name + ":latest" for n in names)
+
+
+def jarvis_model_done(state: dict) -> None:
+    """After a successful build, the local model becomes "jarvis" (the start-up script picks it too)."""
+    if not state.get("ok"):
+        return
+    with SETTINGS_LOCK:
+        models = SETTINGS.get("models") if isinstance(SETTINGS.get("models"), dict) else {}
+        models["local"] = jarvis_model.NAME
+        SETTINGS["models"] = models
+    save_settings()
+    audit("built the jarvis model and made it the local model")
+
+
+def jarvis_model_builder() -> "jarvis_model.Builder":
+    global JARVIS_MODEL_BUILDER
+    if JARVIS_MODEL_BUILDER is None:
+        JARVIS_MODEL_BUILDER = jarvis_model.Builder(ROOT, ollama_exe(), on_done=jarvis_model_done)
+    return JARVIS_MODEL_BUILDER
+
+
+def jarvis_model_status() -> dict:
+    local = provider_profiles()["local"]
+    load_settings()
+    file = ROOT / jarvis_model.LOCAL
+    info = jarvis_model.read(file if file.is_file() else ROOT / jarvis_model.TEMPLATE)
+    names = ollama_models(local["base"]) if ollama_up(local["base"]) else None
+    used = ai_settings(provider="local")["model"]
+    return {"modelfile": str(file), "modelfile_exists": file.is_file(), "base": info["base"], "params": info["params"],
+            "ollama": bool(ollama_exe()), "ollama_running": names is not None,
+            "installed": has_model(names, jarvis_model.NAME), "base_installed": has_model(names, info["base"]) if not info["base_is_file"] else None,
+            "local_model": used, "in_use": used.split(":")[0] == jarvis_model.NAME, "build": jarvis_model_builder().state()}
+
+
+def jarvis_model_text(st: dict) -> str:
+    if st["build"]["running"]:
+        return f"The Jarvis model is being built on {st['base']}: {st['build']['step'] or 'starting'}."
+    if not st["ollama"]:
+        return "Ollama is not installed, so there is no local Jarvis model. Get it from https://ollama.com/download."
+    if st["installed"]:
+        return f"The Jarvis model is installed (built on {st['base']}). " + ("It is the local model in use." if st["in_use"] else f"The local model in use is {st['local_model']}; choose jarvis in Settings > AI model to use it.")
+    return f"The Jarvis model is not built yet. Say \u201cbuild the Jarvis model\u201d, or use Settings > AI model; it uses {st['base']} as its base."
+
+
+def jarvis_model_build(force: bool = False) -> str:
+    local = provider_profiles()["local"]
+    if not ensure_ollama(local["base"]):
+        return "Ollama is not running and could not be started, so the Jarvis model cannot be built now."
+    return jarvis_model_builder().start()
+
+
+JARVIS_MODEL_ASK = re.compile(r"(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?P<verb>build|rebuild|create|make|update)\s+(?:the\s+|your\s+|a\s+)?(?:jarvis\s+model|model\s+jarvis|own\s+model)(?:\s+(?:again|now))?(?:\s+please)?[.!?]?", re.I)
+JARVIS_MODEL_STATUS = re.compile(r"(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:is\s+(?:the\s+|your\s+)?jarvis\s+model\s+(?:installed|built|ready)|(?:jarvis\s+model|model\s+jarvis)\s+status|what(?:'s|\s+is)\s+(?:the\s+)?(?:jarvis\s+model|base\s+model\s+of\s+jarvis))[.!?]?", re.I)
 
 # ============================================================
 #  Voice notes (speech to text) and photos (vision)
@@ -4562,6 +4656,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/install":
             self.send_json(200, install_info())
             return
+        if path == "/api/jarvis-model":
+            self.send_json(200, jarvis_model_status())
+            return
         if path == "/api/status":
             active = ai_settings()
             self.send_json(200, {"configured": bool(active["key"]), "provider": active["provider"], "model": active["model"]})
@@ -5206,6 +5303,12 @@ class Handler(BaseHTTPRequestHandler):
                         self.send_json(200, {**cfg, "sight_now": autopilot_sight()})
                     except (ValueError, TypeError) as exc:
                         self.send_json(400, {"error": str(exc)})
+            elif path == "/api/jarvis-model":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Build it at the PC."})
+                else:
+                    message = jarvis_model_build()
+                    self.send_json(200, {"message": message, **jarvis_model_status()})
             elif path == "/api/selftest":
                 if self._from_phone:
                     self.send_json(403, {"error": "Run it at the PC."})
@@ -6065,6 +6168,13 @@ class Handler(BaseHTTPRequestHandler):
         watch_reply = watch_command(latest, self._remote)
         if watch_reply:
             self.send_json(200, {"reply": watch_reply, "action": None})
+            return
+        if JARVIS_MODEL_ASK.fullmatch(latest.strip()):
+            reply = "Building the Jarvis model downloads several gigabytes, so start it at the PC." if (self._from_phone or payload.get("source") == "telegram") else jarvis_model_build()
+            self.send_json(200, {"reply": reply, "action": None})
+            return
+        if JARVIS_MODEL_STATUS.fullmatch(latest.strip()):
+            self.send_json(200, {"reply": jarvis_model_text(jarvis_model_status()), "action": None})
             return
         if SELFTEST_ASK.fullmatch(latest.strip()):
             result = run_self_check()

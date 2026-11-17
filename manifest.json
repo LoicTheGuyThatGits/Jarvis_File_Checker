@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "af4f1b08d1d691587f13aa5fb1ed13afaf3c2bf6150335d6e02498b2cd765d9f",
-   "size": 62732
+   "sha256": "83e7b8de79a7813db5394da57d2e2ffa421b15867525a3160e7f02eaecba634e",
+   "size": 63871
   },
   {
    "path": "app/backup.py",
@@ -66,6 +66,11 @@
    "path": "app/ical.py",
    "sha256": "7101a1a17f4446a998ba4b00275b80d22f240a8d596ae2994fc4341f2cf24c91",
    "size": 13529
+  },
+  {
+   "path": "app/jarvis_model.py",
+   "sha256": "5910dbafe211ffb572f651bf00d01648a23f301467437a4a19f627ec6344ef69",
+   "size": 5429
   },
   {
    "path": "app/jarvis_tray.py",
@@ -134,8 +139,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "51d3fbcdb9ecd33447d681b5e929e0003ac0ea2c16db6bde25eb33d444e87f46",
-   "size": 389757
+   "sha256": "f4bc05d439b1c401864b2aca5fe9845d09304c983a92639214e7fbbe5f6d5318",
+   "size": 395507
   },
   {
    "path": "app/set-address.py",
@@ -183,6 +188,11 @@
    "size": 5862
   },
   {
+   "path": "build-jarvis-model.bat",
+   "sha256": "85324fdcc2971970fecb5b083ba1100c7bf84e086ce92fa63c991bb13cfe19eb",
+   "size": 2150
+  },
+  {
    "path": "evaluate-smart-commands.bat",
    "sha256": "0d2c563bf0ae2078dd2f6e27457e0249600b8aba9bf70e2aedf9e66e9d0fe02e",
    "size": 357
@@ -199,8 +209,8 @@
   },
   {
    "path": "install-jarvis.bat",
-   "sha256": "43718dcabd1c90ff8bfe75469d7b5bc0879ea6a22286e0c28fcdbe7f73f682dd",
-   "size": 5914
+   "sha256": "940f98ef7ec5d615cfba87f2692d07c7487c961f7ce0e8fa4ddac8a800811744",
+   "size": 6354
   },
   {
    "path": "repair-jarvis.bat",
@@ -221,6 +231,11 @@
    "path": "start-jarvis.bat",
    "sha256": "5d008ddf7445aaba26a9a95be4ca8b88168879e0d873484bb1b7e5c17419dff8",
    "size": 2325
+  },
+  {
+   "path": "tools/jarvis.Modelfile",
+   "sha256": "d88ca6965c83a100e4267d98d70b337400d58a3bf1c183bd6653340bbee71a05",
+   "size": 1502
   },
   {
    "path": "tools/make_manifest.py",
@@ -254,8 +269,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "b850790158aab5e102560cca9477947f001001d61adea5b053a61002dccdf433",
-   "size": 58867
+   "sha256": "2e90d024f04629691eb4cbc1fc74074153f9e2ddf7122e959aa9910d98c14310",
+   "size": 59749
   },
   {
    "path": "web/js/app.js",
@@ -274,8 +289,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "ac42f2401ee0382e3917f005438cf535c73443284cde21fa509368506c749c27",
-   "size": 19198
+   "sha256": "88da69bcf87d874a53f677cd8d91c1bae719c589623da2ebfbd9f42d73570e07",
+   "size": 20869
   },
   {
    "path": "web/js/features.js",

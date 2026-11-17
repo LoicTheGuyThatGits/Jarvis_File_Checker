@@ -177,6 +177,33 @@
     $('net-watch').addEventListener('change', function () { api('/api/network', { watch: $('net-watch').checked }).catch(netFail); });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'timers') api('/api/network').then(function (d) { $('net-watch').checked = d.watch; }).catch(function () {}); });
   }
+  if ($('jm-build')) {
+    var jmTimer = null;
+    var jmShow = function (d) {
+      var b = d.build || {};
+      $('jm-base').textContent = d.base || '?';
+      $('jm-file').textContent = d.modelfile + (d.modelfile_exists ? '' : '  (made from the template on the first build)');
+      $('jm-state').textContent = b.running ? 'Building: ' + (b.step || 'starting') + '…'
+        : !d.ollama ? 'Ollama is not installed (ollama.com/download)'
+        : !d.ollama_running ? 'Ollama is not running'
+        : d.installed ? (d.in_use ? 'Installed and in use' : 'Installed; the local model in use is ' + d.local_model)
+        : 'Not built yet';
+      $('jm-build').textContent = d.installed ? 'Rebuild the Jarvis model' : 'Build the Jarvis model';
+      $('jm-build').disabled = !!b.running || !d.ollama;
+      if (!b.running && b.message) $('jm-status').textContent = b.message;
+      clearTimeout(jmTimer);
+      if (b.running) jmTimer = setTimeout(jmLoad, 2000);
+      else if (b.ok && $('model-refresh') && jmShow.wasRunning) $('model-refresh').click();
+      jmShow.wasRunning = !!b.running;
+    };
+    var jmLoad = function () { api('/api/jarvis-model').then(jmShow).catch(function (e) { $('jm-status').textContent = e.message; }); };
+    $('jm-build').addEventListener('click', function () {
+      $('jm-build').disabled = true;
+      api('/api/jarvis-model', {}).then(function (d) { $('jm-status').textContent = d.message; jmShow(d); })
+        .catch(function (e) { $('jm-status').textContent = e.message; $('jm-build').disabled = false; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') jmLoad(); });
+  }
   if ($('install-folder')) {
     var installLoad = function () {
       api('/api/install').then(function (d) {

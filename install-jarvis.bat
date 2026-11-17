@@ -131,7 +131,20 @@ if errorlevel 1 (
   goto finished
 )
 echo Ollama was found.
-choice /c YN /n /m "Download the llama3.2:3b model now? It is about 2 GB. [Y/N] "
+ollama show jarvis >nul 2>&1
+if not errorlevel 1 (
+  echo The Jarvis model is already built.
+  goto askvision
+)
+echo The Jarvis model is a local model with Jarvis's manner built in, on qwen2.5:7b.
+echo It needs about 4.7 GB and works best with a graphics card of 6 GB or more.
+choice /c YN /n /m "Build the Jarvis model now? [Y/N] "
+if errorlevel 2 goto asksmall
+call build-jarvis-model.bat --no-pause
+goto askvision
+
+:asksmall
+choice /c YN /n /m "Download the smaller llama3.2:3b model instead? It is about 2 GB. [Y/N] "
 if errorlevel 2 goto askvision
 ollama pull llama3.2:3b
 

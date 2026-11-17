@@ -43,10 +43,12 @@ Jarvis/
   install-jarvis.bat       run once to set everything up
   start-jarvis-app.bat     start Jarvis as an app (tray icon, own window, hotkey)
   start-jarvis.bat         start Jarvis in a console window instead
+  build-jarvis-model.bat   build the local "jarvis" model in Ollama from model\Modelfile
   app/                     the program: server.py, telegram_bot.py, jarvis_tray.py, jarvis_window.py, set-address.py
   web/                     the page: index.html, css/, js/, icons/
   data/                    your saved data: settings, memory, reminders, routines, documents,
                            address.txt, logs and the app window's browser profile
+  model/                   your Modelfile (the recipe for the "jarvis" model); updates never touch it
   piper/                   optional offline voices
   .venv/                   private Python environment (made by the installer, specific to this PC)
 ```
@@ -225,6 +227,12 @@ Turn on in Settings > Shortcuts, then select text in any app and press Ctrl+Alt+
 ## Music controls
 
 "Pause", "play", "resume the music", "next song", "previous song", "stop the music" and "what's playing" work from the window, by voice and on Telegram. They press the Windows media keys, so they control whichever player is active (Spotify, YouTube in a browser, VLC...). "What's playing" reads the Spotify window title or a YouTube tab; other players do not show it. Jarvis cannot search for and start a particular song.
+
+## The Jarvis model
+
+`jarvis` is a local Ollama model with Jarvis's settings and manner built in: a base model (qwen2.5:7b, about 4.7 GB, which fits an 8 GB graphics card) plus a temperature of 0.6, room for 8192 tokens and the J.A.R.V.I.S. persona. The recipe is `model\Modelfile`; the published template is `tools\jarvis.Modelfile`, and your own copy is made from it the first time and is never overwritten by updates.
+
+Build it with `build-jarvis-model.bat`, with Settings > AI model > Jarvis model, or by saying "build the Jarvis model" at the PC. Ollama downloads the base model first if needed. When the build finishes, `jarvis` becomes the local model, and `start-jarvis.bat` picks it whenever it is installed (otherwise it starts on llama3.2:3b). To move to another base, or later to a fine-tuned GGUF file, change only the FROM line and rebuild. "Is the Jarvis model installed?" tells you where it stands, and the self-check includes it.
 
 ## Ollama starts by itself
 
