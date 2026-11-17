@@ -1801,6 +1801,41 @@ def screen_map_text(screen: dict) -> str:
 FOUND_PATHS: dict = {"paths": set(), "at": 0.0}
 
 
+STARTED_AT = time.time()
+WHERE_ASK = re.compile(r"(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:tell\s+me\s+)?"
+                       r"(?:where\s+(?:are\s+you|is\s+jarvis|do\s+you)\s+(?:running|installed|stored|located|saved|live|living|kept)(?:\s+(?:from|on\s+this\s+(?:pc|computer)))?"
+                       r"|(?:what|which)\s+(?:folder|directory|path)\s+(?:are\s+you|is\s+jarvis)\s+(?:running\s+from|running\s+in|in|installed\s+in|from)"
+                       r"|where\s+(?:are\s+you|is\s+jarvis)(?:\s+on\s+(?:this|my)\s+(?:pc|computer))?"
+                       r"|(?:show|open)\s+(?:me\s+)?(?:the\s+|your\s+)?(?:jarvis\s+)?(?:install(?:ation)?\s+)?folder(?:\s+(?:you(?:'re|\s+are)\s+running\s+from|jarvis\s+(?:is\s+)?running\s+from))?"
+                       r"|(?:où|ou)\s+(?:es-tu|est\s+jarvis|tu\s+es)\s+install[ée]+|(?:de\s+)?quel\s+dossier\s+(?:tu\s+tournes|est\s+jarvis))\s*[.!?]*", re.I)
+
+
+def install_info() -> dict:
+    """Where this copy of Jarvis runs from, so two copies on one PC (or an old one) are easy to tell apart."""
+    newest = 0.0
+    for folder in (ROOT / "app", ROOT / "web"):
+        try:
+            for entry in os.scandir(folder):
+                if entry.is_file() and entry.name.endswith((".py", ".html", ".js", ".css")):
+                    newest = max(newest, entry.stat().st_mtime)
+        except OSError:
+            pass
+    python = Path(sys.executable)
+    return {"folder": str(ROOT), "data": str(ROOT / "data"), "python": str(python),
+            "venv": ".venv" in python.parts or sys.prefix != getattr(sys, "base_prefix", sys.prefix),
+            "pc": socket.gethostname(), "started": int(STARTED_AT), "files_changed": int(newest) if newest else None}
+
+
+def install_text() -> str:
+    info = install_info()
+    changed = datetime.fromtimestamp(info["files_changed"]).strftime("%d %B %Y, %H:%M") if info["files_changed"] else "unknown"
+    return (f"I am running from {info['folder']} on {info['pc']}, {current_address()}.\n"
+            f"• Your data (chats, settings, notes): {info['data']}\n"
+            f"• Python: {info['python']}" + (" (Jarvis's own environment)" if info["venv"] else " (not Jarvis's own .venv)") + "\n"
+            f"• Program files last changed: {changed}\n"
+            f"• Running since: {datetime.fromtimestamp(info['started']).strftime('%d %B %Y, %H:%M')}")
+
+
 def reveal_in_explorer(path: str) -> None:
     """Opens the file's folder in Explorer with the file selected."""
     if os.name == "nt":
@@ -4045,6 +4080,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, self.phone_status() if not self._from_phone else {"ok": True, "name": socket.gethostname(), "address": current_address(),
                                                                                     "control": phone_link.load(data_path("phone.json"))["control"]})
             return
+        if path == "/api/install":
+            self.send_json(200, install_info())
+            return
         if path == "/api/status":
             active = ai_settings()
             self.send_json(200, {"configured": bool(active["key"]), "provider": active["provider"], "model": active["model"]})
@@ -4674,6 +4712,14 @@ class Handler(BaseHTTPRequestHandler):
                             self.send_json(200, {**res, "message": msg, "state": backup_state()})
                     except backup_module.BackupError as exc:
                         self.send_json(400, {"error": str(exc)})
+            elif path == "/api/install/open":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Open it at the PC."})
+                else:
+                    folder = ROOT / "data" if payload.get("what") == "data" else ROOT
+                    folder.mkdir(exist_ok=True)
+                    open_folder_path(folder)
+                    self.send_json(200, {"ok": True})
             elif path == "/api/files/reveal":
                 target = str(payload.get("path") or "")
                 if self._from_phone:
@@ -5443,6 +5489,13 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"reply": language_switch[0], "action": None, "language": language_switch[1]})
             return
         want_shot = payload.get("want_screenshot") is True
+        if WHERE_ASK.fullmatch(latest.strip()):
+            if re.match(r"(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?open\b", latest.strip(), re.I) and not self._remote:
+                open_folder_path(ROOT)
+                self.send_json(200, {"reply": f"Opened {ROOT}, {current_address()}.", "action": None})
+            else:
+                self.send_json(200, {"reply": install_text(), "action": None})
+            return
         click = screenmap.click_request(latest)
         if click:
             self.click_by_name(click[0], click[1], payload.get("want_screenshot") is True)

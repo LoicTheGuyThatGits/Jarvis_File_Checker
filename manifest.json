@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "937c86e1a65db45c9d962029a158a02c72ebbe3d3951c81ea8af1626ffb3c744",
-   "size": 55925
+   "sha256": "78685cec76e5d26134a46f770abebc8cb2815a9c640996db16762362760124c6",
+   "size": 56507
   },
   {
    "path": "app/backup.py",
@@ -114,8 +114,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "c9199a30dcd996f89d1725db52b513efdcf0ac50621367348c99bbc123a3f59d",
-   "size": 346474
+   "sha256": "c6c9befd83774d26bca6fef74d0d8c868105004bfa9cb55594da56581bd347e9",
+   "size": 349847
   },
   {
    "path": "app/set-address.py",
@@ -214,8 +214,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "0d6cdb9f31d3bdf97413e6314e0eca849acb58dcf60ce2cf8bf9e542bcc2e592",
-   "size": 50833
+   "sha256": "4efee0c7dc116dbdb8cb428351d0ad1b0eb5cf74bc9fb740ea8c940d7b4e680c",
+   "size": 51585
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -229,8 +229,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "8d39f74ccdf6376b496efb60ee0e50f0135a3cea6a222141fd88d08f9d312124",
-   "size": 54718
+   "sha256": "6bb748e0d3505005b8e29e686c3c4412a6c278bd9cdf83ac622bc37b761c72bc",
+   "size": 55802
   },
   {
    "path": "web/js/app.js",
@@ -249,8 +249,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "0207a8f788642f68d7e22ba9cbcaf044956683bdb043bf0a1bb6628a3531db4e",
-   "size": 14097
+   "sha256": "275e5e50eed8365f9ab858b8d708a5d7e132780a7c847ad06f5071ffc27d478f",
+   "size": 15875
   },
   {
    "path": "web/js/features.js",
@@ -294,8 +294,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "980dcc6da7df049de6d5becc7f6ee81bf756ebad18fb0778c1985413635a3426",
-   "size": 17639
+   "sha256": "7e5c602bfd187ee63c178a4b7378bd99897622649460449cd74ddce700c17185",
+   "size": 17746
   },
   {
    "path": "web/js/wake.js",

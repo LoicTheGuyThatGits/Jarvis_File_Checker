@@ -177,4 +177,25 @@
     $('net-watch').addEventListener('change', function () { api('/api/network', { watch: $('net-watch').checked }).catch(netFail); });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'timers') api('/api/network').then(function (d) { $('net-watch').checked = d.watch; }).catch(function () {}); });
   }
+  if ($('install-folder')) {
+    var installLoad = function () {
+      api('/api/install').then(function (d) {
+        $('install-folder').textContent = d.folder; $('install-data').textContent = d.data;
+        $('install-python').textContent = d.python + (d.venv ? '' : '  (not Jarvis\'s own .venv)');
+        $('install-pc').textContent = d.pc;
+        $('install-changed').textContent = d.files_changed ? new Date(d.files_changed * 1000).toLocaleString() : 'unknown';
+        var mark = $('install-mark'); if (mark) { mark.textContent = d.folder; mark.title = 'Jarvis is running from ' + d.folder; }
+      }).catch(function (e) { $('install-status').textContent = e.message; });
+    };
+    var installOpen = function (what) { api('/api/install/open', { what: what }).then(function () { $('install-status').textContent = 'Opened in Explorer.'; }).catch(function (e) { $('install-status').textContent = e.message; }); };
+    $('install-open').addEventListener('click', function () { installOpen('folder'); });
+    $('install-open-data').addEventListener('click', function () { installOpen('data'); });
+    $('install-copy').addEventListener('click', function () {
+      var text = $('install-folder').textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject(new Error('no clipboard'))).then(function () { $('install-status').textContent = 'Copied.'; },
+        function () { var r = document.createRange(); r.selectNodeContents($('install-folder')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $('install-status').textContent = 'Selected: press Ctrl+C to copy.'; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'look') installLoad(); });
+    installLoad();
+  }
 })();

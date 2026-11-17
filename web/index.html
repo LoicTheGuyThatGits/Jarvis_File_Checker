@@ -53,6 +53,7 @@
         <div class="sidebar-bottom">
           <button type="button" id="clear-chat" class="sidebar-clear" title="Clear the current chat">Clear current chat</button>
           <button type="button" id="delete-chat" class="sidebar-delete" title="Delete the current chat and its saved messages">Delete current chat</button>
+          <span class="install-mark" id="install-mark" title="The folder Jarvis is running from"></span>
         </div>
       </aside>
 
@@ -147,6 +148,19 @@
     <div class="settings-content" id="settings-content">
 
     <div class="settings-pane" id="pane-look" role="tabpanel" aria-labelledby="tab-look">
+      <div class="settings-section">
+        <h2 class="settings-heading">This Jarvis</h2>
+        <p class="settings-note">The folder this copy of Jarvis is running from. Useful when there is more than one copy on a computer, or after moving to another PC.</p>
+        <dl class="install-info">
+          <dt>Folder</dt><dd><code id="install-folder">…</code></dd>
+          <dt>Your data</dt><dd><code id="install-data">…</code></dd>
+          <dt>Python</dt><dd><code id="install-python">…</code></dd>
+          <dt>Computer</dt><dd id="install-pc">…</dd>
+          <dt>Program files changed</dt><dd id="install-changed">…</dd>
+        </dl>
+        <div class="inline-form"><button type="button" id="install-open">Open the folder</button><button type="button" id="install-open-data">Open the data folder</button><button type="button" id="install-copy">Copy the path</button></div>
+        <p class="settings-note" id="install-status" role="status"></p>
+      </div>
       <div class="settings-section">
         <h2 class="settings-heading">Interface style</h2>
         <div class="theme-grid" id="theme-grid" role="radiogroup" aria-label="Interface style"></div>

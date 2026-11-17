@@ -46,7 +46,8 @@ with sync_playwright() as p:
     # phone-sized screen: full screen sheet, no sideways scroll
     pg.set_viewport_size({"width":400,"height":780}); pg.click("#open-settings"); pg.wait_for_timeout(350)
     box=pg.locator("#settings").bounding_box(); assert box["width"]>=398 and box["height"]>=770, box
-    assert pg.evaluate("document.documentElement.scrollWidth<=window.innerWidth+1"), "no horizontal scroll"
+    wide=pg.evaluate("[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>window.innerWidth+1 && e.offsetParent).slice(0,5).map(e=>e.tagName+'#'+e.id+'.'+e.className)")
+    assert pg.evaluate("document.documentElement.scrollWidth<=window.innerWidth+1"), ("no horizontal scroll", wide)
     pg.fill("#settings-search","gmail"); pg.wait_for_timeout(300); assert pg.locator("#mail-address").is_visible()
     assert not errs, errs
     b.close()
