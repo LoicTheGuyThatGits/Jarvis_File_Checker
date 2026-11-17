@@ -198,4 +198,43 @@
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'look') installLoad(); });
     installLoad();
   }
+  if ($('selftest-run')) {
+    $('selftest-run').addEventListener('click', function () {
+      var b = $('selftest-run'); b.disabled = true; $('selftest-copy').disabled = true; $('selftest-report').textContent = 'Checking… (up to a minute)';
+      api('/api/selftest', {}).then(function (d) { $('selftest-report').textContent = d.text; $('selftest-copy').disabled = false; })
+        .catch(function (e) { $('selftest-report').textContent = e.message; }).then(function () { b.disabled = false; });
+    });
+    $('selftest-copy').addEventListener('click', function () {
+      var text = $('selftest-report').textContent;
+      (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(function () { $('selftest-copy').textContent = 'Copied'; setTimeout(function () { $('selftest-copy').textContent = 'Copy the report'; }, 2000); },
+        function () { var r = document.createRange(); r.selectNodeContents($('selftest-report')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); });
+    });
+  }
+  if ($('ctl-sight')) {
+    var ctlShow = function (d) {
+      $('ctl-sight').value = d.sight; $('ctl-ocr').checked = d.ocr !== false;
+      var steps = String(d.max_steps); if (![].some.call($('ctl-steps').options, function (o) { return o.value === steps; })) { var o = document.createElement('option'); o.value = o.textContent = steps; $('ctl-steps').append(o); }
+      $('ctl-steps').value = steps;
+      $('ctl-sight-now').textContent = d.sight_now === 'picture' ? 'Right now: screenshot and text.' : 'Right now: text only (the chosen model cannot see pictures).';
+      var list = $('ctl-folders'); list.textContent = '';
+      (d.folders || []).forEach(function (f) {
+        var li = document.createElement('li'), code = document.createElement('code'), x = document.createElement('button');
+        code.textContent = f; x.type = 'button'; x.textContent = 'Remove'; x.className = 'settings-action';
+        x.addEventListener('click', function () { ctlSave({ folders: d.folders.filter(function (g) { return g !== f; }) }); });
+        li.append(code, ' ', x); list.append(li);
+      });
+      if (!(d.folders || []).length) { var li = document.createElement('li'); li.textContent = 'None yet.'; list.append(li); }
+      ctlState = d;
+    };
+    var ctlState = { folders: [] };
+    var ctlSave = function (update) { return api('/api/control', update).then(function (d) { ctlShow(d); $('ctl-status').textContent = 'Saved.'; }).catch(function (e) { $('ctl-status').textContent = e.message; }); };
+    $('ctl-sight').addEventListener('change', function () { ctlSave({ sight: $('ctl-sight').value }); });
+    $('ctl-ocr').addEventListener('change', function () { ctlSave({ ocr: $('ctl-ocr').checked }); });
+    $('ctl-steps').addEventListener('change', function () { ctlSave({ max_steps: Number($('ctl-steps').value) }); });
+    $('ctl-folder-add').addEventListener('click', function () {
+      var f = $('ctl-folder').value.trim(); if (!f) return;
+      ctlSave({ folders: (ctlState.folders || []).concat([f]) }).then(function () { if ($('ctl-status').textContent === 'Saved.') $('ctl-folder').value = ''; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') api('/api/control').then(ctlShow).catch(function () {}); });
+  }
 })();

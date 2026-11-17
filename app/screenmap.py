@@ -220,3 +220,81 @@ def click_request(text: str) -> tuple[str, str] | None:
         return None
     kind = "double_click" if verb.startswith("double") else "right_click" if verb.startswith("right") else "click"
     return kind, target
+
+
+# ---------------- reading the text on the whole screen (Windows' own OCR) ----------------
+# Works for anything drawn on the screen, also apps that publish no list of controls. Windows PowerShell 5.1 only.
+OCR_SCRIPT = r'''
+$ErrorActionPreference = 'Stop'
+Add-Type -AssemblyName System.Runtime.WindowsRuntime
+$null = [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime]
+$null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
+$null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Foundation, ContentType = WindowsRuntime]
+$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+function Await($op, $type) { $t = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }
+$file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync('__PATH__')) ([Windows.Storage.StorageFile])
+$stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
+$decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
+$bitmap = Await ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
+$engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
+if ($engine -eq $null) { @{ error = 'no OCR language installed' } | ConvertTo-Json -Compress; exit }
+$result = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
+$lines = New-Object System.Collections.ArrayList
+foreach ($l in $result.Lines) {
+  $x1 = 99999; $y1 = 99999; $x2 = 0; $y2 = 0
+  foreach ($w in $l.Words) { $r = $w.BoundingRect; if ($r.X -lt $x1) { $x1 = $r.X }; if ($r.Y -lt $y1) { $y1 = $r.Y }; if ($r.X + $r.Width -gt $x2) { $x2 = $r.X + $r.Width }; if ($r.Y + $r.Height -gt $y2) { $y2 = $r.Y + $r.Height } }
+  [void]$lines.Add(@{ t = $l.Text; x = [int]$x1; y = [int]$y1; w = [int]($x2 - $x1); h = [int]($y2 - $y1) })
+}
+@{ language = $engine.RecognizerLanguage.LanguageTag; lines = $lines } | ConvertTo-Json -Depth 4 -Compress
+'''
+MAX_LINES = 220
+
+
+def ocr(image_path: str, run=default_run) -> dict | None:
+    """{"language", "lines": [{"n", "text", "x", "y", "w", "h"}]} with positions in the image's pixels (centre x, y), or None."""
+    safe = str(image_path).replace("'", "''")
+    text = run(OCR_SCRIPT.replace("__PATH__", safe), 25)
+    start = text.find("{")
+    if start < 0:
+        return None
+    try:
+        raw = json.loads(text[start:])
+    except ValueError:
+        return None
+    if not isinstance(raw, dict) or raw.get("error"):
+        return None
+    lines = raw.get("lines") or []
+    if isinstance(lines, dict):
+        lines = [lines]
+    out = []
+    for item in lines:
+        try:
+            t = re.sub(r"\s+", " ", str(item["t"])).strip()
+            x, y, w, h = int(item["x"]), int(item["y"]), int(item["w"]), int(item["h"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if t and w > 0 and h > 0:
+            out.append({"text": t[:200], "x": x + w // 2, "y": y + h // 2, "w": w, "h": h})
+    out.sort(key=lambda l: (l["y"] // 12, l["x"]))
+    for n, line in enumerate(out[:MAX_LINES], 1):
+        line["n"] = n
+    return {"language": str(raw.get("language") or ""), "lines": out[:MAX_LINES]}
+
+
+def describe_ocr(result: dict | None, scale_x: float = 1.0, scale_y: float = 1.0) -> str:
+    if not result or not result.get("lines"):
+        return ""
+    lines = ["Text read on the whole screen (number. “text” at x,y in the screenshot); you may click a line with {\"type\":\"click\",\"line\":N}:"]
+    lines += [f"L{l['n']}. “{l['text']}” at {round(l['x'] * scale_x)},{round(l['y'] * scale_y)}" for l in result["lines"]]
+    return "\n".join(lines)
+
+
+def screen_text(screen_map: dict | None, ocr_result: dict | None) -> str:
+    """Everything readable on the screen as plain text, for answering and for watching."""
+    parts = []
+    if screen_map:
+        parts.append(screen_map.get("title", ""))
+        parts += [e["name"] for e in screen_map.get("elements", []) if e.get("name")]
+    if ocr_result:
+        parts += [l["text"] for l in ocr_result.get("lines", [])]
+    return "\n".join(p for p in parts if p)

@@ -234,9 +234,9 @@ function scrollDown() { window.scrollTo({top:document.body.scrollHeight,behavior
 function actionText(action) {
   if (action.type === 'computer_step') {
     const step=action.computer_action;
-    const labels={click:'Click',double_click:'Double-click',right_click:'Right-click',type_text:'Type text',press_key:'Press a key',hotkey:'Press shortcut',scroll:'Scroll',wait:'Wait briefly'};
+    const labels={click:'Click',double_click:'Double-click',right_click:'Right-click',type_text:'Type text',press_key:'Press a key',hotkey:'Press shortcut',scroll:'Scroll',wait:'Wait briefly',focus_window:'Bring to the front',window_state:'Change the window size of',open_app:'Open the app',open_url:'Open the web page',open_folder:'Open the folder',list_folder:'Look inside the folder',read_file:'Read the file',write_file:'Write the file'};
     const detail=step.type==='hotkey'?step.keys.join('+'):step.type==='press_key'?step.key:step.type==='scroll'?`${step.amount} notches`:'';
-    return `${labels[step.type]||'Computer action'}${detail?` (${detail})`:''} on ${step.target||'the screen'}`;
+    return ['focus_window','window_state','open_app','open_url','open_folder','list_folder','read_file','write_file'].includes(step.type)?`${labels[step.type]} ${step.target||''}${step.state?` (${step.state})`:''}`:`${labels[step.type]||'Computer action'}${detail?` (${detail})`:''} on ${step.target||'the screen'}`;
   }
   if (action.type === 'routine') return `Run your “${action.name}” routine (${action.steps.length} step${action.steps.length===1?'':'s'})`;
   if (action.type === 'open_app') return `Open ${action.name}`;
@@ -252,7 +252,7 @@ function showAction(action) {
   if(action.type==='run_command'){const code=document.createElement('code');code.textContent=action.command;desc.append(code)}
   if(action.type==='routine'){const list=document.createElement('ol');list.className='routine-steps';for(const step of action.steps){const li=document.createElement('li');li.textContent=step;list.append(li)}desc.append(list)}
   if(action.type==='save_code'){for(const file of action.files||[]){const details=document.createElement('details');details.className='file-preview';details.open=(action.files||[]).length===1;const summary=document.createElement('summary');summary.textContent=`${file.filename} · ${file.code.split('\n').length} lines`;const code=document.createElement('pre');code.className='code-preview';code.textContent=file.code;details.append(summary,code);desc.append(details)}}
-  if(action.type==='computer_step'&&action.computer_action.type==='type_text'){const code=document.createElement('code');code.textContent=action.computer_action.text;desc.append(code)}
+  if(action.type==='computer_step'&&action.computer_action.type==='type_text'){const code=document.createElement('code');code.textContent=action.computer_action.text;desc.append(code)}if(action.type==='computer_step'&&action.computer_action.type==='write_file'){const details=document.createElement('details');details.className='file-preview';const summary=document.createElement('summary');summary.textContent=`New content · ${action.computer_action.text.split('\n').length} lines`;const code=document.createElement('pre');code.className='code-preview';code.textContent=action.computer_action.text;details.append(summary,code);desc.append(details)}
   card.append(desc);
   const buttons=document.createElement('div');buttons.className='action-buttons';
   const approve=document.createElement('button');approve.className='approve';approve.textContent=action.type==='generate_image'?'Generate image':action.type==='computer_step'?'Approve step':action.type==='save_code'?((action.files||[]).length>1?'Save files':'Save file'):action.type==='routine'?'Run routine':'Approve and run';

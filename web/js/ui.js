@@ -62,6 +62,8 @@
     'exams and revision': 'exam test countdown revise study plan schedule days left',
     'focus timer': 'pomodoro concentrate deep work study session break timer',
     'this jarvis': 'install folder path location where running directory version copy python data folder',
+    'self-check': 'self test diagnostics check what works broken problems report debug',
+    'computer control': 'autopilot screen ocr read text control mouse windows project folders vision model see steps',
     'evening recap': 'recap summary end of day daily review tomorrow wrap up planner',
     'backup': 'back up restore save data export passphrase encrypted usb new computer migrate',
     'wi-fi and network': 'wifi internet slow connection devices router scan signal lag ping speed who is connected',

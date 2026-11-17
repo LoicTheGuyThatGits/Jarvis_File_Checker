@@ -162,6 +162,12 @@
         <p class="settings-note" id="install-status" role="status"></p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">Self-check</h2>
+        <p class="settings-note">Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.</p>
+        <div class="inline-form"><button type="button" id="selftest-run">Run the self-check</button><button type="button" id="selftest-copy" disabled>Copy the report</button></div>
+        <pre class="settings-note" id="selftest-report" role="status" style="white-space:pre-wrap"></pre>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Interface style</h2>
         <div class="theme-grid" id="theme-grid" role="radiogroup" aria-label="Interface style"></div>
         <p class="settings-note">The dot on each preview is the color Jarvis turns while it is thinking.</p>
@@ -250,6 +256,23 @@
         <div class="settings-field"><label for="model-select">Model</label><select id="model-select"><option>Loading…</option></select></div>
         <button type="button" id="model-refresh" class="settings-action">↻ Refresh model list</button>
         <p class="settings-note" id="ai-note"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Computer control</h2>
+        <p class="settings-note">How Autopilot sees and works on this PC. Besides the screenshot, Jarvis reads the open windows, the controls Windows reports and all the text on the screen (Windows' own OCR), so it can click things by name and number instead of guessing positions. A model that cannot see pictures can still work from that text alone. Stop it at any time with the Stop button or Ctrl+Shift+F10.</p>
+        <label class="settings-field">How Autopilot looks at the screen
+          <select id="ctl-sight"><option value="auto">Automatic (picture when the model can see)</option><option value="picture">Screenshot and text</option><option value="text">Text only (for models that cannot see)</option></select>
+        </label>
+        <p class="settings-note" id="ctl-sight-now"></p>
+        <label class="settings-check"><input type="checkbox" id="ctl-ocr"> Read all the text on the screen (slower by about a second a step)</label>
+        <label class="settings-field">Most actions in one Autopilot run
+          <select id="ctl-steps"><option value="20">20</option><option value="40">40</option><option value="80">80</option><option value="150">150</option></select>
+        </label>
+        <h3 class="settings-subheading">Project folders</h3>
+        <p class="settings-note">Folders where Autopilot may read and write files directly (your code, your website, a Unity project's scripts), instead of typing into an editor. Each file it changes is backed up first in data\file-backups\projects. It never writes programs or scripts Windows runs by double-click (.exe, .bat, .ps1…) and cannot reach anything outside these folders.</p>
+        <ul class="settings-list" id="ctl-folders"></ul>
+        <div class="inline-form"><input type="text" id="ctl-folder" placeholder="C:\Users\you\Projects\my-site" aria-label="Project folder"><button type="button" id="ctl-folder-add">Add</button></div>
+        <p class="settings-note" id="ctl-status" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Smart commands (experimental)</h2>
