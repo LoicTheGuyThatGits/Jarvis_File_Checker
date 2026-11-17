@@ -170,19 +170,23 @@ function addMessage(role, text) {
   if (role === 'assistant') { const avatar = document.createElement('div'); avatar.className='avatar'; avatar.textContent='J'; row.append(avatar); }
   const bubble = document.createElement('div'); bubble.className='bubble'; if(role==='assistant')renderBubble(bubble,text); else bubble.textContent=text; row.append(bubble); conversation.append(row); scrollDown(); return row;
 }
-function addFileResults(files, truncated=false) {
+function addFileResults(files, truncated=false, noteText='', headingText='') {
   if(!Array.isArray(files)||!files.length)return;
   const section=document.createElement('section');section.className='file-results';
-  const heading=document.createElement('div');heading.className='file-results-heading';heading.textContent='FILES FOUND ON THIS PC';section.append(heading);
+  const heading=document.createElement('div');heading.className='file-results-heading';heading.textContent=headingText||'FILES FOUND ON THIS PC';section.append(heading);
   const list=document.createElement('ul');
   for(const file of files){
     const item=document.createElement('li');
     const name=document.createElement('strong');name.textContent=file.name||'File';
     const path=document.createElement('code');path.textContent=file.path||'';
-    item.append(name,path);list.append(item);
+    item.append(name,path);
+    if(file.detail){const d=document.createElement('span');d.className='file-detail';d.textContent=file.detail;item.append(d)}
+    const show=document.createElement('button');show.type='button';show.className='file-reveal';show.textContent='Show in folder';
+    show.addEventListener('click',async()=>{show.disabled=true;try{const r=await fetch('/api/files/reveal',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:file.path})});const d=await r.json();show.textContent=r.ok?'Opened':(d.error||'Could not open')}catch(e){show.textContent='Could not open'}setTimeout(()=>{show.disabled=false;show.textContent='Show in folder'},2500)});
+    item.append(show);list.append(item);
   }
   section.append(list);
-  if(truncated){const note=document.createElement('p');note.className='file-results-note';note.textContent='Search stopped at its result or time limit. Try a more specific filename to narrow the results.';section.append(note)}
+  if(truncated){const note=document.createElement('p');note.className='file-results-note';note.textContent=noteText||'Search stopped at its result or time limit. Try a more specific filename to narrow the results.';section.append(note)}
   conversation.append(section);scrollDown();
 }
 function addScreenPreview(base64) {
@@ -278,7 +282,7 @@ async function sendMessage(text) {
     if(live.row&&data.cancelled&&live.text){history.push({role:'assistant',content:live.text})}
     let replyRow=live.row;
     if(live.row&&!data.cancelled)renderBubble(live.bubble,reply);else replyRow=addMessage('assistant',reply);
-    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated);if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);
+    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);
   } catch(error) {
     if(error.name==='AbortError'){
       window.dispatchEvent(new CustomEvent('jarvis:stop'));const stopped='Stopped the current prompt, '+(window.JARVIS_ADDRESS||'sir')+'.';if(live.text)history.push({role:'assistant',content:live.text});history.push({role:'assistant',content:stopped});saveHistory();addMessage('assistant',stopped);

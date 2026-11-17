@@ -140,6 +140,19 @@ CAL = r"(?:(?:mon|l['’]|le|un)\s*)?(?:agenda|calendrier|planning|emploi\s+du\s
 VERB_ADD = r"(?:ajoute[rz]?|mets?|mettre|rajoute[rz]?|note[rz]?|inscri[ste]|inscrire)"
 
 
+def _place(text: str) -> str:
+    """French place names for the file search: 'ordinateur' -> 'the computer', 'téléchargements' -> 'Downloads', a folder name stays as it is."""
+    t = text.strip()
+    low = t.lower()
+    if re.fullmatch(r"(?:tout\s+)?(?:l['’]\s*|mon\s+)?ordi(?:nateur)?|partout|(?:tous\s+)?(?:les\s+)?disques", low):
+        return "the computer"
+    m = re.fullmatch(r"(?:le\s+)?(?:disque|lecteur)\s+([a-z])(?::)?", low)
+    if m:
+        return f"the {m.group(1).upper()} drive"
+    return {"bureau": "Desktop", "téléchargements": "Downloads", "telechargements": "Downloads", "images": "Pictures", "vidéos": "Videos", "videos": "Videos",
+            "musique": "Music", "documents": "Documents"}.get(low, t)
+
+
 def _task(m, now):
     what, date = split_when(m.group(1), now)
     if not date and m.lastindex and m.lastindex >= 2 and m.group(2):
@@ -199,6 +212,10 @@ def _exam(m, now):
 EXAM = r"(?:examen|exam|contrôle|controle|interro(?:gation)?|épreuve|epreuve|test|partiel|devoir\s+surveillé|ds|évaluation|evaluation|éval|eval)"
 # (pattern on the cleaned sentence, English command or a function building it)
 RULES: list[tuple[str, object]] = [
+    # --- files of a type on this PC (before the other searches) ---
+    (r"(?:cherche[rz]?|trouve[rz]?|liste[rz]?|montre)(?:[- ]moi)?\s+(?:tous\s+|toutes\s+)?(?:les|des|mes)\s+fichiers\s+(\.?[a-z0-9]{1,10}(?:\s*(?:,|et|ou)\s*\.?[a-z0-9]{1,10})*)"
+     r"(?:\s+(?:dans|sur|de)\s+(?:le\s+dossier\s+|mon\s+dossier\s+|le\s+|la\s+|les\s+|mon\s+|ma\s+|mes\s+|l['’])?(.+?))?",
+     lambda m, now: f"search for {re.sub(r'\s+(?:et|ou)\s+', ' and ', m.group(1))} files" + (f" in {_place(m.group(2))}" if m.group(2) else "")),
     # --- to-do list ---
     (rf"{VERB_ADD}\s+(.+?)\s+(?:à|a|sur|dans)\s+{LIST}(?:\s+(.+))?", _task),
     (rf"(?:ajoute[rz]?|crée[rz]?|cree[rz]?|nouvelle)\s+(?:une\s+)?(?:tâche|tache)\s*:?\s*(.+)", _task),
@@ -274,7 +291,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîû]|\b(?:moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|clique[rz]?|clic|écran|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîû]|\b(?:moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

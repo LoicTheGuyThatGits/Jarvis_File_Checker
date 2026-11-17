@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "d4639b23204d62c62f038ee5c0e554904c13c6b8d514d610f78942ddfaafbc48",
-   "size": 54719
+   "sha256": "937c86e1a65db45c9d962029a158a02c72ebbe3d3951c81ea8af1626ffb3c744",
+   "size": 55925
   },
   {
    "path": "app/backup.py",
@@ -28,6 +28,11 @@
    "size": 3536
   },
   {
+   "path": "app/filetypes.py",
+   "sha256": "46f3552ce0884919361a33305a4b8150a6a7fdfef3f6c5530b8e65607a17733a",
+   "size": 13055
+  },
+  {
    "path": "app/focus.py",
    "sha256": "d69b8418c6accb1969ff2be0383cfb4892c1c93caf70a117019bbaf46b39fae9",
    "size": 10098
@@ -39,8 +44,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "59889bc998217f2dc8a471f79fe06bd2a2190a65ea704f9cae45eb4dd192630a",
-   "size": 22646
+   "sha256": "d99e05507cf05b7ca2ddf3a71dd8fee886cdb43010c0f84d591f605b23528447",
+   "size": 23910
   },
   {
    "path": "app/gmail_reader.py",
@@ -109,8 +114,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "f3763fd8a946aef9bc2ba892aa018fc19e00226621fad842ebb97cab6a01065d",
-   "size": 343541
+   "sha256": "c9199a30dcd996f89d1725db52b513efdcf0ac50621367348c99bbc123a3f59d",
+   "size": 346474
   },
   {
    "path": "app/set-address.py",
@@ -209,8 +214,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "bef563db351d7bb2b267f484c39dfab808613d3d5bf86086199513e34e66e860",
-   "size": 50473
+   "sha256": "0d6cdb9f31d3bdf97413e6314e0eca849acb58dcf60ce2cf8bf9e542bcc2e592",
+   "size": 50833
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -229,8 +234,8 @@
   },
   {
    "path": "web/js/app.js",
-   "sha256": "85e36ed95b023afd5511e2e4085d6359224dce0153525584d722672e108abdf4",
-   "size": 27794
+   "sha256": "11d43023841c8d557016e768e557703a56a73b376c85807732d8ba881cd93be6",
+   "size": 28573
   },
   {
    "path": "web/js/code.js",

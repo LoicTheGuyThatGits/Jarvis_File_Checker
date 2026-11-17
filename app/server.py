@@ -900,6 +900,7 @@ import focus as focus_module
 import search_all
 import network as network_module
 import screenmap
+import filetypes
 
 
 def backup_config_path():
@@ -1795,6 +1796,21 @@ def screen_map_text(screen: dict) -> str:
     if not screen["map"]:
         return ""
     return screenmap.describe(screen["map"], screen["shown_width"] / max(1, screen["width"]), screen["shown_height"] / max(1, screen["height"]))
+
+
+FOUND_PATHS: dict = {"paths": set(), "at": 0.0}
+
+
+def reveal_in_explorer(path: str) -> None:
+    """Opens the file's folder in Explorer with the file selected."""
+    if os.name == "nt":
+        subprocess.Popen(["explorer.exe", "/select,", path])
+
+
+def remember_found(files: list[dict]) -> None:
+    """Only files Jarvis has just listed can be shown in Explorer from the chat."""
+    FOUND_PATHS["paths"] = {os.path.normcase(str(f.get("path") or "")) for f in files} | (FOUND_PATHS["paths"] if time.time() - FOUND_PATHS["at"] < 1800 else set())
+    FOUND_PATHS["at"] = time.time()
 
 
 def search_everything(query: str) -> str:
@@ -4658,6 +4674,17 @@ class Handler(BaseHTTPRequestHandler):
                             self.send_json(200, {**res, "message": msg, "state": backup_state()})
                     except backup_module.BackupError as exc:
                         self.send_json(400, {"error": str(exc)})
+            elif path == "/api/files/reveal":
+                target = str(payload.get("path") or "")
+                if self._from_phone:
+                    self.send_json(403, {"error": "Open it at the PC."})
+                elif os.path.normcase(target) not in FOUND_PATHS["paths"] or time.time() - FOUND_PATHS["at"] > 1800:
+                    self.send_json(400, {"error": "Search for the file again first."})
+                elif not Path(target).exists():
+                    self.send_json(404, {"error": "That file is not there any more."})
+                else:
+                    reveal_in_explorer(target)
+                    self.send_json(200, {"ok": True})
             elif path == "/api/files/auto":
                 cfg = filecheck_config()
                 cfg["auto"] = payload.get("on") is True
@@ -5075,6 +5102,25 @@ class Handler(BaseHTTPRequestHandler):
                 return
         webbrowser.open(url)
 
+    def find_files_by_type(self, request: dict) -> None:
+        """'search for .pdf files in Documents': names, sizes and dates only, newest first, with a time limit."""
+        roots, label = filetypes.roots_for(request["where"], Path.home())
+        if not roots:
+            self.send_json(200, {"reply": f"{label}, {current_address()}.", "action": None})
+            return
+        everywhere = label == "the whole computer"
+        result = filetypes.search(roots, request["exts"], seconds=45 if everywhere else 20)
+        shown = result["files"][:40]
+        reply = filetypes.report(result, request["exts"], label, current_address())
+        files = [{"name": f["name"], "path": f["path"], "detail": filetypes.detail(f)} for f in shown]
+        remember_found(files)
+        if self._remote and files:                     # Telegram and voice have no file list: put the first ones in the text
+            reply += "\n" + "\n".join(f"• {f['path']} ({f['detail']})" for f in files[:10])
+        note = ("Search stopped at its time limit. Name a narrower folder for a complete list." if result["truncated"]
+                else f"Showing the {len(shown)} most recently changed of {result['count']:,}." if result["count"] > len(shown) else "")
+        self.send_json(200, {"reply": reply, "files": files, "files_truncated": bool(note), "files_note": note,
+                             "files_heading": f"{filetypes.ext_text(request['exts']).upper()} FILES · {label.upper()}"})
+
     @staticmethod
     def explicit_file_search_query(text: str) -> str | None:
         patterns = (
@@ -5417,9 +5463,14 @@ class Handler(BaseHTTPRequestHandler):
         if open_action:
             self.run_explicit_open(open_action, open_reply or "Opening it.", want_shot)
             return
+        type_search = filetypes.parse(latest)
+        if type_search:
+            self.find_files_by_type(type_search)
+            return
         file_query = self.explicit_file_search_query(latest)
         if file_query:
             files, truncated = self.search_local_files(file_query)
+            remember_found(files)
             if files:
                 reply = f"I found {len(files)} matching file{'s' if len(files) != 1 else ''} on this PC, sir."
             else:
