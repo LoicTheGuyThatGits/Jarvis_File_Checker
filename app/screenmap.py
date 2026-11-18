@@ -55,7 +55,7 @@ try {
   $kinds = [System.Windows.Automation.Condition[]]@($types | ForEach-Object { New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::$_) })
   $cond = [System.Windows.Automation.AndCondition]::new([System.Windows.Automation.Condition[]]@($visible, [System.Windows.Automation.OrCondition]::new($kinds)))
   $cr = New-Object System.Windows.Automation.CacheRequest
-  foreach ($p in @($AE::NameProperty, $AE::ControlTypeProperty, $AE::BoundingRectangleProperty, $AE::IsEnabledProperty)) { $cr.Add($p) }
+  foreach ($p in @($AE::NameProperty, $AE::ControlTypeProperty, $AE::BoundingRectangleProperty, $AE::IsEnabledProperty, $AE::IsPasswordProperty, [System.Windows.Automation.ValuePattern]::ValueProperty)) { try { $cr.Add($p) } catch {} }
   $cr.AutomationElementMode = [System.Windows.Automation.AutomationElementMode]::None
   $h = $cr.Activate()
   try { $found = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond); $cached = $true } finally { $h.Dispose() }
@@ -74,9 +74,18 @@ foreach ($e in $found) {
     $r = $c.BoundingRectangle
     if ($r.IsEmpty -or $r.Width -lt 4 -or $r.Height -lt 4) { continue }
     $n = [string]$c.Name
-    if (-not $n -and $t -ne 'Edit') { continue }
+    if (-not $n -and $t -ne 'Edit' -and $t -ne 'Document') { continue }
     if ($n.Length -gt 90) { $n = $n.Substring(0, 90) }
-    [void]$out.Add(@{ n = $n; t = $t; x = [int]$r.X; y = [int]$r.Y; w = [int]$r.Width; h = [int]$r.Height; on = [bool]$c.IsEnabled })
+    $v = $null
+    if ($t -eq 'Edit' -or $t -eq 'Document' -or $t -eq 'ComboBox') {     # what is written in it (never for a password box)
+      try {
+        if (-not $c.IsPassword) {
+          if ($cached) { $v = $e.GetCachedPropertyValue([System.Windows.Automation.ValuePattern]::ValueProperty) } else { $v = $e.GetCurrentPropertyValue([System.Windows.Automation.ValuePattern]::ValueProperty) }
+          if ($v -isnot [string]) { $v = $null } elseif ($v.Length -gt 160) { $v = $v.Substring(0, 160) }
+        }
+      } catch { $v = $null }
+    }
+    [void]$out.Add(@{ n = $n; t = $t; x = [int]$r.X; y = [int]$r.Y; w = [int]$r.Width; h = [int]$r.Height; on = [bool]$c.IsEnabled; v = $v })
   } catch {}
 }
 $wr = $win.Current.BoundingRectangle
@@ -129,6 +138,9 @@ def normalise(raw: dict, width: int = 0, height: int = 0) -> dict:
             continue
         seen.add(key)
         entry = {"name": name, "kind": kind, "x": cx, "y": cy, "w": w, "h": h, "enabled": item.get("on") is not False}
+        value = item.get("v")
+        if isinstance(value, str) and value.strip() and kind in ("Edit", "Document", "ComboBox"):
+            entry["value"] = re.sub(r"\s+", " ", value).strip()[:160]
         (clickable if kind in CLICKABLE else readable).append(entry)
     def inside(text: dict) -> bool:                        # a button's own label is not listed twice
         return any(c["name"].lower() == text["name"].lower() and abs(text["x"] - c["x"]) <= c["w"] // 2 + 4 and abs(text["y"] - c["y"]) <= c["h"] // 2 + 4 for c in clickable)
@@ -155,10 +167,11 @@ def describe(screen_map: dict | None, scale_x: float = 1.0, scale_y: float = 1.0
     text = [e for e in elements if e["kind"] in READABLE][: max(0, limit - len(click))]
     if click:
         lines.append("Controls in the front window (number. kind “name” at x,y in the screenshot):")
-        lines += [f"{e['n']}. {KIND_WORDS[e['kind']]} “{e['name'] or '(no name)'}” at {round(e['x'] * scale_x)},{round(e['y'] * scale_y)}" + ("" if e["enabled"] else " (greyed out)") for e in click]
+        lines += [f"{e['n']}. {KIND_WORDS[e['kind']]} “{e['name'] or '(no name)'}” at {round(e['x'] * scale_x)},{round(e['y'] * scale_y)}" + ("" if e["enabled"] else " (greyed out)")
+                  + (f", containing “{e['value']}”" if e.get("value") else (", empty" if e["kind"] == "Edit" else "")) for e in click]
     if text:
         lines.append("Text shown in the front window:")
-        lines += [f"- {e['name']}" for e in text if e["name"]]
+        lines += [f"- {e['name'] or KIND_WORDS[e['kind']]}" + (f": “{e['value']}”" if e.get("value") else "") for e in text if e["name"] or e.get("value")]
     if not click and not text:
         lines.append("The window gave no list of its controls (some apps and games do not).")
     return "\n".join(lines)
@@ -312,6 +325,7 @@ def screen_text(screen_map: dict | None, ocr_result: dict | None) -> str:
     if screen_map:
         parts.append(screen_map.get("title", ""))
         parts += [e["name"] for e in screen_map.get("elements", []) if e.get("name")]
+        parts += [e["value"] for e in screen_map.get("elements", []) if e.get("value")]
     if ocr_result:
         parts += [l["text"] for l in ocr_result.get("lines", [])]
     return "\n".join(p for p in parts if p)

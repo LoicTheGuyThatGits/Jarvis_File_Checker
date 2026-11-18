@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "a97d34cc977c4b346565b6f963762964c63d796ac2e5198fe83d2b9cfebf0f9c",
-   "size": 65115
+   "sha256": "9d03a8ff90d06c0d8303c53acaf28a60867c7954bd99860ebb7b5778b39c0b34",
+   "size": 65708
   },
   {
    "path": "app/backup.py",
@@ -129,8 +129,8 @@
   },
   {
    "path": "app/screenmap.py",
-   "sha256": "cf64234e9db35ba29209624a772e5859b9a5f617ba12d5c879cb8bf9ad7c3faf",
-   "size": 18294
+   "sha256": "163e211389ff49b1f41478fbc4d779bcd5454350d52d8b69a90edf4654c22a88",
+   "size": 19479
   },
   {
    "path": "app/search_all.py",
@@ -144,8 +144,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "9bd1c056aeb69d7424736f34b364058c1469b6154bd9f11658e08bf57de3db79",
-   "size": 401022
+   "sha256": "1fa6d75821230304d787572cae59eb52cd23e98debfae66bc6cf28b3af55b6bc",
+   "size": 404147
   },
   {
    "path": "app/set-address.py",

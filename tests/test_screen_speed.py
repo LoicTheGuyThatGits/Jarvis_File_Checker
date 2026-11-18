@@ -49,6 +49,14 @@ ocr_part = sm.OCR_SCRIPT
 assert "exit" not in ocr_part and "$global:JarvisOcrEngine" in ocr_part and "$stream.Dispose()" in ocr_part, "nothing in it may end the helper"
 raw = {"title": "Word", "elements": [{"n": "Save", "t": "Button", "x": 600, "y": 400, "w": 80, "h": 24, "on": True}], "fast": True}
 m = sm.capture(run=lambda script, timeout=12: json.dumps(raw)); assert m["fast"] and m["windows"] == [] and m["elements"][0]["name"] == "Save"
+raw2 = {"title": "Form", "elements": [{"n": "Name", "t": "Edit", "x": 10, "y": 10, "w": 200, "h": 24, "on": True, "v": "Loïc  M"},
+                                      {"n": "City", "t": "Edit", "x": 10, "y": 50, "w": 200, "h": 24, "on": True, "v": None},
+                                      {"n": "", "t": "Document", "x": 10, "y": 90, "w": 400, "h": 300, "on": True, "v": "hello"},
+                                      {"n": "OK", "t": "Button", "x": 10, "y": 400, "w": 60, "h": 24, "on": True, "v": "ignored"}]}
+m2 = sm.capture(run=lambda script, timeout=12: json.dumps(raw2)); d2 = sm.describe(m2)
+assert "text box “Name” at 110,22, containing “Loïc M”" in d2 and "text box “City” at 110,62, empty" in d2 and "- document: “hello”" in d2, d2
+assert "value" not in [e for e in m2["elements"] if e["name"] == "OK"][0] and "hello" in sm.screen_text(m2, None)
+assert "IsPassword" in sm.SCRIPT and "ValuePattern" in sm.SCRIPT
 
 # ---------- the overlay's layout ----------
 assert ov_mod.describe({"type": "click", "target": "the Save button"}) == "Click: the Save button"
@@ -132,4 +140,61 @@ Fake().run_autonomous_task("press ok", dict(screen), threading.Event(), []); ass
 fake = FakeOverlay(); S.autopilot_overlay = lambda: fake; clicks.clear(); out.clear(); plans[:] = [{"reply": "Done.", "done": True, "action": None}]
 Fake().approve_computer_step({"action": {"type": "click", "x": 3, "y": 4, "target": "Yes"}, "task": "t", "step": 1})
 assert clicks == [(3, 4)] and [c[0] for c in fake.calls] == ["begin", "target", "end"], fake.calls
+
+# ---------- the Notepad loop: typing "hello" again and again ----------
+typed = []
+gui.write = lambda text, interval=0: typed.append(text); S.WIN_IO = None
+notes = []
+def looping(s, task, screen, done, ctx=None):
+    notes.append(list(done))
+    return {"reply": "typing", "done": False, "action": {"type": "type_text", "text": "hello", "target": "the text area"}}, screen
+class Loop(Fake):
+    plan_computer_step = looping
+S.autopilot_overlay = lambda: None; out.clear()
+Loop().run_autonomous_task("open notepad and type hello", dict(screen), threading.Event(), [])
+assert typed == ["hello"], typed
+assert out.get("stopped") and "kept proposing the same step" in out["reply"] and "Type: “hello”" in out["reply"], out
+assert "type_text on the text area (Type: “hello”)" in notes[1][0] and "do not type it again" in notes[1][0], notes[1]
+assert any("was NOT carried out" in n for n in notes[-1]), notes[-1]
+# when the model then sees it is finished, it says so instead
+typed.clear(); out.clear()
+answers = iter([{"reply": "typing", "done": False, "action": {"type": "type_text", "text": "hello", "target": "the text area"}},
+                {"reply": "typing", "done": False, "action": {"type": "type_text", "text": "hello", "target": "the text area"}},
+                {"reply": "Hello is typed in Notepad.", "done": True, "action": None}])
+class Fixes(Fake):
+    def plan_computer_step(s, task, screen, done, ctx=None): return dict(next(answers)), screen
+Fixes().run_autonomous_task("type hello", dict(screen), threading.Event(), [])
+assert typed == ["hello"] and out.get("done") and out["reply"] == "Hello is typed in Notepad.", (typed, out)
+# pressing the same key over and over is still fine (moving down a list)
+keys = []; gui.press = lambda k: keys.append(k); out.clear()
+downs = iter([{"reply": "down", "done": False, "action": {"type": "press_key", "key": "down", "target": "the list"}}] * 6 + [{"reply": "Done.", "done": True, "action": None}])
+class Downs(Fake):
+    def plan_computer_step(s, task, screen, done, ctx=None): return dict(next(downs)), screen
+Downs().run_autonomous_task("go down six times", dict(screen), threading.Event(), [])
+assert keys == ["down"] * 6 and out.get("done"), (keys, out)
+# the same click five times in a row looks stuck
+clicks.clear(); out.clear()
+same = iter([{"reply": "c", "done": False, "action": {"type": "click", "x": 50, "y": 50, "target": "OK"}}] * 12)
+class Same(Fake):
+    def plan_computer_step(s, task, screen, done, ctx=None): return dict(next(same)), screen
+Same().run_autonomous_task("x", dict(screen), threading.Event(), [])
+assert len(clicks) == 4 and "kept proposing" in out["reply"], (clicks, out)
+# the instructions in text-only mode let the model finish from the text
+S.projects.save_config(S.control_config_path(), {"sight": "text"})
+sent = []
+class R:
+    def __init__(s, b): s.b = b
+    def __enter__(s): return s
+    def __exit__(s, *a): pass
+    def read(s): return s.b
+def fake_urlopen(req, timeout=0):
+    sent.append(json.loads(req.data)); return R(json.dumps({"choices": [{"message": {"content": '{"reply":"done","done":true,"action":null}'}}]}).encode())
+S.urllib.request.urlopen = fake_urlopen; S.ensure_ollama = lambda base, wait=25.0: True
+S.screen_map_now = lambda screen=None: {"title": "Untitled - Notepad", "elements": [{"n": 1, "name": "Text editor", "kind": "Document", "x": 500, "y": 400, "w": 800, "h": 600, "enabled": True, "value": "hello"}], "windows": []}
+S.screen_ocr_now = lambda screen=None: None
+S.WIN_BACKEND["obj"] = types.SimpleNamespace(windows=lambda: [], foreground=lambda: 0)
+h = S.Handler.__new__(S.Handler); h.computer_plan("type hello", dict(screen), ["type_text on the text area (Type: “hello”)"])
+system, user = sent[-1]["messages"][0]["content"], sent[-1]["messages"][1]["content"][0]["text"]
+assert "screenshot visibly confirms" not in system and "completed actions already did everything" in system and "never type the same text twice" in system, system
+assert "Text editor: “hello”" in user and "or, when the completed actions and the screen text show the task is finished" in user, user
 print("screen speed and overlay ok"); os._exit(0)

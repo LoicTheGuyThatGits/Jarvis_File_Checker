@@ -308,6 +308,24 @@ class ReplyStreamer:
 
 
 AUTOPILOT_PREVIEW_SECONDS = 0.45
+ONCE_KINDS = ("type_text", "open_app", "open_url", "open_folder", "write_file")   # doing one of these twice in a row is almost always a mistake
+NEVER_STUCK_KINDS = ("press_key", "scroll", "wait", "hotkey")                          # repeating these is normal (moving down a list, undoing)
+
+
+def step_record(action: dict, seen: str | None) -> str:
+    """How a finished step is remembered for the next one: exactly what was typed or pressed, and what it returned."""
+    words = overlay_module.describe(action)
+    line = f"{action['type']} on {action.get('target', 'the screen')} ({words})"
+    if action["type"] == "type_text":
+        line += " — this text has now been typed; do not type it again unless the screen shows it is missing"
+    return line + (f"\n  result: {seen[:6000]}" if seen else "")
+
+
+def action_key(action: dict) -> tuple:
+    """What makes two proposed actions the same."""
+    pos = (round(action["x"] / 12), round(action["y"] / 12)) if isinstance(action.get("x"), (int, float)) and isinstance(action.get("y"), (int, float)) else None
+    keys = tuple(action.get("keys") or ())
+    return (action.get("type"), action.get("text"), action.get("key"), keys, action.get("url"), action.get("name"), action.get("path"), action.get("window"), action.get("state"), pos)
 
 
 def autopilot_overlay():
@@ -6827,7 +6845,10 @@ class Handler(BaseHTTPRequestHandler):
             "the current task is authoritative, and old messages do not authorize unrelated actions. "
             "Follow only the user's task. Propose exactly one small next step at a time. Return one JSON object only: "
             '{"reply":"brief status","done":false,"action":{"type":"click","x":100,"y":200,"target":"the Search box"}}. '
-            "Set done=true only when the screenshot visibly confirms the user's task is complete. If more work remains, action must contain the next safe step. "
+            + ("Set done=true only when the screenshot visibly confirms the user's task is complete. " if sight == "picture" else
+               "Set done=true when the windows, controls and text read on the screen confirm the user's task is complete, or when the completed actions already did everything the task asked and nothing on the screen shows a failure. ")
+            + "If more work remains, action must contain the next safe step. "
+            "Never repeat an action listed in the completed actions unless the screen shows that it did not work; in particular, never type the same text twice. "
             "If genuinely blocked or missing required information, set action=null and done=false, and say specifically what is needed. "
             "Allowed action types: click, double_click, right_click, type_text, press_key, hotkey, scroll, wait, "
             "focus_window ({\"type\":\"focus_window\",\"window\":N} brings window WN of the list to the front), window_state ({\"type\":\"window_state\",\"window\":N,\"state\":\"maximize\"|\"minimize\"|\"restore\"}), "
@@ -6857,8 +6878,10 @@ class Handler(BaseHTTPRequestHandler):
             f"Screenshot dimensions: {screen['shown_width']} x {screen['shown_height']} pixels.\n"
             + windows_ctl.describe(screen["windows"], screen.get("front", 0)) + "\n"
             + (screen_text + "\n" if screen_text else "")
-            + (projects.describe(cfg["folders"]) + "\n" if cfg["folders"] else "") +
-            "Choose one safe next action that directly advances the user's task. Return action null with done=true only if the latest screenshot visibly proves the requested result is complete."
+            + (projects.describe(cfg["folders"]) + "\n" if cfg["folders"] else "")
+            + ("Choose one safe next action that directly advances the user's task. Return action null with done=true only if the latest screenshot visibly proves the requested result is complete."
+               if sight == "picture" else
+               "Choose one safe next action that directly advances the user's task, or, when the completed actions and the screen text show the task is finished, return action null with done=true.")
         )
         repair_note = ""
         for attempt in range(3):
@@ -6983,6 +7006,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
             no_action_retries = 0
+            repeat_retries = 0
+            last_key, same_in_row = None, 0
             for step in range(1, limit + 1):
                 if stop_event.is_set():
                     stopped("Stopped. No further computer actions will run.")
@@ -7000,6 +7025,18 @@ class Handler(BaseHTTPRequestHandler):
                     stopped(plan["reply"] or "I could not determine a safe next step. Review the screen and give me more specific instructions.")
                     return
                 no_action_retries = 0
+                key = action_key(action)
+                repeated = key == last_key and (action["type"] in ONCE_KINDS or (same_in_row >= 4 and action["type"] not in NEVER_STUCK_KINDS))
+                if repeated:
+                    if repeat_retries >= 2:
+                        stopped(f"I stopped because I kept proposing the same step again ({overlay_module.describe(action)}). It has already been done, so the screen probably shows the result; have a look.")
+                        return
+                    repeat_retries += 1
+                    completed_actions.append(f"Your last proposal ({overlay_module.describe(action)}) repeats the action just done, so it was NOT carried out again. "
+                                             "Look at the screen as it is now: if the task is complete, return done=true with action null; otherwise choose a different next step.")
+                    plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
+                    continue
+                repeat_retries = 0
                 if ov:
                     ov.status(f"Autopilot · step {step} of {limit} · {overlay_module.describe(action)}")
                     ov.target(action)
@@ -7011,7 +7048,11 @@ class Handler(BaseHTTPRequestHandler):
                     seen = self.execute_computer_action(action)
                 except (ValueError, OSError) as exc:
                     seen = f"that did not work: {exc}"
-                completed_actions.append(f"{action['type']} on {action.get('target', 'the screen')}" + (f"\n  result: {seen[:6000]}" if seen else ""))
+                completed_actions.append(step_record(action, seen))
+                if last_key == action_key(action):
+                    same_in_row += 1
+                else:
+                    last_key, same_in_row = action_key(action), 1
                 if ov:
                     ov.clear()
                     ov.status(f"Autopilot · step {step} of {limit} done · looking at the screen…")
@@ -7368,7 +7409,7 @@ class Handler(BaseHTTPRequestHandler):
             finally:
                 if ov:
                     ov.end()
-            completed_actions = pending.get("actions", []) + [f"{action['type']} on {action.get('target', 'the screen')}" + (f"\n  result: {seen[:6000]}" if seen else "")]
+            completed_actions = pending.get("actions", []) + [step_record(action, seen)]
             screen = self.capture_screen()
             step = int(pending.get("step", 1))
             if step >= 12:
