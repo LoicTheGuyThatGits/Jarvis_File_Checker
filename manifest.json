@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "83e7b8de79a7813db5394da57d2e2ffa421b15867525a3160e7f02eaecba634e",
-   "size": 63871
+   "sha256": "a97d34cc977c4b346565b6f963762964c63d796ac2e5198fe83d2b9cfebf0f9c",
+   "size": 65115
   },
   {
    "path": "app/backup.py",
@@ -98,6 +98,11 @@
    "size": 8572
   },
   {
+   "path": "app/overlay.py",
+   "sha256": "ea0bf1d78c1e7985b4363793a899bd312a94b85f15264bbc28f7284e68291a2b",
+   "size": 14055
+  },
+  {
    "path": "app/phone_link.py",
    "sha256": "30ee96865d30d3326376430407ea86091039cf15b53f5696c13e1a4a41540d1b",
    "size": 3189
@@ -114,8 +119,8 @@
   },
   {
    "path": "app/projects.py",
-   "sha256": "969306d9b4e4c03c1be2a5b16589eb73f6cc7bfa0db012c49e2d47146624dcbc",
-   "size": 6110
+   "sha256": "82965fd0bfba4b89c1ef009a3b4d6ddfc1d86f1e58f3bbb2c1f88b717670a540",
+   "size": 6268
   },
   {
    "path": "app/recap.py",
@@ -124,8 +129,8 @@
   },
   {
    "path": "app/screenmap.py",
-   "sha256": "a04e3c450f03b99bf4b3e4c66b7bc7c09e7f5203b0d4254cd6caa31e07d7a1b8",
-   "size": 16987
+   "sha256": "cf64234e9db35ba29209624a772e5859b9a5f617ba12d5c879cb8bf9ad7c3faf",
+   "size": 18294
   },
   {
    "path": "app/search_all.py",
@@ -139,8 +144,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "f4bc05d439b1c401864b2aca5fe9845d09304c983a92639214e7fbbe5f6d5318",
-   "size": 395507
+   "sha256": "9bd1c056aeb69d7424736f34b364058c1469b6154bd9f11658e08bf57de3db79",
+   "size": 401022
   },
   {
    "path": "app/set-address.py",
@@ -184,8 +189,13 @@
   },
   {
    "path": "app/windows_ctl.py",
-   "sha256": "6f7a401eedf241e9bf1e053bf145b3c00310750d3f450ea217944457babb74d2",
-   "size": 5862
+   "sha256": "55c54ee68b3b77ccf9d711ea791f2224ea15fb001f190622da49a0827dbcb289",
+   "size": 6097
+  },
+  {
+   "path": "app/winshell.py",
+   "sha256": "6143f54a5c7f35b4409469fdee47f9632533bda502d9dd7bd740e89ce05075ec",
+   "size": 7591
   },
   {
    "path": "build-jarvis-model.bat",
@@ -269,8 +279,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "2e90d024f04629691eb4cbc1fc74074153f9e2ddf7122e959aa9910d98c14310",
-   "size": 59749
+   "sha256": "8eaee9ce031e4e1f80d15301b6f4b544776f5bb38c1e51fbdae4098efd92cfa2",
+   "size": 60064
   },
   {
    "path": "web/js/app.js",
@@ -289,8 +299,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "88da69bcf87d874a53f677cd8d91c1bae719c589623da2ebfbd9f42d73570e07",
-   "size": 20869
+   "sha256": "ad0cc99d40ddf9086c871e6880b7ebb19a6cc75b4561bf1673887f1f4905d1da",
+   "size": 21548
   },
   {
    "path": "web/js/features.js",

@@ -307,6 +307,39 @@ class ReplyStreamer:
                 return None, False
 
 
+AUTOPILOT_PREVIEW_SECONDS = 0.45
+
+
+def autopilot_overlay():
+    """The on-screen overlay when it is switched on and can be shown, else None."""
+    try:
+        if not control_config().get("overlay", True):
+            return None
+    except Exception:
+        pass
+    return overlay_module.OVERLAY if overlay_module.OVERLAY.available() else None
+
+
+def overlay_test(seconds: float = 4.0) -> dict:
+    """Show the overlay for a few seconds around the mouse pointer, so the user can see what it looks like."""
+    ov = overlay_module.OVERLAY
+    if not ov.available():
+        return {"ok": False, "error": ov.error or "the overlay cannot be shown"}
+    try:
+        import pyautogui
+        x, y = pyautogui.position()
+    except Exception:
+        x, y = 400, 300
+
+    def show():
+        ov.begin("Autopilot · this is how I show what I am about to do", lambda: None)
+        ov.target({"type": "click", "x": x, "y": y, "box": [x - 60, y - 16, 120, 32], "target": "where your mouse is"})
+        time.sleep(seconds)
+        ov.end()
+    threading.Thread(target=show, daemon=True).start()
+    return {"ok": True, "left_out_of_screenshots": ov.capture_safe}
+
+
 def watch_autopilot_stop_hotkey() -> None:
     """Watch globally for Ctrl+Shift+F10 and stop the latest active Autopilot task."""
     user32 = ctypes.windll.user32
@@ -895,6 +928,8 @@ import followup
 import backup as backup_module
 import recap as recap_module
 import tools_registry
+import winshell
+import overlay as overlay_module
 import french as french_module
 import exams as exams_module
 import focus as focus_module
@@ -1803,29 +1838,52 @@ def network_watch_in_background() -> None:
     threading.Thread(target=work, daemon=True).start()
 
 
+SCREEN_SHELLS: dict = {}
+SCREEN_SHELLS_LOCK = threading.Lock()
+
+
+def screen_shell(name: str):
+    """The run function for reading the screen: a PowerShell that stays running (one for the controls, one for OCR, so both can
+    work at the same time), falling back to a fresh PowerShell each time when the helper cannot be used."""
+    if os.name != "nt":
+        return screenmap.default_run
+    with SCREEN_SHELLS_LOCK:
+        if name not in SCREEN_SHELLS:
+            SCREEN_SHELLS[name] = winshell.Shell(fallback=screenmap.default_run)
+        return SCREEN_SHELLS[name].run
+
+
 def screen_map_now(screen: dict | None = None) -> dict | None:
     """What Windows itself says is on the screen (the front window's controls and text), or None when that cannot be read."""
     if os.name != "nt":
         return None
     try:
-        return screenmap.capture(width=(screen or {}).get("width", 0), height=(screen or {}).get("height", 0))
+        m = screenmap.capture(run=screen_shell("map"), width=(screen or {}).get("width", 0), height=(screen or {}).get("height", 0))
+        if m is not None and not m["windows"]:
+            m["windows"] = [w["title"][:100] for w in window_list()][:20]
+        return m
     except Exception as exc:
         print(f"[jarvis] screen map failed: {exc}")
         return None
 
 
 def screen_ocr_now(screen: dict | None = None) -> dict | None:
-    """The text on the whole screen, read by Windows' own OCR (positions in real screen pixels), or None."""
+    """The text on the whole screen, read by Windows' own OCR (positions in real screen pixels), or None.
+    Uses the step's own screenshot when there is one, so the screen is captured once per step."""
     if os.name != "nt":
         return None
     shot = None
     try:
-        import pyautogui
+        image = (screen or {}).get("_image")
+        if image is None:
+            import pyautogui
+            with overlay_module.OVERLAY.out_of_picture():
+                image = pyautogui.screenshot()
         folder = ROOT / "data" / "tmp"
         folder.mkdir(parents=True, exist_ok=True)
-        shot = folder / f"ocr-{secrets.token_hex(4)}.png"
-        pyautogui.screenshot().save(shot)
-        return screenmap.ocr(str(shot))
+        shot = folder / f"ocr-{secrets.token_hex(4)}.bmp"            # BMP: written in milliseconds, no compression
+        image.convert("RGB").save(shot, format="BMP")
+        return screenmap.ocr(str(shot), run=screen_shell("ocr"))
     except Exception as exc:
         print(f"[jarvis] screen OCR failed: {exc}")
         return None
@@ -1837,8 +1895,22 @@ def screen_ocr_now(screen: dict | None = None) -> dict | None:
                 pass
 
 
+def screen_read_both(screen: dict | None = None, want_ocr: bool = True) -> tuple:
+    """The controls and the OCR text at the same time (they run in two helpers), as (map, ocr)."""
+    if not want_ocr:
+        return screen_map_now(screen), None
+    box: dict = {}
+    t = threading.Thread(target=lambda: box.update(ocr=screen_ocr_now(screen)), daemon=True)
+    t.start()
+    m = screen_map_now(screen)
+    t.join(30)
+    return m, box.get("ocr")
+
+
 def screen_map_text(screen: dict) -> str:
     """The screen map as text for the model, in the screenshot's own pixels."""
+    if "map" not in screen and "ocr" not in screen:
+        screen["map"], screen["ocr"] = screen_read_both(screen, control_config()["ocr"])
     if "map" not in screen:
         screen["map"] = screen_map_now(screen)
     if "ocr" not in screen:
@@ -2074,8 +2146,7 @@ def watch_check(condition: str, text: str, ask=None) -> bool:
 
 
 def screen_text_now() -> str:
-    m = screen_map_now()
-    o = screen_ocr_now() if control_config()["ocr"] else None
+    m, o = screen_read_both(None, control_config()["ocr"])
     return screenmap.screen_text(m, o)
 
 
@@ -2193,11 +2264,17 @@ def self_checks() -> list:
     def screen_controls():
         if os.name != "nt":
             return "skip", "Windows only"
+        screen_map_now()                                  # the first read also starts the helper
+        started = time.time()
         m = screen_map_now()
+        took = time.time() - started
         if not m:
             return "fail", "Windows did not give the list of controls (PowerShell UI Automation)"
         clickable = sum(1 for e in m["elements"] if e["kind"] in screenmap.CLICKABLE)
-        return ("ok" if m["elements"] else "warn"), f"front window “{m['title'][:60]}”: {clickable} controls, {len(m['elements']) - clickable} pieces of text"
+        helper = SCREEN_SHELLS.get("map")
+        how = "the helper stays running" if helper and not helper.broken else "the helper could not start, so each read starts PowerShell (slower)"
+        fast = "" if m.get("fast") else "; the fast way of reading was refused, so the slower one was used"
+        return ("ok" if m["elements"] and helper and not helper.broken else "warn"), f"front window “{m['title'][:60]}”: {clickable} controls, {len(m['elements']) - clickable} pieces of text, read in {took:.1f} s ({how}){fast}"
 
     def screen_ocr():
         if os.name != "nt":
@@ -2257,6 +2334,16 @@ def self_checks() -> list:
         wins = window_list()
         return ("ok" if wins else "warn"), f"{len(wins)} open windows found"
 
+    def autopilot_overlay_check():
+        if os.name != "nt":
+            return "skip", "Windows only"
+        if not control_config().get("overlay", True):
+            return "skip", "switched off in Settings > AI model > Computer control"
+        ov = overlay_module.OVERLAY
+        if not ov.available():
+            return "fail", ov.error or "it could not be shown"
+        return "ok", "ready" + ("" if ov.capture_safe or not ov.visible else "; hidden for each screenshot on this Windows")
+
     def phone():
         cfg = phone_link.load(data_path("phone.json"))
         if not cfg["enabled"]:
@@ -2278,7 +2365,7 @@ def self_checks() -> list:
         return ("ok" if exe and voices else "warn"), ("offline voice ready" if exe and voices else "offline voice (piper) not installed; the cloud or browser voice is used")
 
     return [("Python packages", packages), ("Data folder", data_folder), ("AI model", model), ("Jarvis model", own_model), ("Picture model", vision), ("Screenshot", screenshot),
-            ("Reading controls on screen", screen_controls), ("Reading text on screen (OCR)", screen_ocr), ("Windows list", windows_list), ("Mouse and keyboard", computer_control),
+            ("Reading controls on screen", screen_controls), ("Reading text on screen (OCR)", screen_ocr), ("Windows list", windows_list), ("Mouse and keyboard", computer_control), ("Autopilot overlay", autopilot_overlay_check),
             ("Network and Wi-Fi", network), ("File search", file_search), ("Document editing", documents), ("Phone app link", phone), ("Offline voice", voice)]
 
 
@@ -4815,7 +4902,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/screenshot":
             try:
                 screen = self.capture_screen()
-                self.send_json(200, screen)
+                self.send_json(200, {k: v for k, v in screen.items() if not k.startswith("_")})
             except Exception as exc:
                 self.send_json(503, {"error": str(exc)})
             return
@@ -5296,11 +5383,14 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(403, {"error": "Change this at the PC."})
                 else:
                     try:
-                        update = {k: payload[k] for k in ("sight", "ocr", "max_steps", "folders") if k in payload}
-                        cfg = projects.save_config(control_config_path(), update)
-                        if "folders" in update:
-                            audit("computer control: project folders now " + "; ".join(cfg["folders"]))
-                        self.send_json(200, {**cfg, "sight_now": autopilot_sight()})
+                        if payload.get("test_overlay"):
+                            self.send_json(200, overlay_test())
+                        else:
+                            update = {k: payload[k] for k in ("sight", "ocr", "max_steps", "folders", "overlay") if k in payload}
+                            cfg = projects.save_config(control_config_path(), update)
+                            if "folders" in update:
+                                audit("computer control: project folders now " + "; ".join(cfg["folders"]))
+                            self.send_json(200, {**cfg, "sight_now": autopilot_sight()})
                     except (ValueError, TypeError) as exc:
                         self.send_json(400, {"error": str(exc)})
             elif path == "/api/jarvis-model":
@@ -6532,16 +6622,19 @@ class Handler(BaseHTTPRequestHandler):
             import pyautogui
         except ImportError as exc:
             raise RuntimeError("Computer control needs its packages. From the Jarvis folder run: py -m pip install -r requirements.txt") from exc
-        image = pyautogui.screenshot()
-        original_width, original_height = image.size
-        image.thumbnail((1440, 900))
+        with overlay_module.OVERLAY.out_of_picture():
+            full = pyautogui.screenshot()
+        original_width, original_height = full.size
+        image = full.copy()
+        image.thumbnail((1440, 900), reducing_gap=2.0)
         shown_width, shown_height = image.size
         buffer = BytesIO()
-        image.save(buffer, format="JPEG", quality=78, optimize=True)
+        image.convert("RGB").save(buffer, format="JPEG", quality=78)
         return {
             "data": base64.b64encode(buffer.getvalue()).decode("ascii"),
             "width": original_width, "height": original_height,
             "shown_width": shown_width, "shown_height": shown_height,
+            "_image": full,                                   # the full-size picture, reused for OCR (never sent anywhere)
         }
 
     @staticmethod
@@ -6572,6 +6665,7 @@ class Handler(BaseHTTPRequestHandler):
             if found is None:
                 raise ValueError(f"There is no text line number {int(line)} in the list.")
             result["x"], result["y"] = found["x"], found["y"]
+            result["box"] = [found["x"] - found["w"] // 2, found["y"] - found["h"] // 2, found["w"], found["h"]]
             result["shown_x"] = round(found["x"] * screen["shown_width"] / max(1, screen["width"]))
             result["shown_y"] = round(found["y"] * screen["shown_height"] / max(1, screen["height"]))
             if target in ("", "the screen"):
@@ -6631,6 +6725,7 @@ class Handler(BaseHTTPRequestHandler):
             if element is None:
                 raise ValueError(f"There is no control number {int(number)} in the list.")
             result["x"], result["y"] = element["x"], element["y"]
+            result["box"] = [element["x"] - element["w"] // 2, element["y"] - element["h"] // 2, element["w"], element["h"]]
             result["shown_x"] = round(element["x"] * screen["shown_width"] / max(1, screen["width"]))
             result["shown_y"] = round(element["y"] * screen["shown_height"] / max(1, screen["height"]))
             if target in ("", "the screen"):
@@ -6876,13 +6971,21 @@ class Handler(BaseHTTPRequestHandler):
 
     def run_autonomous_task(self, task: str, screen: dict, stop_event: threading.Event, conversation_context: list[dict[str, str]]) -> None:
         completed_actions: list[str] = []
+        limit = control_config()["max_steps"]
+        ov = autopilot_overlay()
+        short = " ".join(task.split())
+        short = short if len(short) <= 50 else short[:49] + "…"
+        if ov:
+            ov.begin(f"Autopilot · {short} · looking at the screen…", stop_event.set)
+
+        def stopped(reply: str) -> None:
+            self.send_json(200, {"ok": True, "stopped": True, "reply": reply, "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
         try:
             plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
             no_action_retries = 0
-            limit = control_config()["max_steps"]
-            for _ in range(limit):
+            for step in range(1, limit + 1):
                 if stop_event.is_set():
-                    self.send_json(200, {"ok": True, "stopped": True, "reply": "Stopped. No further computer actions will run.", "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+                    stopped("Stopped. No further computer actions will run.")
                     return
                 action = plan["action"]
                 if not action:
@@ -6894,22 +6997,35 @@ class Handler(BaseHTTPRequestHandler):
                         completed_actions.append("The previous plan did not confirm completion; inspect the current screen and continue if work remains.")
                         plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
                         continue
-                    self.send_json(200, {"ok": True, "stopped": True, "reply": plan["reply"] or "I could not determine a safe next step. Review the screen and give me more specific instructions.", "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+                    stopped(plan["reply"] or "I could not determine a safe next step. Review the screen and give me more specific instructions.")
                     return
                 no_action_retries = 0
+                if ov:
+                    ov.status(f"Autopilot · step {step} of {limit} · {overlay_module.describe(action)}")
+                    ov.target(action)
+                    time.sleep(AUTOPILOT_PREVIEW_SECONDS)                     # long enough to see what is about to happen, and to press Stop
+                    if stop_event.is_set():
+                        stopped("Stopped before that action. Nothing more was done.")
+                        return
                 try:
                     seen = self.execute_computer_action(action)
                 except (ValueError, OSError) as exc:
                     seen = f"that did not work: {exc}"
                 completed_actions.append(f"{action['type']} on {action.get('target', 'the screen')}" + (f"\n  result: {seen[:6000]}" if seen else ""))
+                if ov:
+                    ov.clear()
+                    ov.status(f"Autopilot · step {step} of {limit} done · looking at the screen…")
                 screen = self.capture_screen()
                 if stop_event.is_set():
-                    self.send_json(200, {"ok": True, "stopped": True, "reply": "Stopped after the current action. No further computer actions will run.", "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+                    stopped("Stopped after the current action. No further computer actions will run.")
                     return
                 plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
-            self.send_json(200, {"ok": True, "stopped": True, "reply": f"Paused after {limit} actions for safety. Review the screen and start another task if you want to continue.", "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+            stopped(f"Paused after {limit} actions for safety. Review the screen and start another task if you want to continue.")
         except Exception as exc:
             self.send_json(502, {"error": f"Autopilot stopped: {exc}"})
+        finally:
+            if ov:
+                ov.end()
 
     def stop_computer_task(self, payload: dict) -> None:
         task_id = str(payload.get("task_id", ""))
@@ -7240,10 +7356,18 @@ class Handler(BaseHTTPRequestHandler):
     def approve_computer_step(self, pending: dict) -> None:
         try:
             action = pending["action"]
+            ov = autopilot_overlay() if overlay_module.target_box(action) else None
+            if ov:
+                ov.begin("Jarvis · " + overlay_module.describe(action))
+                ov.target(action)
+                time.sleep(AUTOPILOT_PREVIEW_SECONDS)
             try:
                 seen = self.execute_computer_action(action)
             except (ValueError, OSError) as exc:
                 seen = f"that did not work: {exc}"
+            finally:
+                if ov:
+                    ov.end()
             completed_actions = pending.get("actions", []) + [f"{action['type']} on {action.get('target', 'the screen')}" + (f"\n  result: {seen[:6000]}" if seen else "")]
             screen = self.capture_screen()
             step = int(pending.get("step", 1))

@@ -10,7 +10,8 @@ import os
 import re
 import time
 
-SKIP_TITLES = {"Program Manager", "Windows Input Experience", "Microsoft Text Input Application", "Settings", "NVIDIA GeForce Overlay", "Windows Shell Experience Host"}
+SKIP_TITLES = {"Program Manager", "Windows Input Experience", "Microsoft Text Input Application", "Settings", "NVIDIA GeForce Overlay", "Windows Shell Experience Host",
+               "Jarvis overlay", "Jarvis Autopilot"}
 APP_WORDS = {"word": "WINWORD", "excel": "EXCEL", "powerpoint": "POWERPNT", "outlook": "OUTLOOK", "chrome": "chrome", "google chrome": "chrome", "edge": "msedge",
              "firefox": "firefox", "notepad": "notepad", "explorer": "explorer", "file explorer": "explorer", "vs code": "Code", "vscode": "Code",
              "visual studio code": "Code", "visual studio": "devenv", "spotify": "Spotify", "discord": "Discord", "teams": "ms-teams", "terminal": "WindowsTerminal",
@@ -45,6 +46,8 @@ class WinBackend:
 
         def each(hwnd, _):
             if not self.user32.IsWindowVisible(hwnd) or self.user32.GetWindow(hwnd, 4):        # GW_OWNER: skip owned pop-ups
+                return True
+            if self.user32.GetWindowLongW(hwnd, -20) & 0x80:                                   # WS_EX_TOOLWINDOW: not a real window (overlays, palettes)
                 return True
             length = self.user32.GetWindowTextLengthW(hwnd)
             if length == 0:

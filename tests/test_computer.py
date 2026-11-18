@@ -25,8 +25,8 @@ r=pj.write_file("src/new/util.py","x=1\n",F,backups); assert "(a new file)" in r
 for path,msg in (("run.bat","does not write .bat"),("../secret.txt","only write inside"),("tool.ps1","does not write .ps1")):
     try: pj.write_file(path,"x",F,backups); raise SystemExit("wrote "+path)
     except ValueError as e: assert msg in str(e), (path,e)
-cfgp=tmp/"ctl.json"; assert pj.load_config(cfgp)=={"folders":[],"sight":"auto","max_steps":40,"ocr":True}
-c=pj.save_config(cfgp,{"folders":[str(proj)],"sight":"text","max_steps":500,"ocr":False}); assert c=={"folders":[str(proj.resolve())],"sight":"text","max_steps":150,"ocr":False}
+cfgp=tmp/"ctl.json"; assert pj.load_config(cfgp)=={"folders":[],"sight":"auto","max_steps":40,"ocr":True,"overlay":True}
+c=pj.save_config(cfgp,{"folders":[str(proj)],"sight":"text","max_steps":500,"ocr":False}); assert c=={"folders":[str(proj.resolve())],"sight":"text","max_steps":150,"ocr":False,"overlay":True}
 for bad in (["/"],[str(Path.home())],[str(tmp/"missing")],["relative/path"]):
     try: pj.save_config(cfgp,{"folders":bad}); raise SystemExit(f"accepted {bad}")
     except ValueError: pass
@@ -51,7 +51,7 @@ MAP={"title":"Report.docx - Word","elements":[{"n":1,"name":"Save","kind":"Butto
 S.screen_map_now=lambda screen=None: MAP; S.screen_ocr_now=lambda screen=None: o
 screen={"data":"AAAA","width":1920,"height":1080,"shown_width":1440,"shown_height":810}
 V=lambda a: S.Handler.validate_computer_action(a,dict(screen,windows=W,ocr=o,map=MAP))
-assert V({"type":"click","line":2})=={"type":"click","target":"the text “Download complete”","x":700,"y":410,"shown_x":525,"shown_y":308}
+assert V({"type":"click","line":2})=={"type":"click","target":"the text “Download complete”","x":700,"y":410,"box":[600,400,200,20],"shown_x":525,"shown_y":308}
 assert V({"type":"focus_window","window":3})=={"type":"focus_window","target":"the window “my-site - Visual Studio Code”","window":3}
 assert V({"type":"window_state","window":1,"state":"Maximize"})["state"]=="maximize"
 assert V({"type":"open_app","name":"Notepad"})["name"]=="Notepad" and V({"type":"open_url","url":"https://example.com/a?b=1"})["url"]=="https://example.com/a?b=1"

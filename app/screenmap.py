@@ -49,12 +49,26 @@ foreach ($w in $AE::RootElement.FindAll([System.Windows.Automation.TreeScope]::C
 }
 if ($win -eq $null) { $win = $AE::FocusedElement }
 $types = @('Button','Hyperlink','MenuItem','TabItem','Edit','CheckBox','RadioButton','ComboBox','ListItem','TreeItem','Text','SplitButton','Document','DataItem','Image')
-$cond = New-Object System.Windows.Automation.AndCondition($visible, (New-Object System.Windows.Automation.PropertyCondition($AE::IsControlElementProperty, $true)))
+# Fast way: only the wanted kinds, with every property fetched in the same trip (a cache request), instead of one trip per property.
+$found = $null; $cached = $false
+try {
+  $kinds = [System.Windows.Automation.Condition[]]@($types | ForEach-Object { New-Object System.Windows.Automation.PropertyCondition($AE::ControlTypeProperty, [System.Windows.Automation.ControlType]::$_) })
+  $cond = [System.Windows.Automation.AndCondition]::new([System.Windows.Automation.Condition[]]@($visible, [System.Windows.Automation.OrCondition]::new($kinds)))
+  $cr = New-Object System.Windows.Automation.CacheRequest
+  foreach ($p in @($AE::NameProperty, $AE::ControlTypeProperty, $AE::BoundingRectangleProperty, $AE::IsEnabledProperty)) { $cr.Add($p) }
+  $cr.AutomationElementMode = [System.Windows.Automation.AutomationElementMode]::None
+  $h = $cr.Activate()
+  try { $found = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond); $cached = $true } finally { $h.Dispose() }
+} catch { $found = $null; $cached = $false }
+if ($found -eq $null) {
+  $cond = New-Object System.Windows.Automation.AndCondition($visible, (New-Object System.Windows.Automation.PropertyCondition($AE::IsControlElementProperty, $true)))
+  $found = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)
+}
 $out = New-Object System.Collections.ArrayList
-foreach ($e in $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, $cond)) {
+foreach ($e in $found) {
   if ($out.Count -ge __MAX__) { break }
   try {
-    $c = $e.Current
+    if ($cached) { $c = $e.Cached } else { $c = $e.Current }
     $t = $c.ControlType.ProgrammaticName -replace '^ControlType\.', ''
     if ($types -notcontains $t) { continue }
     $r = $c.BoundingRectangle
@@ -66,8 +80,7 @@ foreach ($e in $win.FindAll([System.Windows.Automation.TreeScope]::Descendants, 
   } catch {}
 }
 $wr = $win.Current.BoundingRectangle
-$titles = @(Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object { $_.MainWindowTitle })
-@{ title = [string]$win.Current.Name; x = [int]$wr.X; y = [int]$wr.Y; w = [int]$wr.Width; h = [int]$wr.Height; elements = $out; windows = $titles } | ConvertTo-Json -Depth 4 -Compress
+@{ title = [string]$win.Current.Name; x = [int]$wr.X; y = [int]$wr.Y; w = [int]$wr.Width; h = [int]$wr.Height; elements = $out; fast = $cached } | ConvertTo-Json -Depth 4 -Compress
 '''
 
 
@@ -126,7 +139,7 @@ def normalise(raw: dict, width: int = 0, height: int = 0) -> dict:
     windows = raw.get("windows") or []
     if isinstance(windows, str):
         windows = [windows]
-    return {"title": str(raw.get("title") or "")[:160], "elements": elements, "windows": [str(w)[:100] for w in windows][:20]}
+    return {"title": str(raw.get("title") or "")[:160], "elements": elements, "windows": [str(w)[:100] for w in windows][:20], "fast": raw.get("fast") is True}
 
 
 def describe(screen_map: dict | None, scale_x: float = 1.0, scale_y: float = 1.0, limit: int = 110) -> str:
@@ -230,15 +243,19 @@ Add-Type -AssemblyName System.Runtime.WindowsRuntime
 $null = [Windows.Storage.StorageFile, Windows.Storage, ContentType = WindowsRuntime]
 $null = [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime]
 $null = [Windows.Graphics.Imaging.BitmapDecoder, Windows.Foundation, ContentType = WindowsRuntime]
-$asTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]
+# Kept between calls when the screen-reading helper stays running.
+if (-not $global:JarvisAsTask) { $global:JarvisAsTask = ([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0] }
+$asTask = $global:JarvisAsTask
 function Await($op, $type) { $t = $asTask.MakeGenericMethod($type).Invoke($null, @($op)); $t.Wait(-1) | Out-Null; $t.Result }
 $file = Await ([Windows.Storage.StorageFile]::GetFileFromPathAsync('__PATH__')) ([Windows.Storage.StorageFile])
 $stream = Await ($file.OpenAsync([Windows.Storage.FileAccessMode]::Read)) ([Windows.Storage.Streams.IRandomAccessStream])
 $decoder = Await ([Windows.Graphics.Imaging.BitmapDecoder]::CreateAsync($stream)) ([Windows.Graphics.Imaging.BitmapDecoder])
 $bitmap = Await ($decoder.GetSoftwareBitmapAsync()) ([Windows.Graphics.Imaging.SoftwareBitmap])
-$engine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages()
-if ($engine -eq $null) { @{ error = 'no OCR language installed' } | ConvertTo-Json -Compress; exit }
+if (-not $global:JarvisOcrEngine) { $global:JarvisOcrEngine = [Windows.Media.Ocr.OcrEngine]::TryCreateFromUserProfileLanguages() }
+$engine = $global:JarvisOcrEngine
+if ($engine -eq $null) { @{ error = 'no OCR language installed' } | ConvertTo-Json -Compress; return }
 $result = Await ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
+try { $stream.Dispose() } catch {}
 $lines = New-Object System.Collections.ArrayList
 foreach ($l in $result.Lines) {
   $x1 = 99999; $y1 = 99999; $x2 = 0; $y2 = 0

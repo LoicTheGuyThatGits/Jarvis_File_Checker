@@ -239,7 +239,7 @@
   }
   if ($('ctl-sight')) {
     var ctlShow = function (d) {
-      $('ctl-sight').value = d.sight; $('ctl-ocr').checked = d.ocr !== false;
+      $('ctl-sight').value = d.sight; $('ctl-ocr').checked = d.ocr !== false; $('ctl-overlay').checked = d.overlay !== false;
       var steps = String(d.max_steps); if (![].some.call($('ctl-steps').options, function (o) { return o.value === steps; })) { var o = document.createElement('option'); o.value = o.textContent = steps; $('ctl-steps').append(o); }
       $('ctl-steps').value = steps;
       $('ctl-sight-now').textContent = d.sight_now === 'picture' ? 'Right now: screenshot and text.' : 'Right now: text only (the chosen model cannot see pictures).';
@@ -257,6 +257,12 @@
     var ctlSave = function (update) { return api('/api/control', update).then(function (d) { ctlShow(d); $('ctl-status').textContent = 'Saved.'; }).catch(function (e) { $('ctl-status').textContent = e.message; }); };
     $('ctl-sight').addEventListener('change', function () { ctlSave({ sight: $('ctl-sight').value }); });
     $('ctl-ocr').addEventListener('change', function () { ctlSave({ ocr: $('ctl-ocr').checked }); });
+    $('ctl-overlay').addEventListener('change', function () { ctlSave({ overlay: $('ctl-overlay').checked }); });
+    $('ctl-overlay-test').addEventListener('click', function () {
+      api('/api/control', { test_overlay: true }).then(function (d) {
+        $('ctl-status').textContent = d.ok ? 'Look at the screen around your mouse pointer for a few seconds.' + (d.left_out_of_screenshots ? '' : ' (This Windows cannot leave it out of screenshots, so it is hidden for each screenshot instead.)') : 'The overlay cannot be shown: ' + d.error + '.';
+      }).catch(function (e) { $('ctl-status').textContent = e.message; });
+    });
     $('ctl-steps').addEventListener('change', function () { ctlSave({ max_steps: Number($('ctl-steps').value) }); });
     $('ctl-folder-add').addEventListener('click', function () {
       var f = $('ctl-folder').value.trim(); if (!f) return;

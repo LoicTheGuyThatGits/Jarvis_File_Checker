@@ -275,7 +275,9 @@
           <select id="ctl-sight"><option value="auto">Automatic (picture when the model can see)</option><option value="picture">Screenshot and text</option><option value="text">Text only (for models that cannot see)</option></select>
         </label>
         <p class="settings-note" id="ctl-sight-now"></p>
-        <label class="settings-check"><input type="checkbox" id="ctl-ocr"> Read all the text on the screen (slower by about a second a step)</label>
+        <label class="settings-check"><input type="checkbox" id="ctl-ocr"> Read all the text on the screen (adds a fraction of a second a step)</label>
+        <label class="settings-check"><input type="checkbox" id="ctl-overlay"> Show on the screen what Autopilot is about to do: an outline around what it will click, and a bar with a Stop button</label>
+        <div class="inline-form"><button type="button" id="ctl-overlay-test">Try the overlay</button></div>
         <label class="settings-field">Most actions in one Autopilot run
           <select id="ctl-steps"><option value="20">20</option><option value="40">40</option><option value="80">80</option><option value="150">150</option></select>
         </label>

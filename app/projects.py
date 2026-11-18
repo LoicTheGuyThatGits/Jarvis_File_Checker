@@ -17,7 +17,7 @@ BLOCKED_WRITE = {".exe", ".dll", ".msi", ".bat", ".cmd", ".ps1", ".psm1", ".vbs"
 READ_LIMIT = 60_000
 WRITE_LIMIT = 300_000
 SIGHTS = ("auto", "picture", "text")
-DEFAULTS = {"folders": [], "sight": "auto", "max_steps": 40, "ocr": True}
+DEFAULTS = {"folders": [], "sight": "auto", "max_steps": 40, "ocr": True, "overlay": True}
 
 
 def load_config(path: Path) -> dict:
@@ -34,6 +34,7 @@ def load_config(path: Path) -> dict:
         except (TypeError, ValueError):
             pass
         cfg["ocr"] = raw.get("ocr") is not False
+        cfg["overlay"] = raw.get("overlay") is not False
     return cfg
 
 
@@ -56,6 +57,8 @@ def save_config(path: Path, update: dict) -> dict:
         cfg["max_steps"] = max(10, min(150, int(update["max_steps"])))
     if "ocr" in update:
         cfg["ocr"] = update["ocr"] is not False
+    if "overlay" in update:
+        cfg["overlay"] = update["overlay"] is not False
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
