@@ -9,13 +9,18 @@
   },
   {
    "path": "README.md",
-   "sha256": "9d03a8ff90d06c0d8303c53acaf28a60867c7954bd99860ebb7b5778b39c0b34",
-   "size": 65708
+   "sha256": "ec85f8e98cf274d647dd1ad6d0fcf0566e0f2e81df7b16241d9b51df41d5f203",
+   "size": 66855
   },
   {
    "path": "app/backup.py",
    "sha256": "02855a841b139f82e6ca9de69407f4a0f426d48a87032e6fd2cab4de2387df01",
    "size": 9758
+  },
+  {
+   "path": "app/countdowns.py",
+   "sha256": "0c46df4df30e4da9b139d69215ad41936a2f72e88f4e278ee5f98df1e5024ff5",
+   "size": 25155
   },
   {
    "path": "app/doccreate.py",
@@ -54,8 +59,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "8c54b4caac237e54e652be4b882c1f9b01b5686d60893a1f5572e7b9d661231a",
-   "size": 24258
+   "sha256": "a749b4b574201e6777d5a369e3185386f8e3dab1ff6faec3677b2ab0dd1eefee",
+   "size": 27632
   },
   {
    "path": "app/gmail_reader.py",
@@ -144,8 +149,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "1fa6d75821230304d787572cae59eb52cd23e98debfae66bc6cf28b3af55b6bc",
-   "size": 404147
+   "sha256": "3deada122c5b64a9435b9c662fe028d1dc5be0ebc5ff00a9408e5aaf1e4e07fa",
+   "size": 407454
   },
   {
    "path": "app/set-address.py",
@@ -264,8 +269,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "5ec77c87f5d20263137f3129069763799646eba6459dfd55721f3491b2f09a1b",
-   "size": 51831
+   "sha256": "6d64d40380cd643c56050248da4657d911346a067b23175eae253f18d8a043c1",
+   "size": 52712
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -279,8 +284,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "8eaee9ce031e4e1f80d15301b6f4b544776f5bb38c1e51fbdae4098efd92cfa2",
-   "size": 60064
+   "sha256": "1ca7dbcf02c28229b991142a71c3db7b8740164696dabd61856810e2aae24064",
+   "size": 61651
   },
   {
    "path": "web/js/app.js",
@@ -299,8 +304,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "ad0cc99d40ddf9086c871e6880b7ebb19a6cc75b4561bf1673887f1f4905d1da",
-   "size": 21548
+   "sha256": "ec2eefce30b22edfb17cf74ad81d3f2c7f915969d0ee0709e678c64966d85fe2",
+   "size": 23945
   },
   {
    "path": "web/js/features.js",
@@ -344,8 +349,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "69b4bbeaa3719a9dbe336b082c750bd77a77afc3fa89673be5eaa42216c181e7",
-   "size": 17954
+   "sha256": "1453fad42cbff46e8a24f0822d9b91f7bbb4993231924b6c9c8c055b0f2f930a",
+   "size": 18077
   },
   {
    "path": "web/js/wake.js",

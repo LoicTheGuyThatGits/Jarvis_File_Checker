@@ -51,6 +51,7 @@
         <input type="search" id="chat-search" class="chat-search" placeholder="Search chats…" aria-label="Search chats" autocomplete="off">
         <nav id="chat-list" class="chat-list" aria-label="Saved chats"></nav>
         <div class="sidebar-bottom">
+          <button type="button" id="countdown-chip" class="countdown-chip hidden" title="Your next countdown. Click to see them all."><span class="countdown-days" id="countdown-days"></span><span class="countdown-name" id="countdown-name"></span></button>
           <button type="button" id="clear-chat" class="sidebar-clear" title="Clear the current chat">Clear current chat</button>
           <button type="button" id="delete-chat" class="sidebar-delete" title="Delete the current chat and its saved messages">Delete current chat</button>
           <span class="install-mark" id="install-mark" title="The folder Jarvis is running from"></span>
@@ -392,6 +393,18 @@
         <div class="inline-form"><button type="button" id="pro-test">Test it now</button><button type="button" id="pro-mute">Not now</button></div>
         <p class="settings-note" id="pro-status"></p>
         <p class="settings-note">An event about to start and a nearly empty battery always get through the hourly limit and “not now”; during quiet hours only events do. Everything else is held and given together afterwards. You can also say “not now”, “do not disturb for two hours” or “you can interrupt me again”. With this switched off, events and tasks still pop up as reminders.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Countdowns</h2>
+        <p class="settings-note">Days left until the things you are waiting for: a holiday (give its first and last day), a birthday, a trip. Ask “how many days until the Christmas vacation?”; that also works for Christmas, New Year, Easter, Halloween, the weekend, anything in your calendar and plain dates (“how many days until 25 December”). The nearest one is shown at the bottom of the chat list, and the morning briefing mentions any that start within a week. In chat: “add a countdown for the Christmas vacation from 19 December to 4 January”, “my countdowns”, “remove the ski trip countdown”.</p>
+        <div class="inline-form countdown-form">
+          <input type="text" id="cd-name" placeholder="e.g. Christmas vacation" aria-label="Countdown name" maxlength="60">
+          <label class="cd-date">First day <input type="date" id="cd-start" aria-label="First day"></label>
+          <label class="cd-date">Last day <input type="date" id="cd-end" aria-label="Last day (optional, for a holiday)"></label>
+          <button type="button" id="cd-add">Add</button>
+        </div>
+        <ul class="settings-list" id="cd-list"></ul>
+        <p class="settings-note" id="cd-status" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Exams and revision</h2>

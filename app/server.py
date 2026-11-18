@@ -804,6 +804,10 @@ def build_briefing(weather: bool = True, reminders: bool = True, system: bool = 
                 parts.append(plan_line)
             for exam_line in exams_module.nudges(planner_obj().load(), study_obj().load(), focus_obj().load()["log"], now, within=5)[:2]:
                 parts.append(exam_line)
+            try:
+                parts += countdowns_module.soon(countdowns_obj(), now)[:3]
+            except Exception:
+                pass
         if system:
             snap = system_snapshot()
             notes = []
@@ -950,6 +954,7 @@ import winshell
 import overlay as overlay_module
 import french as french_module
 import exams as exams_module
+import countdowns as countdowns_module
 import focus as focus_module
 import search_all
 import network as network_module
@@ -1726,6 +1731,10 @@ def router_registry() -> tools_registry.Registry:
     reg.add("play_music", "Play a song, artist, album or playlist on Spotify.",
             {"what": {"desc": "the song, artist, album or playlist named in the message", "required": True}},
             play_music, r"\b(?:play|put on|listen to|spotify|music|song|playlist|album)\b")
+    reg.add("days_until", "Say how many days are left until something: a vacation, a holiday, a birthday, Christmas, an event in the calendar or a date.",
+            {"what": {"desc": "the thing or date named in the message, e.g. \"the Christmas vacation\", \"my birthday\", \"25 December\"", "required": True, "free": True}},
+            days_until_step, r"\b(?:days?|weeks?|sleeps|long)\s+(?:left\s+|to\s+go\s+)?(?:until|till|til|before|to)\b|\bcountdowns?\b|\bhow\s+(?:far|soon)\s+(?:off|away)\b",
+            example='"how far off is the ski trip" -> {"tool":"days_until","args":{"what":"the ski trip"}}')
     reg.add("exam_countdown", "Say which exams and tests are coming up, how many days are left and how much revision is done.", {},
             lambda a: exams_module.countdown_text(planner_obj().load(), study_obj().load(), focus_obj().load()["log"], datetime.now()),
             r"\b(?:exams?|tests?|finals?|mocks?|revision|revise|revised)\b",
@@ -1788,6 +1797,26 @@ def focus_obj():
 def focus_tick(now: float | None = None) -> None:
     for message in focus_obj().tick(now):
         publish_event({"type": "proactive", "id": "focus-" + secrets.token_hex(4), "text": message, "chat": True, "speak": True})
+
+
+COUNTDOWNS: dict = {"path": None, "obj": None}
+
+
+def countdowns_obj() -> "countdowns_module.Countdowns":
+    path = data_path("countdowns.json")
+    if COUNTDOWNS["path"] != path:
+        COUNTDOWNS["path"], COUNTDOWNS["obj"] = path, countdowns_module.Countdowns(path)
+    return COUNTDOWNS["obj"]
+
+
+def countdown_command(text: str) -> str | None:
+    return countdowns_module.command(text, countdowns_obj(), planner_obj().load().get("events", []), datetime.now(), planner_module.parse_when)
+
+
+def days_until_step(args: dict) -> str:
+    what = str(args.get("what") or "").strip()
+    reply = countdown_command(f"how many days until {what}") if what else None
+    return reply or f"I do not have a date for “{what}”. Say “add a countdown for {what} on …” to add one."
 
 
 def exams_command(text: str) -> str | None:
@@ -4792,6 +4821,9 @@ class Handler(BaseHTTPRequestHandler):
             state = network_obj().load()
             self.send_json(200, {"watch": state["watch"], "trusted": len(state["trusted"]), "known_devices": len(state["seen"])})
             return
+        if path == "/api/countdowns":
+            self.send_json(200, {"items": countdowns_module.public(countdowns_obj(), datetime.now())})
+            return
         if path == "/api/exams":
             self.send_json(200, {"exams": exams_public()})
             return
@@ -5330,6 +5362,26 @@ class Handler(BaseHTTPRequestHandler):
                                 net.trust(mac, (net.wifi().get("ssid") or "") if iface["wifi"] else "")
                                 audit("network: marked as the user's own network")
                             self.send_json(200, {"text": personalize(net.devices_text(net.scan(iface, sweep=True)))})
+            elif path == "/api/countdowns":
+                try:
+                    store = countdowns_obj()
+                    if payload.get("remove"):
+                        gone = store.remove(str(payload["remove"]))
+                        if gone is None:
+                            raise ValueError("That countdown is not there any more.")
+                        text = f"Removed {gone['name']}."
+                    else:
+                        try:
+                            start = datetime.strptime(str(payload.get("start") or ""), "%Y-%m-%d").date()
+                            end = datetime.strptime(str(payload["end"]), "%Y-%m-%d").date() if payload.get("end") else None
+                        except ValueError:
+                            raise ValueError("Give the countdown its first day (and, for a holiday, its last day).") from None
+                        name, mine = countdowns_module.strip_name(str(payload.get("name") or ""))
+                        item, replaced = store.add(name, start, end, mine)
+                        text = ("Updated: " if replaced else "Added: ") + countdowns_module.answer(item, datetime.now()).replace(", sir", "", 1)
+                    self.send_json(200, {"items": countdowns_module.public(store, datetime.now()), "text": text})
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path in ("/api/exams", "/api/exams/plan"):
                 try:
                     if path == "/api/exams":
@@ -6227,6 +6279,10 @@ class Handler(BaseHTTPRequestHandler):
         exams_reply = exams_command(latest)
         if exams_reply:
             self.send_json(200, {"reply": exams_reply, "action": None})
+            return
+        countdown_reply = countdown_command(latest)
+        if countdown_reply:
+            self.send_json(200, {"reply": countdown_reply, "action": None})
             return
         if recap_module.command(latest):
             self.send_json(200, {"reply": recap_text(), "action": None})

@@ -183,6 +183,41 @@ def _timer(m, now):
     return f"set a timer for {span}" if span else None
 
 
+def _countdown_text(text: str, now) -> str | None:
+    """'les vacances de Noël du 19 décembre au 4 janvier' -> 'add a countdown for les vacances de Noël from 19 december to 4 january'."""
+    text = text.strip(" ,.")
+    if duration(text):
+        return None                                           # "un compte à rebours de 10 minutes" is a timer
+    for start in re.finditer(r"\b(?:du|de)\s+", text):              # "les vacances de Noël du 19 au 23 décembre": the "du" that starts a date
+        r = re.compile(r"(?:du|de)\s+(.+?)\s+(?:au|à|a|jusqu['’]au)\s+(.+)$").match(text, start.start())
+        if not r:
+            continue
+        first, last = r.group(1).strip(), r.group(2).strip()
+        e = when(last, now)
+        if re.fullmatch(r"\d{1,2}(?:er)?", first):
+            mm = re.search(rf"({MONTH_RE})", last)
+            first = f"{first} {mm.group(1)}" if mm else first
+        st = when(first, now)
+        if st and e:
+            return f"add a countdown for {text[:start.start()].strip()} from {st} to {e}"
+    name, english = split_when(text, now)
+    if english:
+        return f"add a countdown for {name} on {english}"
+    return f"add a countdown for {text}"
+
+
+def _countdown(m, now):
+    return _countdown_text(m.group(1), now)
+
+
+def _countdown_statement(m, now):
+    return _countdown_text(m.group(1) + " " + m.group(2), now)
+
+
+FR_UNITS = {"jours": "days", "semaines": "weeks", "mois": "months", "dodos": "sleeps", "temps": "days"}
+FAMOUS = r"(?:vacances|noël|noel|pâques|paques|nouvel\s+an|réveillon|reveillon|anniversaire|halloween|saint[- ]valentin|week-?end|rentrée|rentree)"
+
+
 def _agenda(m, now):
     period = when(m.group(1), now) if m.group(1) else "today"
     if not period:
@@ -239,6 +274,16 @@ RULES: list[tuple[str, object]] = [
     (rf"(?:mon\s+|ma\s+|l['’]|le\s+)?{EXAM}\s+(?:de\s+|d['’]|en\s+)(.+?)\s+(?:est|a\s+lieu|aura\s+lieu|c['’]est|tombe)\s+(.+)", _exam),
     (rf"(?:quand\s+(?:sont|est-ce\s+que\s+sont)\s+mes\s+{EXAM}s?|mes\s+{EXAM}s?|compte\s+à\s+rebours(?:\s+des\s+{EXAM}s?)?|(?:combien\s+de\s+(?:jours|temps)\s+(?:avant|jusqu['’]à)|c['’]est\s+quand)\s+(?:mes?\s+|mon\s+|ma\s+|les?\s+|l['’])?(?:prochains?\s+)?{EXAM}s?.*)", "exam countdown"),
     (rf"(?:planifie[rz]?|organise[rz]?|prépare[rz]?|prepare[rz]?|fais)(?:[- ]moi)?\s+(?:un\s+planning\s+de\s+|un\s+plan\s+de\s+|mes?\s+|les\s+)?révisions?(?:\s+pour\s+mes\s+{EXAM}s?)?", "plan my revision"),
+    # --- countdowns ("how many days until the Christmas vacation") ---
+    (r"(?:ajoute[rz]?|crée[rz]?|cree[rz]?|mets?|lance[rz]?|fais|démarre[rz]?|demarre[rz]?)(?:[- ]moi)?\s+(?:un\s+)?compte\s+à\s+rebours\s+(?:pour|jusqu['’]à|jusqu['’]au|avant|de|des|du)\s+(.+)", _countdown),
+    (r"((?:les\s+|mes\s+|nos\s+)?vacances\b.*?|(?:mon\s+|l['’])\s*anniversaire)\s+(?:sont|est|commencent|commence|tombent?|vont\s+être|va\s+être|c['’]est|ont\s+lieu|a\s+lieu)\s+((?:du|le|de)\s+.+|\d.+)", _countdown_statement),
+    (r"combien\s+(?:de\s+)?(jours|semaines|mois|dodos)\s+(?:(?:il\s+)?(?:me\s+|nous\s+)?reste(?:-t-il)?\s+|restent\s+|encore\s+)?(?:avant|jusqu['’]à|jusqu['’]au|jusqu['’]aux|d['’]ici)\s+(.+)",
+     lambda m, now: f"how many {FR_UNITS[m.group(1)]} until {m.group(2)}"),
+    (r"combien\s+de\s+jours\s+(?:(?:il\s+)?(?:me\s+)?reste(?:-t-il)?\s+)?(?:de|des|du|pendant\s+les?)\s+(.+)", lambda m, now: f"how many days left of {m.group(1)}"),
+    (r"dans\s+combien\s+de\s+(jours|semaines|temps)\s+(?:c['’]est|sont|est|commencent?|arrivent?|tombe|a\s+lieu|ont\s+lieu)\s+(.+)", lambda m, now: f"how many {FR_UNITS[m.group(1)]} until {m.group(2)}"),
+    (rf"(?:c['’]est\s+quand|quand\s+(?:est|sont|commencent?|tombe|a\s+lieu|ont\s+lieu|c['’]est))\s+((?:les?\s+|la\s+|l['’]|mes\s+|mon\s+|ma\s+)?.*{FAMOUS}.*)", lambda m, now: f"when is {m.group(1)}"),
+    (r"(?:(?:montre|affiche|donne|lis)(?:[- ]moi)?\s+)?(?:mes|les|tous\s+mes)\s+comptes?\s+à\s+rebours", "my countdowns"),
+    (r"(?:supprime[rz]?|enlève|enleve[rz]?|retire[rz]?|efface[rz]?|annule[rz]?)\s+(?:le\s+)?compte\s+à\s+rebours\s+(?:pour|de|des|du|d['’])\s*(.+)", lambda m, now: f"remove the countdown for {m.group(1)}"),
     # --- reminders, timers, alarms ---
     (r"rappelle[- ]moi\s+((?:demain|ce\s+soir|dans\s+|à\s+|a\s+\d|vers\s+|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|le\s+\d).*?)\s+(de\s+.+|d['’].+|que\s+je\s+dois\s+.+)", _remind_first),
     (r"(?:rappelle[- ]moi|fais[- ]moi\s+penser|n['’]oublie\s+pas\s+de\s+me\s+rappeler|préviens[- ]moi|previens[- ]moi)\s+(.+)", _remind),
@@ -293,7 +338,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîû]|\b(?:moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:combien|quand|vacances|rebours|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

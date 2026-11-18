@@ -126,6 +126,36 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
   }
+  if ($('cd-add')) {
+    var cdShort = function (c) { return c.on ? (c.left === 0 ? 'last day' : c.left + ' d left') : c.days === 0 ? 'today' : c.days === 1 ? 'tomorrow' : c.days + ' d'; };
+    var drawCountdowns = function (d) {
+      var items = d.items || [], list = $('cd-list'); list.textContent = '';
+      items.forEach(function (c) {
+        var li = document.createElement('li'), text = document.createElement('span'), x = document.createElement('button');
+        if (c.past) li.className = 'cd-past';
+        text.className = 'cd-text'; text.textContent = c.name + ': ' + c.text;
+        x.type = 'button'; x.className = 'settings-action'; x.textContent = 'Remove';
+        x.addEventListener('click', function () { api('/api/countdowns', { remove: c.id }).then(function (r) { drawCountdowns(r); $('cd-status').textContent = r.text; }).catch(function (e) { $('cd-status').textContent = e.message; }); });
+        li.append(text, x); list.append(li);
+      });
+      if (!items.length) { var li = document.createElement('li'); li.textContent = 'No countdowns yet.'; list.append(li); }
+      var next = items.filter(function (c) { return !c.past; })[0], chip = $('countdown-chip');
+      if (chip) {
+        chip.classList.toggle('hidden', !next);
+        if (next) { $('countdown-days').textContent = cdShort(next); $('countdown-name').textContent = next.name; chip.title = next.name + ': ' + next.text + ' Click to see all your countdowns.'; }
+      }
+    };
+    var loadCountdowns = function () { api('/api/countdowns').then(drawCountdowns).catch(function () {}); };
+    $('cd-add').addEventListener('click', function () {
+      api('/api/countdowns', { name: $('cd-name').value, start: $('cd-start').value, end: $('cd-end').value || null }).then(function (d) {
+        drawCountdowns(d); $('cd-status').textContent = d.text; $('cd-name').value = ''; $('cd-start').value = ''; $('cd-end').value = '';
+      }).catch(function (e) { $('cd-status').textContent = e.message; });
+    });
+    if ($('countdown-chip')) $('countdown-chip').addEventListener('click', function () { if (window.JarvisUI) window.JarvisUI.openPane('plan'); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') loadCountdowns(); });
+    window.addEventListener('jarvis:reply', loadCountdowns);
+    loadCountdowns(); setInterval(loadCountdowns, 30 * 60 * 1000);
+  }
   if ($('exam-add')) {
     var drawExams = function (d) {
       var list = $('exam-list'); list.textContent = '';

@@ -60,6 +60,7 @@
     'to-do list': 'tasks todo checklist', 'import a calendar': 'timetable school lessons ics ical google outlook schedule webcal', 'notes': 'note jot write down memo remember find', 'spotify': 'music play song playlist album premium', 'file check': 'missing files repair restore github update manifest download install broken',
     'smart commands (experimental)': 'tool router brain understand natural language function calling agent undo',
     'exams and revision': 'exam test countdown revise study plan schedule days left',
+    'countdowns': 'countdown days until how long holiday holidays vacation christmas birthday trip event date left weeks',
     'focus timer': 'pomodoro concentrate deep work study session break timer',
     'this jarvis': 'install folder path location where running directory version copy python data folder',
     'self-check': 'self test diagnostics check what works broken problems report debug',
