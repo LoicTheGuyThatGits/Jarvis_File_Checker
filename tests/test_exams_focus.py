@@ -118,7 +118,7 @@ with sync_playwright() as pw:
     pg.wait_for_function("document.querySelector('#focus-status').textContent.includes('15 min on spanish verbs')",timeout=8000)
     pg.click("#focus-stop"); pg.wait_for_function("document.querySelector('#focus-status').textContent.includes('cancelled')",timeout=8000)
     pg.keyboard.press("Escape"); pg.keyboard.press("Control+k"); pg.keyboard.type("pomodoro")
-    pg.wait_for_function("[...document.querySelectorAll('#pane-plan .settings-section')].some(s=>!s.hidden && s.offsetParent && s.textContent.includes('Focus timer'))",timeout=8000)
+    pg.wait_for_function("[...document.querySelectorAll('#pane-school .settings-section')].some(s=>!s.hidden && s.offsetParent && s.textContent.includes('Focus timer'))",timeout=8000)
     assert not errs, errs
     b.close()
 print("exams and focus ok"); os._exit(0)

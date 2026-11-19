@@ -304,8 +304,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "406edaae7e2d299922943aad2759dc22ebaf08c66affa51e80d780acfef12d92",
-   "size": 57414
+   "sha256": "25834e75341bcdcf75fa335b84cd2a26443b347b2e4b916faece22c497767bb2",
+   "size": 60323
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -319,8 +319,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "8479bb01684ca7605c42e79ad5a5045b83c0dd571afb0c5ef0b886ab409325e6",
-   "size": 72947
+   "sha256": "723990771a01b15692690519f27c20c6b96788233b00d371935b7295355a27b8",
+   "size": 77721
   },
   {
    "path": "web/js/app.js",
@@ -339,23 +339,23 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "840109ab6b1fc144e854f961111e9c657aeda8d0277acde2dcbec92e9a57c977",
-   "size": 43696
+   "sha256": "84cc4501c6ffb05e496ec112dc2a558abaf77520385c039769cc967cbc55ae92",
+   "size": 43943
   },
   {
    "path": "web/js/features.js",
-   "sha256": "fae649ba557399ebffdad9caa14fb28c1441af58bd785c11be3727822901a06c",
-   "size": 26228
+   "sha256": "0874b8c6b44fee4b862af7c6c118d5f4a5c9e0d3630254e0e1553b34da9e4db8",
+   "size": 26245
   },
   {
    "path": "web/js/mail.js",
-   "sha256": "d1d20c862abe808cc6dbafe3af71848323e4ecc224df227836efb23ed1f63778",
-   "size": 2535
+   "sha256": "457f1cc5241abb1f1f4e48be90c28616c34f39bd9692724bbcfe91d025294e5c",
+   "size": 2548
   },
   {
    "path": "web/js/notes.js",
-   "sha256": "10db72d76360fa9912d893a71925e6c736696f983b5f4e9504336b341fb97744",
-   "size": 5442
+   "sha256": "a702a75715b333501c160182048f8289db1a6b11fb0ddfcdb841dd316be72549",
+   "size": 5498
   },
   {
    "path": "web/js/phone.js",
@@ -364,13 +364,13 @@
   },
   {
    "path": "web/js/planner.js",
-   "sha256": "c214978979810f7ca42a5a4129da5e504943ee962080f02946687a2439abd4a9",
-   "size": 10066
+   "sha256": "90344aeb0b8a0f18a2c13ec9f2adef4f2f866e53d499da9596ea45c5e9db61d0",
+   "size": 10184
   },
   {
    "path": "web/js/shortcuts.js",
-   "sha256": "2ce490b403c997f60795936c82cd028f3934b1d515753cfc4f7976ed63753f8f",
-   "size": 5539
+   "sha256": "0d9f9e09cf36bfbce6ff020a3bb04a12e2f907f817c6dd95bfda97b4adae1f08",
+   "size": 5553
   },
   {
    "path": "web/js/telegram.js",
@@ -379,13 +379,13 @@
   },
   {
    "path": "web/js/tools.js",
-   "sha256": "d7a455b1a0698e6bdb2679be7371776d10cf261bef665d22134e96f828841494",
-   "size": 42388
+   "sha256": "0af09af4d1ea5a8e4b4fd461f1a759fe5537aed04059692f907fe043f5de5b0e",
+   "size": 42421
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "0e30d321f236cb8cd5a4b3296047ec36d9b031b36d0e09cb53d6950cba840aeb",
-   "size": 18675
+   "sha256": "7a19fcfafbc732f9a27ca1d33c602dd53d22dd608dcf3b5e817d86515d9511a6",
+   "size": 19527
   },
   {
    "path": "web/js/wake.js",

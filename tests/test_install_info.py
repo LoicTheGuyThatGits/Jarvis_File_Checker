@@ -33,7 +33,7 @@ with sync_playwright() as pw:
     pg.click("#install-open-data"); pg.wait_for_function("document.querySelector('#install-status').textContent.includes('Opened')",timeout=5000); assert opened[-1]==tmp/"data"
     pg.click("#install-copy"); pg.wait_for_function("/Copied|Ctrl\\+C/.test(document.querySelector('#install-status').textContent)",timeout=5000)
     pg.keyboard.press("Escape"); pg.keyboard.press("Control+k"); pg.keyboard.type("install folder")
-    pg.wait_for_function("[...document.querySelectorAll('#pane-look .settings-section')].some(s=>!s.hidden && s.offsetParent && s.textContent.includes('This Jarvis'))",timeout=8000)
+    pg.wait_for_function("[...document.querySelectorAll('#pane-system .settings-section')].some(s=>!s.hidden && s.offsetParent && s.textContent.includes('This Jarvis'))",timeout=8000)
     assert not errs, errs
     b.close()
 print("install info ok"); os._exit(0)

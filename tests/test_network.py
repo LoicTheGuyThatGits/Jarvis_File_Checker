@@ -160,6 +160,6 @@ with sync_playwright() as pw:
     assert net2.trusted("77:88:99:aa:bb:cc")
     pg.uncheck("#net-watch"); pg.wait_for_timeout(500); assert net2.load()["watch"] is False and not errs, errs
     pg.keyboard.press("Escape"); pg.keyboard.press("Control+k"); pg.keyboard.type("who is connected")
-    pg.wait_for_function("[...document.querySelectorAll('#pane-timers .settings-section')].some(s=>!s.hidden && s.offsetParent && s.textContent.includes('Wi-Fi and network'))",timeout=8000)
+    pg.wait_for_function("[...document.querySelectorAll('#pane-pc .settings-section')].some(s=>!s.hidden && s.offsetParent && s.textContent.includes('Wi-Fi and network'))",timeout=8000)
     b.close()
 print("network ok"); os._exit(0)

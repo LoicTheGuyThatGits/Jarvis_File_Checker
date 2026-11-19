@@ -104,6 +104,6 @@ with sync_playwright() as p:
     assert pg.input_value("#spotify-redirect").endswith("/api/spotify/callback") and "Not connected" in pg.inner_text("#spotify-status")
     pg.fill("#spotify-client","bad"); pg.click("#spotify-connect"); pg.wait_for_function("document.querySelector('#spotify-status').innerText.includes('32')")
     pg.fill("#settings-search","spotify"); pg.wait_for_timeout(300)
-    assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)")==["Spotify"]
+    assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)").count("Spotify")==1, pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)")
     assert not errs, errs
 print("spotify ok"); os._exit(0)
