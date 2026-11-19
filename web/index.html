@@ -270,6 +270,25 @@
         <p class="settings-note" id="jm-status" role="status"></p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">Connected tools (MCP)</h2>
+        <p class="settings-note">Let Jarvis use tools from other programs that speak MCP (the Model Context Protocol): GitHub, Notion, a folder of files, web fetching, maps and many more. A server is either a command Jarvis starts on this PC (many need Node.js for <code>npx</code> or uv for <code>uvx</code>), or a web address with a token in its headers (servers that need a browser sign-in are not supported yet). When your message names a server (“on GitHub, list my open issues”), Jarvis can pick its tools, even with Smart commands off. Every call shows an approval card with the details unless you tick “without asking” for that tool. What a tool returns is treated as data, never as instructions. Tokens are kept in <code>data\mcp.json</code> on this PC only.</p>
+        <ul class="settings-list mcp-list" id="mcp-list"></ul>
+        <details class="mcp-add" id="mcp-add"><summary id="mcp-add-title">Add a server</summary>
+          <div class="inline-form mcp-form">
+            <input type="text" id="mcp-name" placeholder="Name, e.g. GitHub" maxlength="24" aria-label="Server name">
+            <select id="mcp-type" aria-label="Kind of server"><option value="command">A command on this PC</option><option value="http">A web address</option></select>
+            <label class="settings-check"><input type="checkbox" id="mcp-enabled" checked> on</label>
+          </div>
+          <input type="text" id="mcp-command" class="mcp-wide" placeholder="npx -y @modelcontextprotocol/server-filesystem C:\Users\Me\Documents" aria-label="Command that starts the server">
+          <input type="text" id="mcp-url" class="mcp-wide hidden" placeholder="https://api.githubcopilot.com/mcp/" aria-label="Web address of the server">
+          <textarea id="mcp-headers" class="mcp-wide hidden" rows="2" placeholder="Headers, one per line, e.g. Authorization: Bearer your-token" aria-label="Headers"></textarea>
+          <textarea id="mcp-env" class="mcp-wide" rows="2" placeholder="Settings for the command, one per line, e.g. GITHUB_TOKEN=your-token" aria-label="Environment variables"></textarea>
+          <input type="text" id="mcp-words" class="mcp-wide" placeholder="Other words that mean this server (optional, separated by commas), e.g. repo, pull request" aria-label="Trigger words">
+          <div class="inline-form"><button type="button" id="mcp-save">Save and connect</button><button type="button" id="mcp-cancel" class="settings-action hidden">Cancel</button></div>
+        </details>
+        <p class="settings-note" id="mcp-status" role="status"></p>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Compare models</h2>
         <p class="settings-note">Ask several local models the same questions, with the instructions Jarvis gives them in chat, to see which is faster and which answers better before you switch, or after training one. Each answer is checked automatically (Jarvis's manner, the right fact, French answered in French, PC requests turned into the right action, code in a code block), and you can pick the best answer to each question yourself, without seeing which model wrote it. “My own questions” takes your last ten messages from the training log (it stays on this PC). Smart commands adds 40 tool-picking examples per model. A comparison takes a few minutes per model; results are kept in <code>data\bench</code>. Also: <code>compare-models.bat</code>.</p>
         <div class="bench-models" id="bench-models" role="group" aria-label="Models to compare"></div>

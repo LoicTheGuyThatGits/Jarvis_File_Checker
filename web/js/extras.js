@@ -126,6 +126,63 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
   }
+  if ($('mcp-save')) {
+    var mcpEditing = null;
+    var mcpType = function () { var http = $('mcp-type').value === 'http'; $('mcp-url').classList.toggle('hidden', !http); $('mcp-headers').classList.toggle('hidden', !http); $('mcp-command').classList.toggle('hidden', http); $('mcp-env').classList.toggle('hidden', http); };
+    var mcpReset = function () { mcpEditing = null; ['mcp-name', 'mcp-command', 'mcp-url', 'mcp-headers', 'mcp-env', 'mcp-words'].forEach(function (id) { $(id).value = ''; }); $('mcp-type').value = 'command'; $('mcp-enabled').checked = true; mcpType(); $('mcp-add-title').textContent = 'Add a server'; $('mcp-cancel').classList.add('hidden'); };
+    var mcpDraw = function (d) {
+      var list = $('mcp-list'); list.textContent = '';
+      (d.servers || []).forEach(function (sv) {
+        var li = document.createElement('li'), head = document.createElement('div'); head.className = 'mcp-head';
+        var name = document.createElement('strong'); name.textContent = sv.name;
+        var state = document.createElement('span'); state.className = 'mcp-state ' + (sv.connected ? 'ok' : sv.enabled ? 'bad' : '');
+        state.textContent = !sv.enabled ? 'switched off' : sv.connected ? 'connected · ' + sv.tool_list.length + ' tool' + (sv.tool_list.length === 1 ? '' : 's') : 'not connected' + (sv.error ? ': ' + sv.error : '');
+        var btns = [['Reconnect', function () { api('/api/mcp', { connect: sv.name }).then(function (r) { mcpDraw(r); $('mcp-status').textContent = r.text; }).catch(function (e) { $('mcp-status').textContent = e.message; }); }],
+                    ['Edit', function () {
+                      mcpEditing = sv.name; $('mcp-name').value = sv.name; $('mcp-type').value = sv.type; $('mcp-enabled').checked = sv.enabled; $('mcp-command').value = sv.command || ''; $('mcp-url').value = sv.url || '';
+                      $('mcp-headers').value = Object.keys(sv.headers || {}).map(function (k) { return k + ': ' + sv.headers[k]; }).join('\n');
+                      $('mcp-env').value = Object.keys(sv.env || {}).map(function (k) { return k + '=' + sv.env[k]; }).join('\n');
+                      $('mcp-words').value = (sv.words || []).join(', '); mcpType(); $('mcp-add').open = true; $('mcp-add-title').textContent = 'Change ' + sv.name; $('mcp-cancel').classList.remove('hidden');
+                    }],
+                    ['Remove', function () { if (!window.confirm('Remove ' + sv.name + '?')) return; api('/api/mcp', { remove: sv.name }).then(function (r) { mcpDraw(r); if (mcpEditing === sv.name) mcpReset(); }).catch(function (e) { $('mcp-status').textContent = e.message; }); }]];
+        head.append(name, state);
+        btns.forEach(function (b) { var x = document.createElement('button'); x.type = 'button'; x.className = 'settings-action'; x.textContent = b[0]; x.setAttribute('aria-label', b[0] + ' ' + sv.name); x.addEventListener('click', b[1]); head.append(x); });
+        li.append(head);
+        if (sv.tool_list.length) {
+          var tl = document.createElement('ul'); tl.className = 'mcp-tools';
+          sv.tool_list.forEach(function (t) {
+            var row = document.createElement('li'), tn = document.createElement('span'), td = document.createElement('span');
+            tn.className = 'mcp-tname'; tn.textContent = t.name; td.className = 'mcp-tdesc'; td.textContent = (t.usable ? '' : '(needs lists or objects, which Jarvis cannot fill in) ') + t.description + (t.read_only ? ' · says it only reads' : '');
+            var use = document.createElement('label'), uc = document.createElement('input'); uc.type = 'checkbox'; uc.checked = t.use; uc.disabled = !t.usable; use.append(uc, document.createTextNode('use'));
+            var auto = document.createElement('label'), ac = document.createElement('input'); ac.type = 'checkbox'; ac.checked = t.auto; ac.disabled = !t.usable; auto.append(ac, document.createTextNode('without asking'));
+            var setTool = function (body) { api('/api/mcp', { tool: Object.assign({ server: sv.name, tool: t.name }, body) }).then(mcpDraw).catch(function (e) { $('mcp-status').textContent = e.message; }); };
+            uc.addEventListener('change', function () { setTool({ use: uc.checked }); });
+            ac.addEventListener('change', function () {
+              if (ac.checked && !window.confirm('Let Jarvis run ' + sv.name + '’s “' + t.name + '” without asking you first? Only do this for tools that just read information.')) { ac.checked = false; return; }
+              setTool({ auto: ac.checked });
+            });
+            row.append(tn, td, use, auto); tl.append(row);
+          });
+          li.append(tl);
+        }
+        list.append(li);
+      });
+      if (!(d.servers || []).length) { var li = document.createElement('li'); li.textContent = 'No servers yet.'; list.append(li); }
+    };
+    var mcpLoad = function () { api('/api/mcp').then(mcpDraw).catch(function () {}); };
+    $('mcp-type').addEventListener('change', mcpType);
+    $('mcp-cancel').addEventListener('click', function () { mcpReset(); $('mcp-add').open = false; });
+    $('mcp-save').addEventListener('click', function () {
+      $('mcp-status').textContent = 'Connecting…'; $('mcp-save').disabled = true;
+      api('/api/mcp', { replace: mcpEditing, save: { name: $('mcp-name').value, type: $('mcp-type').value, enabled: $('mcp-enabled').checked, command: $('mcp-command').value, url: $('mcp-url').value,
+        headers: $('mcp-headers').value, env: $('mcp-env').value, words: $('mcp-words').value } })
+        .then(function (d) { mcpDraw(d); $('mcp-status').textContent = d.text; mcpReset(); $('mcp-add').open = false; })
+        .catch(function (e) { $('mcp-status').textContent = e.message; })
+        .then(function () { $('mcp-save').disabled = false; });
+    });
+    mcpType();
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') mcpLoad(); });
+  }
   if ($('gr-add')) {
     var grFmt = function (x) { return x == null ? '–' : String(Math.round(x * 100) / 100); };
     var grDraw = function (d) {

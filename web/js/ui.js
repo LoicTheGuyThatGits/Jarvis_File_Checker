@@ -64,6 +64,7 @@
     'timetable': 'timetable school lessons classes schedule next class room bring subject emploi du temps cours evening',
     'flashcard deck': 'flashcards cards deck spaced repetition review due study learn remember fiches cartes',
     'grades': 'grades marks average averages report card test results scale term semester notes moyenne pass',
+    'connected tools (mcp)': 'mcp model context protocol connect tools server github notion integration plugin npx uvx token',
     'compare models': 'compare models test bench benchmark speed quality which model better faster ollama evaluate fine-tune',
     'focus timer': 'pomodoro concentrate deep work study session break timer',
     'this jarvis': 'install folder path location where running directory version copy python data folder',

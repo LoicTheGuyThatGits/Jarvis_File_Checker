@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "9ecf17b00c5c25f9e23c9fd5dac14470f017c96224ee27f2265d2f3dc7f84538",
-   "size": 72680
+   "sha256": "702bc4007cb930545cbb84dcc44d6d769b9e62fd19b11bff6792d5eaef8944cd",
+   "size": 74332
   },
   {
    "path": "app/backup.py",
@@ -103,6 +103,11 @@
    "size": 11372
   },
   {
+   "path": "app/mcp_client.py",
+   "sha256": "4360492f5553038cd728fc72406e23fc6154516a299177651d48a5c6916f6d86",
+   "size": 24566
+  },
+  {
    "path": "app/network.py",
    "sha256": "7f014cb22cd77d72713e43fdea3b36c6e64e7580fd87eb472f4fffdf2e0a75db",
    "size": 27284
@@ -159,8 +164,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "0082cff8bd103565c7318e9041e5f55de22db0dabf634e5ac90f5ddc58155690",
-   "size": 439792
+   "sha256": "8ce952ad92b589bbf21323d824376d795f208a4aeb86488e0814dc8545e124e0",
+   "size": 447845
   },
   {
    "path": "app/set-address.py",
@@ -299,8 +304,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "79f9c1f60e5143cd527c61ea0cfb2dfd834b60f05dfbda89dd1a3f753fc2980b",
-   "size": 56423
+   "sha256": "406edaae7e2d299922943aad2759dc22ebaf08c66affa51e80d780acfef12d92",
+   "size": 57414
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -314,13 +319,13 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "daf957f9f9af2523e22edb67a36208ecd80450b6e0b0a41775ced9838c3946d2",
-   "size": 70262
+   "sha256": "8479bb01684ca7605c42e79ad5a5045b83c0dd571afb0c5ef0b886ab409325e6",
+   "size": 72947
   },
   {
    "path": "web/js/app.js",
-   "sha256": "3730ea9f5bad13c0dc26aa9f93386f0808d0e516df6345a3ab5205cdaca1e8a2",
-   "size": 30960
+   "sha256": "dc1be80132a793846250b6b3b9ba0608003428485b107cf017dc157e216f41ca",
+   "size": 31334
   },
   {
    "path": "web/js/code.js",
@@ -334,8 +339,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "950230ec1590786f8838828f56f197512db7cfe8817eda57b8575a6df12ef45e",
-   "size": 37770
+   "sha256": "840109ab6b1fc144e854f961111e9c657aeda8d0277acde2dcbec92e9a57c977",
+   "size": 43696
   },
   {
    "path": "web/js/features.js",
@@ -379,8 +384,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "da58d55b68837ee4069d47f41555ac0beb6081ca1f3a3e58ffb20023aa1c9e56",
-   "size": 18548
+   "sha256": "0e30d321f236cb8cd5a4b3296047ec36d9b031b36d0e09cb53d6950cba840aeb",
+   "size": 18675
   },
   {
    "path": "web/js/wake.js",

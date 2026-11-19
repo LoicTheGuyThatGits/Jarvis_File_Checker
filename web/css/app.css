@@ -636,3 +636,20 @@ html[data-boot="play"] .boot{display:flex}
 #deck-list .deck-text{flex:1;min-width:0;overflow-wrap:anywhere}
 #deck-list .deck-due{font-family:var(--mono);color:var(--muted)}
 #deck-list .deck-due.now{color:var(--accent)}
+
+.mcp-list li{display:block;padding:6px 0;border-bottom:1px solid var(--a12)}
+.mcp-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.mcp-head strong{color:var(--text)}
+.mcp-state{font-size:12px;color:var(--muted)}
+.mcp-state.ok{color:var(--accent)}
+.mcp-state.bad{color:var(--warn);overflow-wrap:anywhere}
+.mcp-tools{margin:4px 0 0 0;padding:0;list-style:none}
+.mcp-tools li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border:0;padding:2px 0;font-size:12px}
+.mcp-tools .mcp-tname{font-family:var(--mono);color:var(--text)}
+.mcp-tools .mcp-tdesc{flex:1 1 200px;min-width:0;color:var(--muted);overflow-wrap:anywhere}
+.mcp-tools label{display:inline-flex;gap:3px;align-items:center;color:var(--muted)}
+.mcp-add summary{cursor:pointer;font-size:12px;color:var(--accent);margin:6px 0}
+.mcp-form{flex-wrap:wrap;gap:6px}
+.mcp-form #mcp-name{flex:1 1 140px;min-width:0}
+.mcp-wide{display:block;width:100%;box-sizing:border-box;margin:6px 0}
+.mcp-wide.hidden{display:none}
