@@ -4,6 +4,11 @@ s=socket.socket(); s.bind(("127.0.0.1",0)); port=s.getsockname()[1]; s.close()
 os.environ["JARVIS_PORT"]=str(port); os.environ["JARVIS_PROVIDER"]="local"
 sys.path.insert(0,"app")
 import jarvis_tray as t, jarvis_window as w
+# the app window is told apart from other browser windows whose page title starts with "Jarvis"
+assert w.is_app_title("Jarvis") and w.is_app_title("⏰ Wake up") and not w.is_app_title("Jarvis | Basic Information - Spotify for Developers")
+assert not w.is_app_title("Jarvis - Profile 1 - Microsoft\u200b Edge") and not w.is_app_title("Jarvis_File_Checker - GitHub")
+assert w.is_app_program(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe") and w.is_app_program(r"C:\Program Files\Google\Chrome\Application\chrome.exe")
+assert not w.is_app_program(r"C:\Users\loicm\AppData\Local\Programs\Opera GX\opera.exe")
 # hotkey parsing
 assert t.parse_hotkey("ctrl+alt+j")==(0x0003,ord("J")); assert t.parse_hotkey("Ctrl+Shift+F9")==(0x0006,0x78+0); assert t.parse_hotkey("j") is None and t.parse_hotkey("ctrl+alt+bogus") is None
 # browser discovery prefers Edge, falls back to Chrome, else None

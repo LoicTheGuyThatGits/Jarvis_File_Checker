@@ -99,8 +99,8 @@
   },
   {
    "path": "app/jarvis_window.py",
-   "sha256": "c6b713f87a18e66447eaba11c2a1db3c43a0aad542d3c41dcc3b0e2743234010",
-   "size": 4109
+   "sha256": "c1b0d0feecf4b87c58df51b32772484f00d0e0a1594340ad1bbe6f066eca2642",
+   "size": 5636
   },
   {
    "path": "app/maintenance.py",

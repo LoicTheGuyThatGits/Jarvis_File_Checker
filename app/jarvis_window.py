@@ -7,6 +7,35 @@ IS_WINDOWS = sys.platform == "win32"
 log_hook = None   # set by the tray app: called with a sentence whenever this module simulates a key press
 SW_MINIMIZE, SW_RESTORE, SW_SHOW = 6, 9, 5
 BROWSER_CLASSES = ("Chrome_WidgetWin_1",)   # Edge and Chrome windows; this keeps the console window (also titled Jarvis) out
+APP_BROWSERS = ("msedge.exe", "chrome.exe")  # the programs the tray opens the app window with (see jarvis_tray.find_browser)
+
+
+def is_app_title(title: str) -> bool:
+    """The app window shows the page title alone: "Jarvis" (or "⏰ …" while an alarm rings). A normal browser window
+    or tab whose page happens to start with "Jarvis" (say a Spotify developer app named Jarvis) is not it."""
+    title = (title or "").strip()
+    return title == "Jarvis" or title.startswith("⏰")
+
+
+def is_app_program(exe_path: str) -> bool:
+    return (exe_path or "").replace("\\", "/").rsplit("/", 1)[-1].lower() in APP_BROWSERS
+
+
+def _exe_of(hwnd) -> str:
+    """Full path of the program that owns a window ("" when Windows will not say)."""
+    import ctypes
+    from ctypes import wintypes
+    pid = wintypes.DWORD()
+    _user32().GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.OpenProcess(0x1000, False, pid.value)          # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return ""
+    try:
+        buf, size = ctypes.create_unicode_buffer(1024), wintypes.DWORD(1024)
+        return buf.value if kernel32.QueryFullProcessImageNameW(handle, 0, buf, ctypes.byref(size)) else ""
+    finally:
+        kernel32.CloseHandle(handle)
 
 
 def _user32():
@@ -32,12 +61,17 @@ def find_window():
             return True
         title = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, title, length + 1)
-        if not title.value.startswith("Jarvis"):
+        if not is_app_title(title.value):
             return True
         cls = ctypes.create_unicode_buffer(256)
         user32.GetClassNameW(hwnd, cls, 256)
         if cls.value in BROWSER_CLASSES:
-            found.append(hwnd)
+            try:
+                exe = _exe_of(hwnd)
+            except Exception:
+                exe = ""
+            if not exe or is_app_program(exe):            # Opera, Brave, Vivaldi… use the same window class: skip them
+                found.append(hwnd)
         return True
 
     user32.EnumWindows(callback_type(each), 0)
