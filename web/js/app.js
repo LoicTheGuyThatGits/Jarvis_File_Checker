@@ -218,7 +218,7 @@ async function readReplyStream(response,onDelta) {
     if(event.type==='delta'&&typeof event.text==='string')onDelta(event.text);
     else if(event.type==='status'&&typeof event.text==='string'){const label=thinking.querySelector('i');if(label)label.textContent=event.text}
     else if(event.type==='final')final=event;
-    else if(event.type==='error')throw new Error(event.error||'Something went wrong.');
+    else if(event.type==='error'){const err=new Error(event.error||'Something went wrong.');err.debug=event.debug;throw err}
   };
   while(true){
     const {value,done}=await reader.read();
@@ -294,16 +294,17 @@ async function sendMessage(text) {
         if(!live.row){thinking.classList.add('hidden');conversation.setAttribute('aria-busy','true');live.row=addMessage('assistant','');live.bubble=live.row.querySelector('.bubble')}
         live.text+=piece;renderBubble(live.bubble,live.text);followStream();window.dispatchEvent(new CustomEvent('jarvis:stream',{detail:{text:live.text}}));
       });
-    }else{data=await response.json(); if(!response.ok)throw new Error(data.error||'Something went wrong.')}
+    }else{data=await response.json(); if(!response.ok){const err=new Error(data.error||'Something went wrong.');err.debug=data.debug;throw err}}
     const reply=data.reply||'I do not have a response for that yet.';
     if(live.row&&data.cancelled&&live.text){history.push({role:'assistant',content:live.text})}
     let replyRow=live.row;
     if(live.row&&!data.cancelled)renderBubble(live.bubble,reply);else replyRow=addMessage('assistant',reply);
+    if(data.debug&&window.JarvisDebug)window.JarvisDebug.attach(data.debug,replyRow);
     history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);
   } catch(error) {
     if(error.name==='AbortError'){
       window.dispatchEvent(new CustomEvent('jarvis:stop'));const stopped='Stopped the current prompt, '+(window.JARVIS_ADDRESS||'sir')+'.';if(live.text)history.push({role:'assistant',content:live.text});history.push({role:'assistant',content:stopped});saveHistory();addMessage('assistant',stopped);
-    }else addMessage('assistant',`I couldn't complete that: ${error.message}`);
+    }else{const row=addMessage('assistant',`I couldn't complete that: ${error.message}`);if(error.debug&&window.JarvisDebug)window.JarvisDebug.attach(error.debug,row)}
   }
   finally { thinking.classList.add('hidden');conversation.removeAttribute('aria-busy');if(autonomous){autonomousRunning=false;activeAutonomousId=null;autopilotStop.classList.add('hidden');autopilotStop.disabled=false;autopilotStop.textContent='Stop'}if(activePromptController===controller){activePromptController=null;activePromptId=null;setPromptRunning(false)}input.focus(); }
 }

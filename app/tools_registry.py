@@ -56,6 +56,7 @@ class Registry:
         self.tools: dict[str, Tool] = {}
         self.lock = threading.Lock()
         self.last_undo: dict | None = None     # {"at", "label", "undo"}
+        self.on_step = None                    # on_step(tool_name, args, result, seconds): for debug mode
 
     def add(self, name: str, description: str, params: dict, run, keywords: str, risk: str = "read", remote: bool = True, example: str = "") -> None:
         """params: {name: {"desc": str, "required": bool, "choices": [..], "free": bool}}. free = words must come from the message.
@@ -181,12 +182,20 @@ class Registry:
         replies, decided, undos, done = [], [], [], []
         for step in steps:
             tool = self.tools[step["tool"]]
+            started = time.time()
             try:
                 out = tool.run(step["args"])
             except ValueError as exc:
                 out = str(exc)
-            except Exception:
+            except Exception as exc:
                 out = None
+                if self.on_step:
+                    self.on_step(tool.name, step["args"], f"failed: {type(exc).__name__}: {exc}", time.time() - started)
+            if self.on_step and out is not None:
+                try:
+                    self.on_step(tool.name, step["args"], out[0] if isinstance(out, tuple) else out, time.time() - started)
+                except Exception:
+                    pass
             undo = None
             if isinstance(out, tuple):
                 out, undo = out

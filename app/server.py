@@ -69,7 +69,7 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
     "/icons/jarvis.ico": ("icons/jarvis.ico", "image/x-icon"), "/favicon.ico": ("icons/jarvis.ico", "image/x-icon"),
 }
@@ -971,6 +971,7 @@ import timetable as timetable_module
 import bench as bench_module
 import grades as grades_module
 import mcp_client
+import debugtrace
 import focus as focus_module
 import search_all
 import network as network_module
@@ -1709,6 +1710,23 @@ def mail_alert_check(notify=None) -> None:
 ROUTER = {"registry": None}
 
 
+def debug_enabled() -> bool:
+    return load_settings().get("debug") is True
+
+
+def debug_set(on: bool) -> None:
+    load_settings()
+    with SETTINGS_LOCK:
+        SETTINGS["debug"] = bool(on)
+    save_settings()
+    if not on:
+        debugtrace.clear()
+
+
+DEBUG_ASK = re.compile(r"(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:turn|switch|put)\s+(?P<a>on|off)\s+(?:the\s+)?debug(?:\s+mode)?|(?:turn|switch|put)\s+(?:the\s+)?debug(?:\s+mode)?\s+(?P<b>on|off)"
+                       r"|(?P<c>enable|disable|start|stop|activate|deactivate)\s+(?:the\s+)?debug(?:\s+mode)?|debug(?:\s+mode)?\s+(?P<d>on|off))[.!]?", re.I)
+
+
 def router_enabled() -> bool:
     return load_settings().get("tool_router") is True          # off until switched on in Settings > AI model
 
@@ -1961,8 +1979,14 @@ def router_registry() -> tools_registry.Registry:
             web_search_step, r"\b(?:internet|online|web|google|look(?:ing)?\s+(?:it\s+|that\s+|this\s+)?up|search(?:ing)?|find out|news|latest|headlines|(?:re)?cherche[rz]?)\b",
             example='"could you find out online when the next solar eclipse is" -> {"tool":"web_search","args":{"query":"when the next solar eclipse is"}}')
     ROUTER["registry"] = reg
+    reg.on_step = debug_tool_step
     mcp_register(reg)
     return reg
+
+
+def debug_tool_step(name: str, args: dict, result, seconds: float) -> None:
+    debugtrace.step("tool", f"Ran the tool {name}({', '.join(f'{k}={v!r}' for k, v in args.items())}) in {seconds:.2f} s", str(result)[:6000])
+    debugtrace.answered("Smart commands: " + name)
 
 
 # ---------------- MCP: tools from other programs ----------------
@@ -2011,6 +2035,7 @@ def mcp_runner(info: dict):
         arguments = mcp_client.typed_args(args, info["schema"])
         ident = threading.get_ident()
         message = MCP_CONTEXT.get(ident, "")
+        debugtrace.step("mcp", f"MCP: {info['server']} → {info['tool']}", json.dumps(arguments, ensure_ascii=False, indent=1))
         if not info["auto"]:
             token = secrets.token_urlsafe(24)
             action = {"type": "mcp_call", "server": info["server"], "tool": info["tool"], "arguments": arguments, "message": message[:600]}
@@ -2021,6 +2046,7 @@ def mcp_runner(info: dict):
             return f"I can ask {info['server']} to run “{info['tool']}” for that, sir. Review the details, then approve."
         audit(f"MCP: {info['server']} {info['tool']} (allowed without asking)")
         text, failed = mcp_obj().call(info["server"], info["tool"], arguments)
+        debugtrace.step("mcp", f"MCP: {info['server']} answered" + (" with an error" if failed else "") + f" ({len(text)} characters; treated as data)", text)
         return mcp_answer(message, info["server"], info["tool"], text, failed)
     return run
 
@@ -2056,6 +2082,8 @@ def mcp_only_registry(message: str) -> "tools_registry.Registry | None":
         return None
     only = tools_registry.Registry()
     only.tools = {t.name: t for t in mcp}
+    only.on_step = debug_tool_step
+    debugtrace.step("router", f"Smart commands are off, but the message names a connected MCP server: offering only its {len(mcp)} tool{'s' if len(mcp) != 1 else ''}")
     return only
 
 
@@ -5304,6 +5332,21 @@ class Handler(BaseHTTPRequestHandler):
             return False
 
     def send_json(self, status: int, obj: object) -> None:
+        if debugtrace.active() is not None and isinstance(obj, dict) and getattr(self, "_debug_owner", False):
+            self._debug_owner = False
+            trace = debugtrace.active()
+            if not trace["answered_by"] and isinstance(obj.get("reply"), str):
+                try:
+                    caller = sys._getframe(1).f_locals
+                    hit = next((k for k, v in caller.items() if k.endswith("_reply") and isinstance(v, str) and v == obj["reply"]), None)
+                except Exception:
+                    hit = None
+                if hit:
+                    debugtrace.step("command", f"Caught by the built-in {hit[:-6].replace('_', ' ')} handler")
+                    debugtrace.answered(hit[:-6] + " handler")
+            trace = debugtrace.finish(status, obj.get("reply") if isinstance(obj.get("reply"), str) else None, obj.get("error") if status >= 400 else None)
+            if trace and self._debug_show:
+                obj = {**obj, "debug": trace}
         if isinstance(obj, dict) and isinstance(obj.get("reply"), str):
             obj = {**obj, "reply": personalize(obj["reply"])}
             if getattr(self, "_reply_lang", None) and status == 200 and obj["reply"].strip():
@@ -5314,7 +5357,7 @@ class Handler(BaseHTTPRequestHandler):
         if self._stream_started:
             # A streamed reply is already under way, so the last word goes out as a final/error event.
             if isinstance(obj, dict):
-                event = {"type": "error", "error": obj.get("error", "Something went wrong.")} if status >= 400 else {"type": "final", **obj}
+                event = {"type": "error", "error": obj.get("error", "Something went wrong."), **({"debug": obj["debug"]} if "debug" in obj else {})} if status >= 400 else {"type": "final", **obj}
                 self.emit_stream_event(event)
             return
         data = json_bytes(obj)
@@ -5398,6 +5441,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/jarvis-model":
             self.send_json(200, jarvis_model_status())
+            return
+        if path == "/api/debug":
+            self.send_json(200, {"enabled": debug_enabled(), "traces": debugtrace.recent()})
             return
         if path == "/api/status":
             active = ai_settings()
@@ -6165,6 +6211,16 @@ class Handler(BaseHTTPRequestHandler):
                             self.send_json(200, {**cfg, "sight_now": autopilot_sight()})
                     except (ValueError, TypeError) as exc:
                         self.send_json(400, {"error": str(exc)})
+            elif path == "/api/debug":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Change this at the PC."})
+                else:
+                    if payload.get("clear") is True:
+                        debugtrace.clear()
+                    if isinstance(payload.get("on"), bool):
+                        debug_set(payload["on"])
+                        audit("debug mode " + ("on" if payload["on"] else "off"))
+                    self.send_json(200, {"enabled": debug_enabled(), "traces": debugtrace.recent()})
             elif path == "/api/jarvis-model":
                 if self._from_phone:
                     self.send_json(403, {"error": "Build it at the PC."})
@@ -6952,6 +7008,27 @@ class Handler(BaseHTTPRequestHandler):
             if isinstance(item, dict) and item.get("role") in ("user", "assistant") and isinstance(item.get("content"), str):
                 safe_messages.append({"role": item["role"], "content": item["content"][:message_limit]})
         latest = next((item["content"] for item in reversed(safe_messages) if item["role"] == "user"), "")
+        self._debug_owner = self._debug_show = False
+        if debug_enabled() and payload.get("source") != "routine":
+            debugtrace.start(latest, payload.get("source") or ("phone app" if self._from_phone else "page"))
+            self._debug_owner = True
+            self._debug_show = payload.get("source") != "telegram"           # the trace is kept for Settings, never sent to Telegram
+            debugtrace.step("model", f"Provider {ai['provider']}, model {ai['model']}" + (" (local)" if ai["is_local"] else ""))
+        dm = DEBUG_ASK.fullmatch(latest.strip())
+        if dm:
+            word = (dm.group("a") or dm.group("b") or dm.group("c") or dm.group("d")).lower()
+            on = word in ("on", "enable", "start", "activate")
+            if self._from_phone or payload.get("source") == "telegram":
+                self.send_json(200, {"reply": "Debug mode can only be switched on or off at the PC, sir (Settings → Jarvis & updates).", "action": None})
+                return
+            debug_set(on)
+            if not on and self._debug_owner:                 # the trace of "debug mode off" itself is not kept
+                debugtrace.finish()
+                debugtrace.clear()
+                self._debug_owner = False
+            self.send_json(200, {"reply": "Debug mode is on, sir. Under each reply you will see what I did: which command caught it, the tools I used, the model's thinking and its raw answer."
+                                 if on else "Debug mode is off, sir.", "action": None})
+            return
         again = repeat_request(latest, safe_messages[:-1] if safe_messages and safe_messages[-1]["role"] == "user" else safe_messages)
         if again is not None:                           # "do it again": run the earlier request again
             if not again:
@@ -6964,6 +7041,7 @@ class Handler(BaseHTTPRequestHandler):
         self._reply_lang = None
         french_command = french_module.to_english(latest)
         if french_command:                      # a French request for a built-in command: run the English one, answer in French
+            debugtrace.step("french", f"French rewritten as: “{french_command}” (the answer is translated back)")
             latest, self._reply_lang = french_command, "fr"
         screen_q = screen_request(latest)
         if screen_q:
@@ -7177,6 +7255,7 @@ class Handler(BaseHTTPRequestHandler):
         doc_hits = None
         if payload.get("use_documents") is True and docs_load_index():
             doc_hits = docs_search(latest)
+            debugtrace.step("documents", f"{len(doc_hits)} passage{'s' if len(doc_hits) != 1 else ''} from your documents", "\n\n".join(f"{h['name']} ({h['where']}):\n{h.get('text', '')[:600]}" for h in doc_hits))
             if ai.get("provider") != "local":         # document questions are answered by the local Ollama model only
                 ai = ai_settings(provider="local")
                 base, is_local_provider = ai["base"], True
@@ -7197,6 +7276,9 @@ class Handler(BaseHTTPRequestHandler):
                 web_query, budget=7000 if is_local_provider else 14000,
                 on_status=(lambda text: self.emit_stream_event({"type": "status", "text": text})) if live else None)
             print(f"[jarvis] web research “{web_query}”: {len(web_result['sources'])} sources, {sum(len(s['text']) for s in web_result['sources'])} chars" + (f", error: {web_result['error']}" if web_result["error"] else ""))
+            debugtrace.step("web", f"Web research for “{web_query}”: {len(web_result['sources'])} pages read" + (f" (error: {web_result['error']})" if web_result["error"] else ""),
+                            "\n".join(f"[{x['n']}] {x['title']} — {x['url']} ({len(x['text'])} chars)" for x in web_result["sources"]))
+            debugtrace.answered("web research")
             if not web_result["sources"]:
                 problem = f"I could not search the web, sir: {web_result['error']}. Please check the internet connection and try again." if web_result["error"] \
                     else f"I searched the web for “{web_query}” but found no pages I could read, sir. Try wording it differently."
@@ -7243,6 +7325,7 @@ class Handler(BaseHTTPRequestHandler):
         memory_block = memory_prompt_block(is_local_provider)
         if memory_block:
             instructions += "\n\n" + memory_block
+            debugtrace.step("memory", "Your long-term memory was added to the instructions", memory_block)
         instructions += language_instruction()
         if doc_hits is not None:
             instructions += "\n\n" + docs_prompt(doc_hits)
@@ -7260,6 +7343,11 @@ class Handler(BaseHTTPRequestHandler):
         started_at = time.time()
         first_token_at = None
         print(f"[jarvis] chat -> {model} @ {urlparse(base).netloc} | prompt ~{sum(len(m['content']) for m in body['messages'])} chars, {len(safe_messages)} history messages")
+        debugtrace.answered("the AI model")
+        debugtrace.step("model", f"Asking {model} at {urlparse(base).netloc}: ~{sum(len(m['content']) for m in body['messages'])} characters, {len(safe_messages)} message{'s' if len(safe_messages) != 1 else ''} of history",
+                        "SYSTEM:\n" + instructions + "\n\n" + "\n\n".join(f"{m['role'].upper()}:\n{m['content']}" for m in safe_messages))
+        thinker = debugtrace.ThinkSplitter()
+        reasoning: list[str] = []
         req = urllib.request.Request(
             base + "/chat/completions", data=req_body,
             headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST",
@@ -7300,13 +7388,15 @@ class Handler(BaseHTTPRequestHandler):
                         choice = chunk.get("choices", [{}])[0]
                         delta = choice.get("delta", {})
                         content = delta.get("content", "") if isinstance(delta, dict) else ""
+                        if isinstance(delta, dict):
+                            for key in ("reasoning", "reasoning_content", "thinking"):
+                                if isinstance(delta.get(key), str) and delta[key]:
+                                    reasoning.append(delta[key])
+                        if isinstance(content, list):
+                            content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
                         if isinstance(content, str):
-                            streamed_content.append(content)
-                            piece = content
-                        elif isinstance(content, list):
-                            texts = [part.get("text", "") for part in content if isinstance(part, dict)]
-                            streamed_content.extend(texts)
-                            piece = "".join(texts)
+                            piece = thinker.feed(content)          # <think>…</think> is kept out of the answer
+                            streamed_content.append(piece)
                         else:
                             piece = ""
                     except (json.JSONDecodeError, IndexError, TypeError, AttributeError):
@@ -7321,10 +7411,21 @@ class Handler(BaseHTTPRequestHandler):
             if chat_state and chat_state["cancelled"].is_set():
                 self.send_json(200, {"reply": "Stopped the current prompt, sir.", "cancelled": True})
                 return
+            tail = thinker.flush()
+            if tail:
+                streamed_content.append(tail)
+                if streamer:
+                    more_text = streamer.feed(tail)
+                    if more_text:
+                        self.emit_stream_event({"type": "delta", "text": more_text})
             result = {"choices": [{"message": {"content": "".join(streamed_content)}}]}
             done_at = time.time()
             first = f"{first_token_at - started_at:.1f}s" if first_token_at else "none"
             print(f"[jarvis] chat done: first token {first}, total {done_at - started_at:.1f}s, {len(''.join(streamed_content))} chars")
+            thought = ("".join(reasoning) + ("\n\n" if reasoning and thinker.thought() else "") + thinker.thought()).strip()
+            if thought:
+                debugtrace.step("thinking", f"The model's thinking ({len(thought.split())} words)", thought)
+            debugtrace.step("model", f"Answer: first word after {first}, finished after {done_at - started_at:.1f} s, {len(''.join(streamed_content))} characters", "".join(streamed_content))
         except urllib.error.HTTPError as exc:
             if chat_state and chat_state["cancelled"].is_set():
                 self.send_json(200, {"reply": "Stopped the current prompt, sir.", "cancelled": True})
@@ -7375,6 +7476,8 @@ class Handler(BaseHTTPRequestHandler):
                                                                                      model, ai["provider"], instructions, safe_messages, raw_answer)
             reply = str(parsed.get("reply", ""))[:30000]
             action = parsed.get("action")
+            if isinstance(action, dict):
+                debugtrace.step("action", f"The model asked for an action: {action.get('type')}", json.dumps(action, ensure_ascii=False, indent=1)[:4000])
             if isinstance(action, dict) and action.get("type") == "web_search":
                 query = str(action.get("query", "")).strip()[:300]
                 if not query:
@@ -7690,8 +7793,16 @@ class Handler(BaseHTTPRequestHandler):
                 content = response_data["choices"][0]["message"]["content"]
                 if isinstance(content, list):
                     content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
-                parsed = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip()))
+                split = debugtrace.ThinkSplitter()
+                visible = split.feed(content) + split.flush()
+                if split.thought():
+                    debugtrace.step("thinking", f"Autopilot's thinking ({len(split.thought().split())} words)", split.thought())
+                debugtrace.step("autopilot", f"Autopilot asked {ai['model']} for step {len(completed_steps) + 1} (try {attempt + 1}); it answered: {debugtrace.short(visible, 200)}",
+                                "SYSTEM:\n" + system + "\n\nUSER:\n" + user_text + "\n\nMODEL:\n" + visible)
+                parsed = json.loads(re.sub(r"^```(?:json)?\s*|\s*```$", "", visible.strip()))
                 validated = self.validate_computer_action(parsed.get("action"), screen)
+                if validated:
+                    debugtrace.step("autopilot", "Planned action: " + overlay_module.describe(validated), json.dumps(validated, ensure_ascii=False, indent=1))
                 return {"reply": str(parsed.get("reply", ""))[:1000], "action": validated, "done": parsed.get("done") is True}
             except (ValueError, TypeError, AttributeError, KeyError, IndexError) as exc:
                 if attempt == 2:
@@ -7723,6 +7834,10 @@ class Handler(BaseHTTPRequestHandler):
 
     def start_computer_task(self, payload: dict) -> None:
         task = str(payload.get("task", "")).strip()
+        self._debug_owner = self._debug_show = False
+        if debug_enabled() and task:
+            debugtrace.start(task, "Autopilot" if payload.get("autonomous") is True else "computer step")
+            self._debug_owner = self._debug_show = True
         if not task or len(task) > 2000:
             self.send_json(400, {"error": "Enter a computer task of 1 to 2000 characters."})
             return
@@ -7830,6 +7945,7 @@ class Handler(BaseHTTPRequestHandler):
                     seen = self.execute_computer_action(action)
                 except (ValueError, OSError) as exc:
                     seen = f"that did not work: {exc}"
+                debugtrace.step("tool", f"Autopilot did step {step}: {overlay_module.describe(action)}", seen or "(no result)")
                 completed_actions.append(step_record(action, seen))
                 if last_key == action_key(action):
                     same_in_row += 1
@@ -8232,6 +8348,32 @@ class Handler(BaseHTTPRequestHandler):
             PENDING.pop(token, None)
         self.send_json(200, {"ok": True})
 
+
+
+# ---------------- debug mode: record the matchers and the Smart-commands model calls ----------------
+def _debug_router_ask(fn):
+    def ask(system: str, user: str, model: str | None = None) -> str:
+        if debugtrace.active() is None:
+            return fn(system, user, model)
+        started = time.time()
+        try:
+            raw = fn(system, user, model)
+        except Exception as exc:
+            debugtrace.step("router", f"Smart commands could not ask the model: {exc}")
+            raise
+        debugtrace.step("router", f"Smart commands asked {model or ai_settings()['model']} which tool fits ({time.time() - started:.2f} s); it answered: {debugtrace.short(raw, 240)}",
+                        "SYSTEM:\n" + system + "\n\nUSER:\n" + user + "\n\nMODEL:\n" + str(raw))
+        return raw
+    ask.__wrapped__ = fn
+    return ask
+
+
+router_ask_model = _debug_router_ask(router_ask_model)
+for _name in ("language_command", "briefing_command", "mail_command", "grades_command", "timetable_command", "planner_command", "countdown_command", "exams_command",
+              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "pc_command",
+              "explicit_assistant_command", "repeat_request", "jarvis_model_text"):
+    if callable(globals().get(_name)) and not hasattr(globals()[_name], "__wrapped__"):
+        globals()[_name] = debugtrace.traced(_name, globals()[_name])
 
 
 class RoutineRunner(Handler):

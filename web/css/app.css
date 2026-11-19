@@ -692,3 +692,26 @@ html[data-boot="play"] .boot{display:flex}
 .note-more:hover{text-decoration:underline}
 .settings-content.is-search .settings-note.folded{display:block;-webkit-line-clamp:unset;line-clamp:unset}
 .settings-content.is-search .note-more{display:none}
+/* debug mode: the trace under a reply */
+.debug-trace{margin:2px 0 12px 42px;max-width:calc(100% - 42px);font:12px/1.45 ui-monospace,Consolas,monospace;color:var(--muted);border:1px dashed var(--a30);border-radius:6px;background:var(--bg2)}
+.debug-trace>summary{cursor:pointer;padding:5px 10px;letter-spacing:.03em;user-select:none}
+.debug-trace>summary:hover{color:var(--text)}
+.debug-steps{list-style:none;margin:0;padding:4px 10px 6px;border-top:1px dashed var(--a30)}
+.debug-step{padding:3px 0;border-bottom:1px solid var(--a12)}
+.debug-step:last-child{border-bottom:0}
+.debug-line{display:flex;gap:8px;align-items:baseline}
+.debug-time{flex:0 0 64px;text-align:right;color:var(--dim);font-variant-numeric:tabular-nums}
+.debug-kind{flex:0 0 78px;text-transform:uppercase;font-size:10px;letter-spacing:.06em;color:var(--accent)}
+.debug-text{flex:1;min-width:0;color:var(--text);overflow-wrap:anywhere;white-space:pre-wrap}
+.debug-thinking .debug-kind{color:#c9a0ff}.debug-thinking pre{border-left:2px solid #c9a0ff;font-style:italic}
+.debug-tool .debug-kind,.debug-mcp .debug-kind{color:#7ee0a0}
+.debug-error .debug-kind,.debug-error .debug-text{color:var(--red)}
+.debug-detail{margin:2px 0 2px 150px}
+.debug-detail>summary{cursor:pointer;color:var(--dim);font-size:11px}
+.debug-detail pre{margin:4px 0;padding:6px 8px;max-height:320px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg);border:1px solid var(--a12);color:var(--text)}
+.debug-tools{padding:0 10px 8px;text-align:right}
+.debug-tools button{font-size:11px;padding:3px 8px}
+.debug-recent .debug-steps{border-top:0;padding:4px 0}
+.debug-recent summary{cursor:pointer;overflow-wrap:anywhere}
+.debug-reply{margin:4px 0 0}
+@media (max-width:640px){.debug-trace{margin-left:0;max-width:100%}.debug-line{flex-wrap:wrap;gap:2px 8px}.debug-time{flex-basis:auto;text-align:left}.debug-kind{flex-basis:auto}.debug-text{flex-basis:100%}.debug-detail{margin-left:0}}

@@ -69,6 +69,7 @@
     'focus timer': 'pomodoro concentrate deep work study session break timer',
     'this jarvis': 'install folder path location where running directory version copy python data folder',
     'self-check': 'self test diagnostics check what works broken problems report debug',
+    'debug mode': 'debug developer trace thinking reasoning tools fired log prompt raw answer why how timing inspect',
     'computer control': 'autopilot screen ocr read text control mouse windows project folders vision model see steps',
     'evening recap': 'recap summary end of day daily review tomorrow wrap up planner',
     'backup': 'back up restore save data export passphrase encrypted usb new computer migrate',
