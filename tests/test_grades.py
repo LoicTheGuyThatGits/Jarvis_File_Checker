@@ -69,10 +69,10 @@ except ValueError:
 # ---------- French ----------
 for q, want in {"j'ai eu un 5 en maths": "I got a 5 in maths", "j'ai eu 4,5 en français, coefficient 2": "I got a 4,5 in français, counts double",
                 "j'ai eu 17 sur 20 en anglais hier": "I got a 17/20 in anglais yesterday", "quelle est ma moyenne en maths ?": "what's my average in maths",
-                "mes notes": "my grades", "il me faut combien au prochain test de maths pour avoir 4,5": "what do I need on the next maths test to get 4.5",
+                "mes moyennes": "my grades", "mes notes scolaires": "my grades", "il me faut combien au prochain test de maths pour avoir 4,5": "what do I need on the next maths test to get 4.5",
                 "supprime ma dernière note": "remove my last grade", "nouveau semestre": "start a new term"}.items():
     assert fr.to_english(q, now) == want, (q, fr.to_english(q, now))
-assert fr.to_english("j'ai eu faim", now) is None
+assert fr.to_english("j'ai eu faim", now) is None and fr.to_english("montre mes notes", now) != "my grades", "notes are written notes"
 assert G.command("I got a 4,5 in français, counts double", st, now, [], None).startswith("Recorded 4.5 in Français (counts double)")
 
 # ---------- in the server ----------

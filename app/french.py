@@ -303,7 +303,7 @@ RULES: list[tuple[str, object]] = [
      lambda m, now: f"I got a {m.group(1)}" + (f"/{m.group(2)}" if m.group(2) else "") + f" in {m.group(3)}" + _fr_grade_rest(m.group(4))),
     (r"(?:quelle\s+est\s+|c['’]est\s+quoi\s+)?ma\s+moyenne\s+(?:en|de|d['’]|à|a)\s*(.+)|(?:comment\s+je\s+m['’]en\s+sors|où\s+j['’]en\s+suis)\s+en\s+(.+)",
      lambda m, now: f"what's my average in {m.group(1) or m.group(2)}"),
-    (r"(?:(?:montre|donne|affiche)(?:[- ]moi)?\s+)?(?:mes|toutes\s+mes)\s+(?:notes|moyennes)|ma\s+moyenne\s+(?:générale|generale)|quelle\s+est\s+ma\s+moyenne(?:\s+générale)?", "my grades"),
+    (r"(?:(?:montre|donne|affiche)(?:[- ]moi)?\s+)?(?:mes|toutes\s+mes)\s+(?:moyennes|résultats|resultats|notes\s+(?:scolaires|d['’]école|de\s+l['’]école|du\s+semestre|du\s+trimestre|de\s+classe))|ma\s+moyenne\s+(?:générale|generale)|quelle\s+est\s+ma\s+moyenne(?:\s+générale)?", "my grades"),
     (r"(?:il\s+me\s+faut\s+combien|qu['’]est-ce\s+qu['’]il\s+me\s+faut|quelle\s+note\s+(?:il\s+me\s+faut|me\s+faut-il))\s+(?:au|à\s+mon|a\s+mon)\s+prochain\s+(?:test|contrôle|controle|examen)\s+(?:de|d['’]|en)\s*(.+?)\s+pour\s+(?:avoir|garder|atteindre)\s+(?:une\s+moyenne\s+de\s+|un\s+|une\s+)?(\d{1,3}(?:[.,]\d{1,2})?)",
      lambda m, now: f"what do I need on the next {m.group(1)} test to get {m.group(2).replace(',', '.')}"),
     (r"(?:il\s+me\s+faut\s+combien|qu['’]est-ce\s+qu['’]il\s+me\s+faut)\s+(?:en|pour\s+réussir\s+(?:en\s+)?)\s*(.+?)\s+pour\s+(?:avoir|garder|atteindre)\s+(?:une\s+moyenne\s+de\s+|un\s+|une\s+)?(\d{1,3}(?:[.,]\d{1,2})?)",
