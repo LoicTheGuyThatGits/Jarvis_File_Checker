@@ -385,6 +385,8 @@ RULES: list[tuple[str, object]] = [
     (r"(?:mets?|ajoute[rz]?)\s+(?:une|des|quelques|(\d+))\s+(?:chansons?|musiques?|titres?)\s+(?:de|du\s+groupe)\s+(.+?)\s+(?:à|a|dans)\s+(?:la|ma)\s+file(?:\s+d['’]attente)?", lambda m, now: f"queue {m.group(1) or 'a few'} songs by {m.group(2)}"),
     (r"(?:ajoute[rz]?|rajoute[rz]?|mets?|mettre)\s+(.+?)\s+(?:à|a|dans)\s+(?:la|ma)\s+file(?:\s+d['’]attente)?(?:\s+(?:sur|de)\s+spotify)?", lambda m, now: "queue " + re.sub(r"\s+(?:puis|ensuite|et\s+après)\s+", " then ", re.sub(r"\s+(?:de|du\s+groupe|par)\s+(?=[A-Z])", " by ", m.group(1)))),
     (r"(?:mets?|joue[rz]?)\s+(.+?)\s+(?:juste\s+)?(?:après|ensuite)(?:\s+(?:celle-ci|cette\s+chanson|ça))?", lambda m, now: "play " + re.sub(r"\s+(?:de|du\s+groupe|par)\s+(?=[A-Z])", " by ", m.group(1)) + " next"),
+    (r"(?:mets?|joue[rz]?|lance[rz]?|écoute[rz]?)\s+(?:mes|les)\s+(?:titres|chansons|sons|musiques)\s+(?:likés|likées|aimés|aimées|favoris|préférés|préférées|sauvegardés)(?:\s+en\s+(?:aléatoire|mode\s+aléatoire))?(?:\s+sur\s+spotify)?|(?:mets?|joue[rz]?|lance[rz]?)\s+mes\s+(?:coups\s+de\s+c(?:œ|oe)ur|likes|favoris)(?:\s+en\s+(?:aléatoire|mode\s+aléatoire))?(?:\s+sur\s+spotify)?",
+     lambda m, now: "play my liked songs" + (" on shuffle" if "aléatoire" in m.group(0).lower() else "")),
     (r"(?:mets?|joue[rz]?|lance[rz]?)\s+(.+?)\s+sur\s+spotify", lambda m, now: f"play {m.group(1)} on spotify"),
     # --- updates, backup, PC health ---
     (r"(?:vérifie[rz]?|verifie[rz]?|cherche[rz]?)\s+(?:les\s+|s['’]il\s+y\s+a\s+des\s+)?mises?\s+à\s+jour|(?:y\s+a-t-il|il\s+y\s+a)\s+(?:une|des)\s+mises?\s+à\s+jour", "check for updates"),

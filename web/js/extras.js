@@ -11,7 +11,7 @@
     var show = function (d) {
       $('spotify-redirect').value = d.redirect_uri;
       if (document.activeElement !== $('spotify-client')) $('spotify-client').value = d.client_id || '';
-      $('spotify-status').textContent = d.connected ? 'Connected' + (d.user ? ' as ' + d.user : '') + '.' : 'Not connected.';
+      $('spotify-status').textContent = d.connected ? 'Connected' + (d.user ? ' as ' + d.user : '') + '.' + (d.reconnect ? ' To play your Liked Songs, press Disconnect, then Connect again: Spotify has to allow one more permission.' : '') : 'Not connected.';
       $('spotify-disconnect').disabled = !d.connected;
       if (d.connected && polling) { clearInterval(polling); polling = null; }
     };

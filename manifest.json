@@ -69,8 +69,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "dd126493a1ae8c2f7127d08089bef8e4ecd1b7c1ccf54e0e63e65e6f42668333",
-   "size": 33958
+   "sha256": "22a97b5640d93b0a8fc28d9e087134427792b28c4cf82cfa0bbfe74a3335521a",
+   "size": 34466
   },
   {
    "path": "app/gmail_reader.py",
@@ -184,8 +184,8 @@
   },
   {
    "path": "app/spotify.py",
-   "sha256": "304a9463200886175d91958dad8875bbdd3c5559bad68059a7196e0ab28e3ae6",
-   "size": 28826
+   "sha256": "0fb3a5f6ec73284d16e63c15f13ce7fff29bab3bf57aa590d24066776d2a7563",
+   "size": 32733
   },
   {
    "path": "app/study.py",
@@ -349,8 +349,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "84cc4501c6ffb05e496ec112dc2a558abaf77520385c039769cc967cbc55ae92",
-   "size": 43943
+   "sha256": "659e1323b3ee36fbbd1cd13e81991b930953000a06a3eb41001b33243920b675",
+   "size": 44075
   },
   {
    "path": "web/js/features.js",

@@ -35,6 +35,10 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         u=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(u.query)
         if u.path=="/v1/me": return self.send(200,{"display_name":"Loic"})
+        if u.path=="/v1/me/tracks":
+            if st.get("noscope"): return self.send(403,{"error":{"status":403,"message":"Insufficient client scope"}})
+            off=int(q.get("offset",["0"])[0]); total=st.get("liked",120); items=[{"track":{"uri":"spotify:track:liked%d"%i}} for i in range(off,min(off+50,total))]
+            return self.send(200,{"items":items,"next":"x" if off+50<total else None})
         if u.path=="/v1/me/player/devices": return self.send(200,{"devices":st["devices"]})
         if u.path=="/v1/me/player": return self.send(200,{"item":{"name":"Now","uri":"spotify:track:now"}}) if st.get("playing",True) else self.send(204)
         if u.path=="/v1/me/player/queue":
@@ -77,6 +81,17 @@ assert "Queen" in sp.command("play Queen on spotify",path) and st["played"][-1][
 assert "Playing “Radiohead”" in sp.command("play Radiohead on spotify",path) and st["played"][-1][1]["uris"], "unknown artist name falls back to a song"
 assert "Added" in sp.command("queue Yellow on spotify",path) and st["queued"]==["spotify:track:yellow"]
 assert "could not find" in sp.command("play nothing at all on spotify",path)
+# ---- Liked Songs (not a playlist: the songs are fetched and played as a list) ----
+assert sp.public(path,"x")["reconnect"], "connected before the permission existed"
+n=len(st["played"]); r=sp.command("play my Liked songs",path); assert r=="Playing your Liked Songs on Spotify, sir.",r
+assert st["played"][-1][1]["uris"]==["spotify:track:liked%d"%i for i in range(120)], "all pages, in order"
+r=sp.command("shuffle my liked songs",path); assert "on shuffle" in r and sorted(st["played"][-1][1]["uris"])==sorted("spotify:track:liked%d"%i for i in range(120)) and st["played"][-1][1]["uris"]!=["spotify:track:liked%d"%i for i in range(120)]
+st["liked"]=500; sp.command("play my liked songs on spotify",path); assert len(st["played"][-1][1]["uris"])==200; st["liked"]=120
+st["queued"].clear(); r=sp.command("add my liked songs to the queue",path); assert r=="Added 30 of your Liked Songs to your queue, sir." and len(st["queued"])==30,r
+st["noscope"]=True; r=sp.command("play my liked songs",path); assert "Disconnect, then Connect again" in r,r; st["noscope"]=False
+st["liked"]=0; assert sp.command("play my likes",path)=="Your Liked Songs are empty on Spotify, sir."; st["liked"]=120
+assert sp.liked_request("play the song My Liked Songs") is None and sp.liked_request("play my workout playlist") is None
+cfg=sp.load(path); cfg["scope"]=sp.SCOPES; sp.save(path,cfg); assert not sp.public(path,"x")["reconnect"]
 # ---- the queue ----
 def q(text):
     st["queued"].clear(); return sp.command(text,path)
@@ -135,6 +150,8 @@ chat=lambda t: call("POST","/api/chat",{"messages":[{"role":"user","content":t}]
 for t in ("queue Yellow","add Yellow to the queue","add Yellow by Coldplay to my queue","play Yellow next","queue up Yellow please","put Yellow in the queue","ajoute Yellow à la file d'attente"):
     st["queued"].clear(); r=chat(t); assert st["queued"]==["spotify:track:yellow"] and ("Added" in r or "Ajouté" in r or "ajouté" in r or "file" in r), (t, r)
 st["queued"].clear(); r=chat("queue 3 songs by Queen"); assert len(st["queued"])==3, r
+assert chat("play my Liked songs")=="Playing your Liked Songs on Spotify, sir." and st["played"][-1][1]["uris"][0]=="spotify:track:liked0"
+r=chat("mets mes titres likés en aléatoire"); assert len(st["played"][-1][1]["uris"])==120 and st["played"][-1][1]["uris"][0:3]!=["spotify:track:liked0","spotify:track:liked1","spotify:track:liked2"], r
 r=chat("what's in my queue"); assert "Up next" in r, r
 r=chat("qu'est-ce qu'il y a dans la file d'attente"); assert st["queued"] and ("suivre" in r or "Up next" in r or "attente" in r or "ensuite" in r.lower() or "1." in r), r
 s,d=call("POST","/api/spotify/disconnect",{}); assert not d["connected"]

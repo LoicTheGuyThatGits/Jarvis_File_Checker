@@ -22,7 +22,7 @@ import urllib.request
 from pathlib import Path
 
 AUTH_URL, TOKEN_URL, API = "https://accounts.spotify.com/authorize", "https://accounts.spotify.com/api/token", "https://api.spotify.com/v1"
-SCOPES = "user-modify-playback-state user-read-playback-state user-read-currently-playing playlist-read-private"
+SCOPES = "user-modify-playback-state user-read-playback-state user-read-currently-playing playlist-read-private user-library-read"
 PENDING: dict = {}          # state -> (verifier, redirect_uri, made_at)
 
 
@@ -48,7 +48,10 @@ def save(path: Path, data: dict) -> None:
 
 def public(path: Path, redirect_uri: str) -> dict:
     cfg = load(path)
-    return {"client_id": cfg.get("client_id", ""), "connected": bool(cfg.get("refresh_token")), "user": cfg.get("user", ""), "redirect_uri": redirect_uri}
+    granted = cfg.get("scope")
+    return {"client_id": cfg.get("client_id", ""), "connected": bool(cfg.get("refresh_token")), "user": cfg.get("user", ""), "redirect_uri": redirect_uri,
+            # connected before Liked Songs were supported: Spotify has to be asked again for that permission
+            "reconnect": bool(cfg.get("refresh_token")) and (granted is None or "user-library-read" not in str(granted).split())}
 
 
 def begin(path: Path, client_id: str, redirect_uri: str) -> str:
@@ -105,6 +108,8 @@ def store_tokens(path: Path, cfg: dict, out: dict) -> None:
     cfg["access_token"], cfg["expires_at"] = out["access_token"], time.time() + int(out.get("expires_in", 3600)) - 60
     if out.get("refresh_token"):
         cfg["refresh_token"] = out["refresh_token"]
+    if out.get("scope") is not None:
+        cfg["scope"] = str(out["scope"])
     save(path, cfg)
 
 
@@ -144,6 +149,8 @@ class Client:
             except Exception:
                 err = {}
             reason = err.get("reason", "") if isinstance(err, dict) else ""
+            if exc.code == 403 and "scope" in str(err.get("message", "") if isinstance(err, dict) else "").lower():
+                raise SpotifyError("SCOPE")
             if exc.code == 401:
                 raise SpotifyError("Spotify logged me out. Connect it again in Settings.")
             if exc.code == 403 and reason == "PREMIUM_REQUIRED":
@@ -187,6 +194,17 @@ class Client:
                 raise SpotifyError("Spotify has no active player. Press play once in the Spotify app, then ask again.")
             raise
 
+    def play_uris(self, uris: list[str]) -> None:
+        dev = self.device()
+        if not dev:
+            raise SpotifyError("I could not find a Spotify player, sir. Open Spotify on this PC or your phone once, then ask again.")
+        try:
+            self.call("PUT", "/me/player/play", {"device_id": dev}, {"uris": uris[:200]})
+        except SpotifyError as exc:
+            if str(exc) == "NO_DEVICE":
+                raise SpotifyError("Spotify has no active player. Press play once in the Spotify app, then ask again.")
+            raise
+
     def queue(self, uri: str) -> None:
         dev = self.device()
         if not dev:
@@ -213,6 +231,23 @@ class Client:
                     raise SpotifyError("Spotify has no active player. Press play once in the Spotify app, then ask again.")
                 raise
         return started
+
+    def liked(self, limit: int = 200) -> list[str]:
+        uris, offset = [], 0
+        while len(uris) < limit:
+            try:
+                out = self.call("GET", "/me/tracks", {"limit": 50, "offset": offset})
+            except SpotifyError as exc:
+                if str(exc) == "SCOPE":
+                    raise SpotifyError("To play your Liked Songs, Jarvis needs one more permission from Spotify, sir. In Settings > Shortcuts & apps > "
+                                       "Spotify, press Disconnect, then Connect again and allow it.")
+                raise
+            items = out.get("items") or []
+            uris += [((x or {}).get("track") or {}).get("uri") for x in items]
+            if len(items) < 50 or not out.get("next"):
+                break
+            offset += 50
+        return [u for u in uris if u and u.startswith("spotify:track:")][:limit]
 
     def upcoming(self) -> dict:
         return self.call("GET", "/me/player/queue") or {}
@@ -307,6 +342,23 @@ def _queue_item(piece: str):
         return None
     mb = re.fullmatch(r"(.+?)\s+by\s+(.+)", p, re.I)
     return {"kind": "track", "title": (mb.group(1) if mb else p).strip().strip("\"“”'"), "artist": (mb.group(2) if mb else "").strip(), "count": 1, "own": False}
+
+
+LIKED = r"(?:my\s+|the\s+)?(?:liked|saved|favou?rite|loved)\s+(?:songs?|tracks?|music)(?:\s+playlist)?|my\s+(?:likes|favou?rites)|(?:my\s+)?liked\s+songs\s+(?:list|playlist)"
+
+
+def liked_request(text: str):
+    """"play my Liked Songs" / "shuffle my liked songs" / "queue my liked songs": ("play"|"queue", shuffle) or None.
+    Liked Songs is not a real playlist in Spotify, so a playlist search would only find some other playlist with that name."""
+    t, _ = _clean(text)
+    m = re.fullmatch(rf"(play|put\s+on|start|listen\s+to|shuffle|queue|add)\s+({LIKED})(?:\s+(?:on\s+)?shuffle|\s+shuffled|\s+in\s+random\s+order)?(?:\s+(?:to|in)\s+(?:the\s+|my\s+)?queue)?", t, re.I)
+    if not m:
+        return None
+    verb = m.group(1).lower()
+    if verb == "add" and not re.search(r"queue$", t, re.I):
+        return None
+    shuffle = verb == "shuffle" or bool(re.search(r"shuffle|random", t[m.end(2):], re.I))
+    return ("queue" if verb in ("queue", "add") else "play"), shuffle
 
 
 def queue_request(text: str):
@@ -491,6 +543,25 @@ def parse(text: str):
 
 
 def command(text: str, path: Path, launch=None) -> str | None:
+    liked = liked_request(text)
+    if liked:
+        if not load(path).get("refresh_token"):
+            return "Spotify is not connected yet, sir. Settings > Shortcuts > Spotify explains the three steps."
+        action, shuffle = liked
+        try:
+            client = Client(path, launch)
+            uris = client.liked(200 if action == "play" else 30)
+            if not uris:
+                return "Your Liked Songs are empty on Spotify, sir."
+            if shuffle:
+                random.shuffle(uris)
+            if action == "queue":
+                started = client.queue_many(uris)
+                return f"{'Nothing was playing, so I started' if started else 'Added'} {len(uris)} of your Liked Songs{' on Spotify' if started else ' to your queue'}, sir."
+            client.play_uris(uris)
+            return f"Playing your Liked Songs{' on shuffle' if shuffle else ''} on Spotify, sir."
+        except SpotifyError as exc:
+            return str(exc)
     req = queue_request(text)
     if req:
         if not load(path).get("refresh_token"):
