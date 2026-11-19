@@ -27,7 +27,7 @@ with sync_playwright() as pw:
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload()
     pg.wait_for_function(f"document.querySelector('#install-mark').textContent==={json.dumps(str(tmp))}",timeout=8000)
-    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-look")
+    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-system")
     pg.wait_for_function(f"document.querySelector('#install-folder').textContent==={json.dumps(str(tmp))}",timeout=8000)
     assert pg.inner_text("#install-data")==str(tmp/"data") and sys.executable in pg.inner_text("#install-python")
     pg.click("#install-open-data"); pg.wait_for_function("document.querySelector('#install-status').textContent.includes('Opened')",timeout=5000); assert opened[-1]==tmp/"data"

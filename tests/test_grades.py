@@ -100,7 +100,7 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(); pg = b.new_context(viewport={"width": 1280, "height": 900}).new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("dialog", lambda dlg: dlg.accept())
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.evaluate("window.JarvisUI.openPane('plan')"); pg.wait_for_selector("#gr-list .gr-head")
+    pg.evaluate("window.JarvisUI.openPane('school')"); pg.wait_for_selector("#gr-list .gr-head")
     assert pg.input_value("#gr-preset") == "swiss" and pg.locator("#gr-list li").count() == 2
     assert pg.text_content("#gr-list li:nth-child(2) .gr-avg") == "4.5" and "Overall average" in pg.text_content("#gr-overall")
     pg.fill("#gr-subject", "Biology"); pg.fill("#gr-value", "3.5"); pg.click("#gr-add")

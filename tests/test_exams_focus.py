@@ -110,7 +110,7 @@ with sync_playwright() as pw:
     b=pw.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(400)
-    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-plan")
+    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-school")
     pg.wait_for_function("document.querySelector('#exam-list').textContent.includes('Biology exam') && document.querySelector('#focus-status').textContent.includes('Today: 30 min')",timeout=8000)
     pg.fill("#exam-subject","Spanish"); pg.fill("#exam-date",(datetime.now()+timedelta(days=8)).strftime("%Y-%m-%d")); pg.click("#exam-add")
     pg.wait_for_function("document.querySelector('#exam-list').textContent.includes('Spanish exam: in 8 days') && document.querySelector('#exam-status').textContent.includes('Revision planned')",timeout=8000)

@@ -114,7 +114,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.click("#open-settings"); pg.click("#tab-timers"); assert pg.is_disabled("#files-repair")
+    pg.click("#open-settings"); pg.click("#tab-system"); assert pg.is_disabled("#files-repair")
     pg.click("#files-check"); pg.wait_for_function("document.querySelector('#files-report').innerText.includes('app/notes.py')",timeout=20000); assert pg.is_enabled("#files-repair")
     pg.click("#files-repair"); pg.wait_for_function("document.querySelector('#files-report').innerText.includes('Restored 1 file')",timeout=20000); assert gone.exists()
     css=inst2/"web"/"js"/"mail.js"; good=css.read_bytes(); css.write_text("// my edit\n")

@@ -135,39 +135,32 @@
     </header>
     <div class="settings-body">
     <div class="settings-tabs" role="tablist" aria-label="Settings sections">
-      <button type="button" role="tab" id="tab-look" class="settings-tab" data-pane="look" aria-selected="true" aria-controls="pane-look">Look</button>
-      <button type="button" role="tab" id="tab-voice" class="settings-tab" data-pane="voice" aria-selected="false" aria-controls="pane-voice" tabindex="-1">Voice</button>
+      <div class="settings-tabgroup" aria-hidden="true">General</div>
+      <button type="button" role="tab" id="tab-look" class="settings-tab" data-pane="look" aria-selected="true" aria-controls="pane-look">Appearance</button>
+      <button type="button" role="tab" id="tab-voice" class="settings-tab" data-pane="voice" aria-selected="false" aria-controls="pane-voice" tabindex="-1">Voice &amp; language</button>
+      <button type="button" role="tab" id="tab-system" class="settings-tab" data-pane="system" aria-selected="false" aria-controls="pane-system" tabindex="-1">Jarvis &amp; updates</button>
+      <div class="settings-tabgroup" aria-hidden="true">AI</div>
       <button type="button" role="tab" id="tab-ai" class="settings-tab" data-pane="ai" aria-selected="false" aria-controls="pane-ai" tabindex="-1">AI model</button>
-      <button type="button" role="tab" id="tab-chats" class="settings-tab" data-pane="chats" aria-selected="false" aria-controls="pane-chats" tabindex="-1">Chats</button>
-      <button type="button" role="tab" id="tab-memory" class="settings-tab" data-pane="memory" aria-selected="false" aria-controls="pane-memory" tabindex="-1">Memory</button>
-      <button type="button" role="tab" id="tab-timers" class="settings-tab" data-pane="timers" aria-selected="false" aria-controls="pane-timers" tabindex="-1">Daily</button>
-      <button type="button" role="tab" id="tab-mail" class="settings-tab" data-pane="mail" aria-selected="false" aria-controls="pane-mail" tabindex="-1">Mail</button>
-      <button type="button" role="tab" id="tab-keys" class="settings-tab" data-pane="keys" aria-selected="false" aria-controls="pane-keys" tabindex="-1">Shortcuts</button>
+      <button type="button" role="tab" id="tab-tools" class="settings-tab" data-pane="tools" aria-selected="false" aria-controls="pane-tools" tabindex="-1">Smart features</button>
+      <button type="button" role="tab" id="tab-control" class="settings-tab" data-pane="control" aria-selected="false" aria-controls="pane-control" tabindex="-1">Computer control</button>
+      <div class="settings-tabgroup" aria-hidden="true">Planning & school</div>
       <button type="button" role="tab" id="tab-plan" class="settings-tab" data-pane="plan" aria-selected="false" aria-controls="pane-plan" tabindex="-1">Planner</button>
+      <button type="button" role="tab" id="tab-school" class="settings-tab" data-pane="school" aria-selected="false" aria-controls="pane-school" tabindex="-1">School</button>
+      <button type="button" role="tab" id="tab-timers" class="settings-tab" data-pane="timers" aria-selected="false" aria-controls="pane-timers" tabindex="-1">Routines &amp; timers</button>
+      <div class="settings-tabgroup" aria-hidden="true">Connections</div>
+      <button type="button" role="tab" id="tab-devices" class="settings-tab" data-pane="devices" aria-selected="false" aria-controls="pane-devices" tabindex="-1">Phone &amp; Telegram</button>
+      <button type="button" role="tab" id="tab-mail" class="settings-tab" data-pane="mail" aria-selected="false" aria-controls="pane-mail" tabindex="-1">Mail</button>
+      <button type="button" role="tab" id="tab-keys" class="settings-tab" data-pane="keys" aria-selected="false" aria-controls="pane-keys" tabindex="-1">Shortcuts &amp; apps</button>
+      <div class="settings-tabgroup" aria-hidden="true">Your data & PC</div>
+      <button type="button" role="tab" id="tab-chats" class="settings-tab" data-pane="chats" aria-selected="false" aria-controls="pane-chats" tabindex="-1">Chats</button>
+      <button type="button" role="tab" id="tab-memory" class="settings-tab" data-pane="memory" aria-selected="false" aria-controls="pane-memory" tabindex="-1">Memory &amp; documents</button>
       <button type="button" role="tab" id="tab-notes" class="settings-tab" data-pane="notes" aria-selected="false" aria-controls="pane-notes" tabindex="-1">Notes</button>
+      <button type="button" role="tab" id="tab-pc" class="settings-tab" data-pane="pc" aria-selected="false" aria-controls="pane-pc" tabindex="-1">PC &amp; network</button>
     </div>
     <div class="settings-content" id="settings-content">
 
     <div class="settings-pane" id="pane-look" role="tabpanel" aria-labelledby="tab-look">
-      <div class="settings-section">
-        <h2 class="settings-heading">This Jarvis</h2>
-        <p class="settings-note">The folder this copy of Jarvis is running from. Useful when there is more than one copy on a computer, or after moving to another PC.</p>
-        <dl class="install-info">
-          <dt>Folder</dt><dd><code id="install-folder">…</code></dd>
-          <dt>Your data</dt><dd><code id="install-data">…</code></dd>
-          <dt>Python</dt><dd><code id="install-python">…</code></dd>
-          <dt>Computer</dt><dd id="install-pc">…</dd>
-          <dt>Program files changed</dt><dd id="install-changed">…</dd>
-        </dl>
-        <div class="inline-form"><button type="button" id="install-open">Open the folder</button><button type="button" id="install-open-data">Open the data folder</button><button type="button" id="install-copy">Copy the path</button></div>
-        <p class="settings-note" id="install-status" role="status"></p>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Self-check</h2>
-        <p class="settings-note">Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.</p>
-        <div class="inline-form"><button type="button" id="selftest-run">Run the self-check</button><button type="button" id="selftest-copy" disabled>Copy the report</button></div>
-        <pre class="settings-note" id="selftest-report" role="status" style="white-space:pre-wrap"></pre>
-      </div>
+      <div class="pane-intro"><h2 class="pane-title">Appearance</h2><p>How Jarvis looks: its style, the system panel, animations and the start-up sequence.</p></div>
       <div class="settings-section">
         <h2 class="settings-heading">Interface style</h2>
         <div class="theme-grid" id="theme-grid" role="radiogroup" aria-label="Interface style"></div>
@@ -205,8 +198,8 @@
         <p class="settings-note">Saved in this browser, so your choices stay after you stop and restart the server. The startup sequence is purely cosmetic.</p>
       </div>
     </div>
-
     <div class="settings-pane hidden" id="pane-voice" role="tabpanel" aria-labelledby="tab-voice">
+      <div class="pane-intro"><h2 class="pane-title">Voice &amp; language</h2><p>The language Jarvis speaks, the wake word and spoken replies.</p></div>
       <div class="settings-section">
         <h2 class="settings-heading">Language</h2>
         <div class="settings-field"><label for="lang-select">Jarvis speaks and listens in</label><select id="lang-select"></select></div>
@@ -246,8 +239,49 @@
         <p class="settings-note" id="voice-note">Voices come from your browser and Windows. Code is never read aloud, and the reactor pulses while Jarvis speaks.</p>
       </div>
     </div>
-
+    <div class="settings-pane hidden" id="pane-system" role="tabpanel" aria-labelledby="tab-system">
+      <div class="pane-intro"><h2 class="pane-title">Jarvis &amp; updates</h2><p>Where this Jarvis runs from, whether everything works, updates and backups.</p></div>
+      <div class="settings-section">
+        <h2 class="settings-heading">This Jarvis</h2>
+        <p class="settings-note">The folder this copy of Jarvis is running from. Useful when there is more than one copy on a computer, or after moving to another PC.</p>
+        <dl class="install-info">
+          <dt>Folder</dt><dd><code id="install-folder">…</code></dd>
+          <dt>Your data</dt><dd><code id="install-data">…</code></dd>
+          <dt>Python</dt><dd><code id="install-python">…</code></dd>
+          <dt>Computer</dt><dd id="install-pc">…</dd>
+          <dt>Program files changed</dt><dd id="install-changed">…</dd>
+        </dl>
+        <div class="inline-form"><button type="button" id="install-open">Open the folder</button><button type="button" id="install-open-data">Open the data folder</button><button type="button" id="install-copy">Copy the path</button></div>
+        <p class="settings-note" id="install-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Self-check</h2>
+        <p class="settings-note">Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.</p>
+        <div class="inline-form"><button type="button" id="selftest-run">Run the self-check</button><button type="button" id="selftest-copy" disabled>Copy the report</button></div>
+        <pre class="settings-note" id="selftest-report" role="status" style="white-space:pre-wrap"></pre>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">File check</h2>
+        <p class="settings-note">Checks that every file Jarvis needs is in this folder, using the list in the GitHub repository (github.com/LoicTheGuyThatGits/Jarvis_File_Checker). Missing files can be downloaded again; each one is verified against its fingerprint first. You can also ask “check my files”. Your data, settings and passwords are never touched.</p>
+        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button><button type="button" id="files-update">Check for updates</button><button type="button" id="files-install" disabled>Install updates</button></div>
+        <label class="settings-check"><input type="checkbox" id="files-auto" checked> Tell me when the repository has an update</label>
+        <label class="settings-check"><input type="checkbox" id="files-changed"> Also replace files that differ from the repository (the old copy is kept in data/file-backups)</label>
+        <pre class="settings-note" id="files-report" style="white-space:pre-wrap" role="status"></pre>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Backup</h2>
+        <p class="settings-note">Saves your settings, memory, notes, planner, study history and sign-in tokens (the <code>data</code> folder) into one encrypted file that only your passphrase opens. Put it on a USB stick or OneDrive. On a new computer, install Jarvis, copy the file into the folder below and restore it here. The passphrase is never stored, so if you forget it the backup cannot be opened.</p>
+        <p class="settings-note" id="backup-last" role="status"></p>
+        <div class="settings-field"><label for="backup-folder">Backup folder</label><input type="text" id="backup-folder" maxlength="300" spellcheck="false"></div>
+        <div class="settings-field"><label for="backup-pass">Passphrase</label><input type="password" id="backup-pass" autocomplete="new-password" maxlength="200"></div>
+        <div class="inline-form"><button type="button" id="backup-run">Back up now</button></div>
+        <div class="settings-field"><label for="backup-file">Restore from</label><select id="backup-file" aria-label="Backup to restore"></select></div>
+        <div class="inline-form"><button type="button" id="backup-restore" disabled>Restore this backup</button></div>
+        <p class="settings-note" id="backup-status" role="status"></p>
+      </div>
+    </div>
     <div class="settings-pane hidden" id="pane-ai" role="tabpanel" aria-labelledby="tab-ai">
+      <div class="pane-intro"><h2 class="pane-title">AI model</h2><p>Which model answers you, your own Jarvis model, comparing models and the training log.</p></div>
       <div class="settings-section">
         <h2 class="settings-heading">AI model</h2>
         <div class="seg" role="radiogroup" aria-label="Where Jarvis thinks">
@@ -270,25 +304,6 @@
         <p class="settings-note" id="jm-status" role="status"></p>
       </div>
       <div class="settings-section">
-        <h2 class="settings-heading">Connected tools (MCP)</h2>
-        <p class="settings-note">Let Jarvis use tools from other programs that speak MCP (the Model Context Protocol): GitHub, Notion, a folder of files, web fetching, maps and many more. A server is either a command Jarvis starts on this PC (many need Node.js for <code>npx</code> or uv for <code>uvx</code>), or a web address with a token in its headers (servers that need a browser sign-in are not supported yet). When your message names a server (“on GitHub, list my open issues”), Jarvis can pick its tools, even with Smart commands off. Every call shows an approval card with the details unless you tick “without asking” for that tool. What a tool returns is treated as data, never as instructions. Tokens are kept in <code>data\mcp.json</code> on this PC only.</p>
-        <ul class="settings-list mcp-list" id="mcp-list"></ul>
-        <details class="mcp-add" id="mcp-add"><summary id="mcp-add-title">Add a server</summary>
-          <div class="inline-form mcp-form">
-            <input type="text" id="mcp-name" placeholder="Name, e.g. GitHub" maxlength="24" aria-label="Server name">
-            <select id="mcp-type" aria-label="Kind of server"><option value="command">A command on this PC</option><option value="http">A web address</option></select>
-            <label class="settings-check"><input type="checkbox" id="mcp-enabled" checked> on</label>
-          </div>
-          <input type="text" id="mcp-command" class="mcp-wide" placeholder="npx -y @modelcontextprotocol/server-filesystem C:\Users\Me\Documents" aria-label="Command that starts the server">
-          <input type="text" id="mcp-url" class="mcp-wide hidden" placeholder="https://api.githubcopilot.com/mcp/" aria-label="Web address of the server">
-          <textarea id="mcp-headers" class="mcp-wide hidden" rows="2" placeholder="Headers, one per line, e.g. Authorization: Bearer your-token" aria-label="Headers"></textarea>
-          <textarea id="mcp-env" class="mcp-wide" rows="2" placeholder="Settings for the command, one per line, e.g. GITHUB_TOKEN=your-token" aria-label="Environment variables"></textarea>
-          <input type="text" id="mcp-words" class="mcp-wide" placeholder="Other words that mean this server (optional, separated by commas), e.g. repo, pull request" aria-label="Trigger words">
-          <div class="inline-form"><button type="button" id="mcp-save">Save and connect</button><button type="button" id="mcp-cancel" class="settings-action hidden">Cancel</button></div>
-        </details>
-        <p class="settings-note" id="mcp-status" role="status"></p>
-      </div>
-      <div class="settings-section">
         <h2 class="settings-heading">Compare models</h2>
         <p class="settings-note">Ask several local models the same questions, with the instructions Jarvis gives them in chat, to see which is faster and which answers better before you switch, or after training one. Each answer is checked automatically (Jarvis's manner, the right fact, French answered in French, PC requests turned into the right action, code in a code block), and you can pick the best answer to each question yourself, without seeing which model wrote it. “My own questions” takes your last ten messages from the training log (it stays on this PC). Smart commands adds 40 tool-picking examples per model. A comparison takes a few minutes per model; results are kept in <code>data\bench</code>. Also: <code>compare-models.bat</code>.</p>
         <div class="bench-models" id="bench-models" role="group" aria-label="Models to compare"></div>
@@ -299,31 +314,6 @@
         </div>
         <p class="settings-note" id="bench-status" role="status"></p>
         <div id="bench-results"></div>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Computer control</h2>
-        <p class="settings-note">How Autopilot sees and works on this PC. Besides the screenshot, Jarvis reads the open windows, the controls Windows reports and all the text on the screen (Windows' own OCR), so it can click things by name and number instead of guessing positions. A model that cannot see pictures can still work from that text alone. Stop it at any time with the Stop button or Ctrl+Shift+F10.</p>
-        <label class="settings-field">How Autopilot looks at the screen
-          <select id="ctl-sight"><option value="auto">Automatic (picture when the model can see)</option><option value="picture">Screenshot and text</option><option value="text">Text only (for models that cannot see)</option></select>
-        </label>
-        <p class="settings-note" id="ctl-sight-now"></p>
-        <label class="settings-check"><input type="checkbox" id="ctl-ocr"> Read all the text on the screen (adds a fraction of a second a step)</label>
-        <label class="settings-check"><input type="checkbox" id="ctl-overlay"> Show on the screen what Autopilot is about to do: an outline around what it will click, and a bar with a Stop button</label>
-        <div class="inline-form"><button type="button" id="ctl-overlay-test">Try the overlay</button></div>
-        <label class="settings-field">Most actions in one Autopilot run
-          <select id="ctl-steps"><option value="20">20</option><option value="40">40</option><option value="80">80</option><option value="150">150</option></select>
-        </label>
-        <h3 class="settings-subheading">Project folders</h3>
-        <p class="settings-note">Folders where Autopilot may read and write files directly (your code, your website, a Unity project's scripts), instead of typing into an editor. Each file it changes is backed up first in data\file-backups\projects. It never writes programs or scripts Windows runs by double-click (.exe, .bat, .ps1…) and cannot reach anything outside these folders.</p>
-        <ul class="settings-list" id="ctl-folders"></ul>
-        <div class="inline-form"><input type="text" id="ctl-folder" placeholder="C:\Users\you\Projects\my-site" aria-label="Project folder"><button type="button" id="ctl-folder-add">Add</button></div>
-        <p class="settings-note" id="ctl-status" role="status"></p>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Smart commands (experimental)</h2>
-        <p class="settings-note">When you ask for something in words Jarvis's built-in commands do not recognise (“I've got a physics test on the 20th”), let the AI model work out which tool you mean: calendar, to-do list, notes, reminders, timers, quizzes, recap, weather, PC health, music, exams, the focus timer, a search of your own things, the Wi-Fi check or a web search. It never deletes anything, never touches mail or files, and “undo that” takes back the last change. It adds one short question to the model, so replies to such messages are a little slower. Off until you switch it on.</p>
-        <label class="settings-check"><input type="checkbox" id="router-on"> Let the AI model pick a tool when no command matches</label>
-        <p class="settings-note" id="router-note" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Training log</h2>
@@ -337,78 +327,13 @@
         <p class="settings-note">Use 👍 and 👎 under an answer to mark the ones worth learning from. Run <code>export-training.bat</code> to turn them into a fine-tuning file.</p>
       </div>
     </div>
-
-    <div class="settings-pane hidden" id="pane-chats" role="tabpanel" aria-labelledby="tab-chats">
+    <div class="settings-pane hidden" id="pane-tools" role="tabpanel" aria-labelledby="tab-tools">
+      <div class="pane-intro"><h2 class="pane-title">Smart features</h2><p>Jarvis picking its own tools, speaking first when something matters, and tools from other programs.</p></div>
       <div class="settings-section">
-        <h2 class="settings-heading">Your chats</h2>
-        <button type="button" id="export-chat" class="settings-action">⇩ Export this chat (Markdown)</button>
-        <button type="button" id="export-all" class="settings-action">⇩ Export all chats (JSON)</button>
-        <button type="button" id="import-chats" class="settings-action">⇧ Import chats (JSON)</button>
-        <input type="file" id="import-file" class="hidden" accept="application/json,.json">
-        <p class="settings-note" id="chats-note">Chats live in this browser only. Export them to keep a backup or move them to another browser. Importing adds chats and never replaces existing ones.</p>
-      </div>
-    </div>
-
-    <div class="settings-pane hidden" id="pane-memory" role="tabpanel" aria-labelledby="tab-memory">
-      <div class="settings-section">
-        <h2 class="settings-heading">Long-term memory</h2>
-        <div class="inline-form"><input type="text" id="memory-input" maxlength="300" placeholder="Something for Jarvis to remember…" aria-label="New memory"><button type="button" id="memory-add" class="settings-action">Add</button></div>
-        <ul id="memory-list" class="tool-list" aria-label="Remembered items"></ul>
-        <button type="button" id="memory-clear" class="settings-action danger">Clear all memories</button>
-        <p class="settings-note" id="memory-note">You can also say “remember that my printer is the HP in the office”, “what do you remember?” or “forget the printer”. Memories are kept in memory.json next to server.py and sent with every request, so keep them short.</p>
-      </div>
-      <div class="settings-section" id="docs-section">
-        <h2 class="settings-heading">Documents</h2>
-        <ul id="docs-list" class="tool-list" aria-label="Saved documents"></ul>
-        <button type="button" id="docs-add" class="settings-action">+ Add documents</button>
-        <label class="settings-check"><input type="checkbox" id="docs-on"> Answer my questions from these documents</label>
-        <p class="settings-note" id="docs-note">Files are read on this PC. Only the few passages that match your question go to the local Ollama model; nothing is sent to a cloud provider. PDF, Word, Excel, PowerPoint, CSV, text, Markdown and code files work. You can also drop files onto the chat. To change one, just ask in the chat (“fix the spelling in essay.docx”, “in budget.xlsx replace 2025 with 2026”): you get a new file and the original stays as it is. For that the whole document goes to your chosen AI model, so with a cloud model it is sent to that provider.</p>
-      </div>
-    </div>
-
-    <div class="settings-pane hidden" id="pane-notes" role="tabpanel" aria-labelledby="tab-notes">
-      <div class="settings-section">
-        <h2 class="settings-heading">Notes</h2>
-        <p class="settings-note">Say “note that the exam is in room 204” and later “what did I note about the exam?”. Notes stay on this PC. For things Jarvis should always know about you, say “remember that …” instead (Memory).</p>
-        <div class="inline-form"><input type="text" id="notes-text" maxlength="2000" placeholder="Write a note…" aria-label="New note"><button type="button" id="notes-add">Add</button></div>
-        <div class="inline-form"><input type="search" id="notes-find" placeholder="Find in my notes…" aria-label="Find in my notes"></div>
-        <ul id="notes-list" class="tool-list"></ul>
-        <p class="settings-note" id="notes-status" role="status"></p>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Study mode</h2>
-        <p class="settings-note">Say “quiz me on chapter 3” and Jarvis asks questions from your saved documents (Settings > Chats) and your notes, one at a time, and marks your answers. Also: “flashcards on the heart”, “quiz me with 10 questions”, “quiz me on what I got wrong”, “plan revision for the chemistry exam on 20 November” (adds the exam and three revision tasks to your planner) and “my study stats”. Say “stop quiz” to end. Everything stays on this PC.</p>
-        <p class="settings-note" id="study-stats" role="status"></p>
-        <div class="inline-form"><button type="button" id="study-clear">Clear missed questions</button></div>
-        <h3 class="settings-subheading">Flashcard deck</h3>
-        <p class="settings-note">Spaced repetition: the flashcards you see and the quiz questions you miss go into your deck. A card you know comes back after 3, 7, 14, 30 and then 60 days; one you miss comes back the next day. Say “review my cards” (the morning briefing tells you how many are due), “how many cards are due”, or “add a flashcard: capital of Peru | Lima”. During a review, “delete this card” drops one.</p>
-        <p class="settings-note" id="deck-stats" role="status"></p>
-        <div class="inline-form deck-form"><input type="text" id="deck-q" placeholder="Question" maxlength="400" aria-label="Question"><input type="text" id="deck-a" placeholder="Answer" maxlength="500" aria-label="Answer"><button type="button" id="deck-add">Add card</button><button type="button" id="deck-review" class="settings-action">Review now</button></div>
-        <details class="deck-cards"><summary id="deck-summary">Cards</summary><ul class="settings-list" id="deck-list"></ul></details>
-      </div>
-    </div>
-
-    <div class="settings-pane hidden" id="pane-plan" role="tabpanel" aria-labelledby="tab-plan">
-      <div class="settings-section">
-        <h2 class="settings-heading">Import a calendar</h2>
-        <p class="settings-note">Bring in your school timetable or any calendar. Paste an iCal link (it ends in .ics, or starts with webcal://) or choose an .ics file. Lessons then appear in your calendar, the morning briefing and “what's on my calendar tomorrow”. Jarvis only reads it and never changes the original. Links are read again every few hours.</p>
-        <ul id="cal-sources" class="tool-list"></ul>
-        <div class="inline-form"><input type="text" id="cal-url" placeholder="Calendar link (https:// or webcal://)…" aria-label="Calendar link"><input type="text" id="cal-name" maxlength="60" placeholder="Name (optional)" aria-label="Calendar name"><button type="button" id="cal-add">Import</button></div>
-        <div class="inline-form"><input type="file" id="cal-file" accept=".ics,text/calendar" aria-label="Calendar file"><button type="button" id="cal-sync">Refresh now</button></div>
-        <label class="settings-check"><input type="checkbox" id="cal-alerts"> Also alert me before each imported event (lessons can be many)</label>
-        <p class="settings-note" id="cal-status" role="status"></p>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">To-do list</h2>
-        <ul id="plan-tasks" class="tool-list"></ul>
-        <div class="inline-form"><input type="text" id="plan-task-text" maxlength="200" placeholder="Add a task…" aria-label="New task"><input type="date" id="plan-task-due" aria-label="Due date"><button type="button" id="plan-task-add">Add</button></div>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Calendar</h2>
-        <ul id="plan-events" class="tool-list"></ul>
-        <div class="inline-form"><input type="text" id="plan-event-title" maxlength="200" placeholder="Event title…" aria-label="Event title"><input type="datetime-local" id="plan-event-start" aria-label="Event start"><button type="button" id="plan-event-add">Add</button></div>
-        <p class="settings-note" id="plan-status"></p>
-        <p class="settings-note">You can also just say it: “add buy milk to my to-do list”, “schedule a dentist appointment on Friday at 3pm”, “what's on my calendar tomorrow”, “mark buy milk as done”. The morning briefing includes today's events and tasks.</p>
+        <h2 class="settings-heading">Smart commands (experimental)</h2>
+        <p class="settings-note">When you ask for something in words Jarvis's built-in commands do not recognise (“I've got a physics test on the 20th”), let the AI model work out which tool you mean: calendar, to-do list, notes, reminders, timers, quizzes, recap, weather, PC health, music, exams, the focus timer, a search of your own things, the Wi-Fi check or a web search. It never deletes anything, never touches mail or files, and “undo that” takes back the last change. It adds one short question to the model, so replies to such messages are a little slower. Off until you switch it on.</p>
+        <label class="settings-check"><input type="checkbox" id="router-on"> Let the AI model pick a tool when no command matches</label>
+        <p class="settings-note" id="router-note" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Proactive Jarvis</h2>
@@ -430,6 +355,93 @@
         <p class="settings-note" id="pro-status"></p>
         <p class="settings-note">An event about to start and a nearly empty battery always get through the hourly limit and “not now”; during quiet hours only events do. Everything else is held and given together afterwards. You can also say “not now”, “do not disturb for two hours” or “you can interrupt me again”. With this switched off, events and tasks still pop up as reminders.</p>
       </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Connected tools (MCP)</h2>
+        <p class="settings-note">Let Jarvis use tools from other programs that speak MCP (the Model Context Protocol): GitHub, Notion, a folder of files, web fetching, maps and many more. A server is either a command Jarvis starts on this PC (many need Node.js for <code>npx</code> or uv for <code>uvx</code>), or a web address with a token in its headers (servers that need a browser sign-in are not supported yet). When your message names a server (“on GitHub, list my open issues”), Jarvis can pick its tools, even with Smart commands off. Every call shows an approval card with the details unless you tick “without asking” for that tool. What a tool returns is treated as data, never as instructions. Tokens are kept in <code>data\mcp.json</code> on this PC only.</p>
+        <ul class="settings-list mcp-list" id="mcp-list"></ul>
+        <details class="mcp-add" id="mcp-add"><summary id="mcp-add-title">Add a server</summary>
+          <div class="inline-form mcp-form">
+            <input type="text" id="mcp-name" placeholder="Name, e.g. GitHub" maxlength="24" aria-label="Server name">
+            <select id="mcp-type" aria-label="Kind of server"><option value="command">A command on this PC</option><option value="http">A web address</option></select>
+            <label class="settings-check"><input type="checkbox" id="mcp-enabled" checked> on</label>
+          </div>
+          <input type="text" id="mcp-command" class="mcp-wide" placeholder="npx -y @modelcontextprotocol/server-filesystem C:\Users\Me\Documents" aria-label="Command that starts the server">
+          <input type="text" id="mcp-url" class="mcp-wide hidden" placeholder="https://api.githubcopilot.com/mcp/" aria-label="Web address of the server">
+          <textarea id="mcp-headers" class="mcp-wide hidden" rows="2" placeholder="Headers, one per line, e.g. Authorization: Bearer your-token" aria-label="Headers"></textarea>
+          <textarea id="mcp-env" class="mcp-wide" rows="2" placeholder="Settings for the command, one per line, e.g. GITHUB_TOKEN=your-token" aria-label="Environment variables"></textarea>
+          <input type="text" id="mcp-words" class="mcp-wide" placeholder="Other words that mean this server (optional, separated by commas), e.g. repo, pull request" aria-label="Trigger words">
+          <div class="inline-form"><button type="button" id="mcp-save">Save and connect</button><button type="button" id="mcp-cancel" class="settings-action hidden">Cancel</button></div>
+        </details>
+        <p class="settings-note" id="mcp-status" role="status"></p>
+      </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-control" role="tabpanel" aria-labelledby="tab-control">
+      <div class="pane-intro"><h2 class="pane-title">Computer control</h2><p>Autopilot: how Jarvis sees your screen and works on it.</p></div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Computer control</h2>
+        <p class="settings-note">How Autopilot sees and works on this PC. Besides the screenshot, Jarvis reads the open windows, the controls Windows reports and all the text on the screen (Windows' own OCR), so it can click things by name and number instead of guessing positions. A model that cannot see pictures can still work from that text alone. Stop it at any time with the Stop button or Ctrl+Shift+F10.</p>
+        <label class="settings-field">How Autopilot looks at the screen
+          <select id="ctl-sight"><option value="auto">Automatic (picture when the model can see)</option><option value="picture">Screenshot and text</option><option value="text">Text only (for models that cannot see)</option></select>
+        </label>
+        <p class="settings-note" id="ctl-sight-now"></p>
+        <label class="settings-check"><input type="checkbox" id="ctl-ocr"> Read all the text on the screen (adds a fraction of a second a step)</label>
+        <label class="settings-check"><input type="checkbox" id="ctl-overlay"> Show on the screen what Autopilot is about to do: an outline around what it will click, and a bar with a Stop button</label>
+        <div class="inline-form"><button type="button" id="ctl-overlay-test">Try the overlay</button></div>
+        <label class="settings-field">Most actions in one Autopilot run
+          <select id="ctl-steps"><option value="20">20</option><option value="40">40</option><option value="80">80</option><option value="150">150</option></select>
+        </label>
+        <h3 class="settings-subheading">Project folders</h3>
+        <p class="settings-note">Folders where Autopilot may read and write files directly (your code, your website, a Unity project's scripts), instead of typing into an editor. Each file it changes is backed up first in data\file-backups\projects. It never writes programs or scripts Windows runs by double-click (.exe, .bat, .ps1…) and cannot reach anything outside these folders.</p>
+        <ul class="settings-list" id="ctl-folders"></ul>
+        <div class="inline-form"><input type="text" id="ctl-folder" placeholder="C:\Users\you\Projects\my-site" aria-label="Project folder"><button type="button" id="ctl-folder-add">Add</button></div>
+        <p class="settings-note" id="ctl-status" role="status"></p>
+      </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-plan" role="tabpanel" aria-labelledby="tab-plan">
+      <div class="pane-intro"><h2 class="pane-title">Planner</h2><p>Your to-do list, calendar, countdowns and the evening recap.</p></div>
+      <div class="settings-section">
+        <h2 class="settings-heading">To-do list</h2>
+        <ul id="plan-tasks" class="tool-list"></ul>
+        <div class="inline-form"><input type="text" id="plan-task-text" maxlength="200" placeholder="Add a task…" aria-label="New task"><input type="date" id="plan-task-due" aria-label="Due date"><button type="button" id="plan-task-add">Add</button></div>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Calendar</h2>
+        <ul id="plan-events" class="tool-list"></ul>
+        <div class="inline-form"><input type="text" id="plan-event-title" maxlength="200" placeholder="Event title…" aria-label="Event title"><input type="datetime-local" id="plan-event-start" aria-label="Event start"><button type="button" id="plan-event-add">Add</button></div>
+        <p class="settings-note" id="plan-status"></p>
+        <p class="settings-note">You can also just say it: “add buy milk to my to-do list”, “schedule a dentist appointment on Friday at 3pm”, “what's on my calendar tomorrow”, “mark buy milk as done”. The morning briefing includes today's events and tasks.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Import a calendar</h2>
+        <p class="settings-note">Bring in your school timetable or any calendar. Paste an iCal link (it ends in .ics, or starts with webcal://) or choose an .ics file. Lessons then appear in your calendar, the morning briefing and “what's on my calendar tomorrow”. Jarvis only reads it and never changes the original. Links are read again every few hours.</p>
+        <ul id="cal-sources" class="tool-list"></ul>
+        <div class="inline-form"><input type="text" id="cal-url" placeholder="Calendar link (https:// or webcal://)…" aria-label="Calendar link"><input type="text" id="cal-name" maxlength="60" placeholder="Name (optional)" aria-label="Calendar name"><button type="button" id="cal-add">Import</button></div>
+        <div class="inline-form"><input type="file" id="cal-file" accept=".ics,text/calendar" aria-label="Calendar file"><button type="button" id="cal-sync">Refresh now</button></div>
+        <label class="settings-check"><input type="checkbox" id="cal-alerts"> Also alert me before each imported event (lessons can be many)</label>
+        <p class="settings-note" id="cal-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Countdowns</h2>
+        <p class="settings-note">Days left until the things you are waiting for: a holiday (give its first and last day), a birthday, a trip. Ask “how many days until the Christmas vacation?”; that also works for Christmas, New Year, Easter, Halloween, the weekend, anything in your calendar and plain dates (“how many days until 25 December”). The nearest one is shown at the bottom of the chat list, and the morning briefing mentions any that start within a week. In chat: “add a countdown for the Christmas vacation from 19 December to 4 January”, “my countdowns”, “remove the ski trip countdown”.</p>
+        <div class="inline-form countdown-form">
+          <input type="text" id="cd-name" placeholder="e.g. Christmas vacation" aria-label="Countdown name" maxlength="60">
+          <label class="cd-date">First day <input type="date" id="cd-start" aria-label="First day"></label>
+          <label class="cd-date">Last day <input type="date" id="cd-end" aria-label="Last day (optional, for a holiday)"></label>
+          <button type="button" id="cd-add">Add</button>
+        </div>
+        <ul class="settings-list" id="cd-list"></ul>
+        <p class="settings-note" id="cd-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Evening recap</h2>
+        <p class="settings-note">A short look back at your day (tasks done, events, notes) and ahead at tomorrow, from your own planner. Ask “evening recap” any time, or let Jarvis post it in the chat once a day. It is never spoken aloud and never sent to Telegram.</p>
+        <label class="settings-check"><input type="checkbox" id="recap-on"> Post it automatically at <input type="time" id="recap-time" value="20:30" aria-label="Recap time"></label>
+        <div class="inline-form"><button type="button" id="recap-show">Show it now</button></div>
+        <pre class="settings-note" id="recap-text" role="status" style="white-space:pre-wrap"></pre>
+      </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-school" role="tabpanel" aria-labelledby="tab-school">
+      <div class="pane-intro"><h2 class="pane-title">School</h2><p>Your timetable, grades, exams, study mode with flashcards, and the focus timer.</p></div>
       <div class="settings-section">
         <h2 class="settings-heading">Timetable</h2>
         <p class="settings-note">Your weekly lessons, if your school does not give you an iCal link (that goes under Calendars). Ask “what's my next class?”, “when do I finish today?”, “what classes do I have tomorrow?”, “when is my next maths lesson?” or “what do I need to bring tomorrow?”. Lessons also show up in “what do I have tomorrow”, in the morning briefing, and not at all during your holidays (countdowns with a first and last day, such as “Christmas vacation”). In chat: “add maths every Monday and Thursday from 8:15 to 9:00 in room B12”, “for PE I need to bring my sports kit”, “remove history from my timetable”.</p>
@@ -466,18 +478,6 @@
         <p class="settings-note" id="gr-status" role="status"></p>
       </div>
       <div class="settings-section">
-        <h2 class="settings-heading">Countdowns</h2>
-        <p class="settings-note">Days left until the things you are waiting for: a holiday (give its first and last day), a birthday, a trip. Ask “how many days until the Christmas vacation?”; that also works for Christmas, New Year, Easter, Halloween, the weekend, anything in your calendar and plain dates (“how many days until 25 December”). The nearest one is shown at the bottom of the chat list, and the morning briefing mentions any that start within a week. In chat: “add a countdown for the Christmas vacation from 19 December to 4 January”, “my countdowns”, “remove the ski trip countdown”.</p>
-        <div class="inline-form countdown-form">
-          <input type="text" id="cd-name" placeholder="e.g. Christmas vacation" aria-label="Countdown name" maxlength="60">
-          <label class="cd-date">First day <input type="date" id="cd-start" aria-label="First day"></label>
-          <label class="cd-date">Last day <input type="date" id="cd-end" aria-label="Last day (optional, for a holiday)"></label>
-          <button type="button" id="cd-add">Add</button>
-        </div>
-        <ul class="settings-list" id="cd-list"></ul>
-        <p class="settings-note" id="cd-status" role="status"></p>
-      </div>
-      <div class="settings-section">
         <h2 class="settings-heading">Exams and revision</h2>
         <p class="settings-note">Any calendar event called an exam or test counts. Jarvis shows the days left and spreads “Revise …” tasks over them (closer together as the exam approaches, at 18:00). Ask “exam countdown” or “plan my revision” in chat.</p>
         <div class="inline-form"><input type="text" id="exam-subject" placeholder="Subject, e.g. Chemistry" aria-label="Exam subject"><input type="date" id="exam-date" aria-label="Exam date"><input type="time" id="exam-time" value="09:00" aria-label="Exam time"><button type="button" id="exam-add">Add and plan</button></div>
@@ -486,21 +486,127 @@
         <p class="settings-note" id="exam-status" role="status"></p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">Study mode</h2>
+        <p class="settings-note">Say “quiz me on chapter 3” and Jarvis asks questions from your saved documents (Settings > Chats) and your notes, one at a time, and marks your answers. Also: “flashcards on the heart”, “quiz me with 10 questions”, “quiz me on what I got wrong”, “plan revision for the chemistry exam on 20 November” (adds the exam and three revision tasks to your planner) and “my study stats”. Say “stop quiz” to end. Everything stays on this PC.</p>
+        <p class="settings-note" id="study-stats" role="status"></p>
+        <div class="inline-form"><button type="button" id="study-clear">Clear missed questions</button></div>
+        <h3 class="settings-subheading">Flashcard deck</h3>
+        <p class="settings-note">Spaced repetition: the flashcards you see and the quiz questions you miss go into your deck. A card you know comes back after 3, 7, 14, 30 and then 60 days; one you miss comes back the next day. Say “review my cards” (the morning briefing tells you how many are due), “how many cards are due”, or “add a flashcard: capital of Peru | Lima”. During a review, “delete this card” drops one.</p>
+        <p class="settings-note" id="deck-stats" role="status"></p>
+        <div class="inline-form deck-form"><input type="text" id="deck-q" placeholder="Question" maxlength="400" aria-label="Question"><input type="text" id="deck-a" placeholder="Answer" maxlength="500" aria-label="Answer"><button type="button" id="deck-add">Add card</button><button type="button" id="deck-review" class="settings-action">Review now</button></div>
+        <details class="deck-cards"><summary id="deck-summary">Cards</summary><ul class="settings-list" id="deck-list"></ul></details>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Focus timer</h2>
         <p class="settings-note">A block of concentrated work, then a short break. Jarvis keeps its own messages back while it runs and adds the minutes to your evening recap. In chat: “focus for 25 minutes on maths”, “stop focus”.</p>
         <div class="inline-form"><input type="number" id="focus-minutes" min="1" max="240" value="25" aria-label="Minutes"><input type="text" id="focus-label" placeholder="What are you working on? (optional)" aria-label="Focus subject"><button type="button" id="focus-start">Start</button><button type="button" id="focus-stop">Stop</button></div>
         <p class="settings-note" id="focus-status" role="status"></p>
       </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-timers" role="tabpanel" aria-labelledby="tab-timers">
+      <div class="pane-intro"><h2 class="pane-title">Routines &amp; timers</h2><p>Routines started by a phrase or a schedule, timers and reminders, and the briefing when Jarvis starts.</p></div>
+      <div class="settings-section" id="routines-section">
+        <h2 class="settings-heading">Routines</h2>
+        <ul id="routine-list" class="tool-list" aria-label="Saved routines"></ul>
+        <div class="settings-field"><label for="routine-name">Create a routine</label></div>
+        <div class="inline-form"><input type="text" id="routine-name" maxlength="40" placeholder="Name, for example Good night" aria-label="Routine name"></div>
+        <div class="inline-form" style="margin-top:6px"><input type="text" id="routine-phrases" maxlength="200" placeholder="Other phrases (optional, separated by commas)" aria-label="Other phrases"></div>
+        <ol id="routine-steps" class="tool-list" aria-label="Steps in this routine"></ol>
+        <div class="inline-form"><select id="step-type" aria-label="Step type">
+          <option value="open_app">Open an app</option><option value="open_url">Open a website</option><option value="open_folder">Open a folder</option><option value="show_desktop">Show the desktop</option><option value="close_app">Close an app</option>
+          <option value="command">Tell Jarvis…</option><option value="say">Say…</option><option value="volume_down">Volume down</option><option value="volume_up">Volume up</option>
+          <option value="wait">Wait</option><option value="briefing">Give the briefing</option><option value="run_command">Run PowerShell</option>
+        </select><input type="text" id="step-value" aria-label="Step detail"><button type="button" id="step-add" class="settings-action">Add</button><button type="button" id="step-cancel" class="settings-action hidden">Cancel</button></div>
+        <label class="settings-check"><input type="checkbox" id="routine-sched-on"> Start it by itself on a schedule</label>
+        <div class="inline-form routine-schedule hidden" id="routine-schedule" role="group" aria-label="When the routine starts">
+          <span class="routine-days" id="routine-days"><label><input type="checkbox" value="0">Mon</label><label><input type="checkbox" value="1">Tue</label><label><input type="checkbox" value="2">Wed</label><label><input type="checkbox" value="3">Thu</label><label><input type="checkbox" value="4">Fri</label><label><input type="checkbox" value="5">Sat</label><label><input type="checkbox" value="6">Sun</label></span>
+          <label class="cd-date">at <input type="time" id="routine-time" value="07:30" aria-label="Time"></label>
+        </div>
+        <label class="settings-check"><input type="checkbox" id="routine-auto"> Run without asking first (even with close-app or PowerShell steps)</label>
+        <button type="button" id="routine-save" class="settings-action">Save routine</button>
+        <p class="settings-note" id="routine-note">Say a routine's name, for example “good night”, or “run good night”. Unless you tick “Run without asking first”, Jarvis shows the steps and waits for your approval. With it ticked, every step runs immediately, including closing apps and PowerShell commands. A scheduled routine starts within ten minutes of its time while Jarvis is running (not later, if the PC was off), and asks for approval the same way. “Tell Jarvis…” steps can be anything you would type in chat, such as “start a 25 minute focus” or “play my study playlist”. You can also make routines in chat: “create a routine called study mode: open OneNote, start a 25 minute focus, play my study playlist”, “run good night every day at 22:30”, “add open Spotify to my study mode routine”, “my routines”.</p>
+      </div>
       <div class="settings-section">
-        <h2 class="settings-heading">Evening recap</h2>
-        <p class="settings-note">A short look back at your day (tasks done, events, notes) and ahead at tomorrow, from your own planner. Ask “evening recap” any time, or let Jarvis post it in the chat once a day. It is never spoken aloud and never sent to Telegram.</p>
-        <label class="settings-check"><input type="checkbox" id="recap-on"> Post it automatically at <input type="time" id="recap-time" value="20:30" aria-label="Recap time"></label>
-        <div class="inline-form"><button type="button" id="recap-show">Show it now</button></div>
-        <pre class="settings-note" id="recap-text" role="status" style="white-space:pre-wrap"></pre>
+        <h2 class="settings-heading">Timers and reminders</h2>
+        <div class="quick-timers" role="group" aria-label="Quick timers">
+          <button type="button" data-min="1">1 min</button><button type="button" data-min="5">5 min</button><button type="button" data-min="10">10 min</button><button type="button" data-min="25">25 min</button><button type="button" data-min="60">1 hour</button>
+        </div>
+        <div class="inline-form"><input type="number" id="timer-min" min="0.1" step="any" value="15" aria-label="Minutes"><input type="text" id="timer-label" maxlength="80" placeholder="Label (optional)" aria-label="Timer label"><button type="button" id="timer-start" class="settings-action">Start</button></div>
+        <ul id="timer-list" class="tool-list" aria-label="Active timers and reminders"></ul>
+        <button type="button" id="notify-enable" class="settings-action">🔔 Enable desktop notifications</button>
+        <p class="settings-note" id="timer-note">Try “set a timer for 10 minutes”, “remind me in 20 minutes to check the oven” or “remind me tomorrow at 9am to send the report”. Alerts ring while Jarvis is open in any browser tab, even in the background, and ones that came due while it was closed show when you reopen it.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Startup briefing</h2>
+        <div class="settings-field"><label for="brief-mode">Give me a briefing</label><select id="brief-mode">
+          <option value="startup">Each time Jarvis starts</option>
+          <option value="daily">The first time I open it each day</option>
+          <option value="off">Never (only when I ask)</option>
+        </select></div>
+        <label class="settings-check"><input type="checkbox" id="brief-weather" checked> Weather</label>
+        <label class="settings-check"><input type="checkbox" id="brief-reminders" checked> Timers and reminders</label>
+        <label class="settings-check"><input type="checkbox" id="brief-system" checked> System status</label>
+        <div class="settings-field"><label for="brief-place">Weather location</label></div>
+        <div class="inline-form"><input type="text" id="brief-place" maxlength="80" placeholder="Town or city" aria-label="Weather location"><button type="button" id="brief-find">Set</button></div>
+        <button type="button" id="brief-now" class="settings-action">▶ Brief me now</button>
+        <p class="settings-note" id="brief-note">The briefing is read aloud when voice replies are on. You can also say “brief me” or “what's the weather”. Weather comes from Open-Meteo and needs an internet connection.</p>
       </div>
     </div>
-
+    <div class="settings-pane hidden" id="pane-devices" role="tabpanel" aria-labelledby="tab-devices">
+      <div class="pane-intro"><h2 class="pane-title">Phone &amp; Telegram</h2><p>Reach Jarvis from your phone, with the Android app or Telegram.</p></div>
+      <div class="settings-section" id="phone-section">
+        <h2 class="settings-heading">Phone app (Android)</h2>
+        <label class="settings-check"><input type="checkbox" id="phone-enabled"> Let the Jarvis Android app connect to this PC over my network</label>
+        <p class="settings-note" id="phone-status">Off. Jarvis only answers on this PC.</p>
+        <div id="phone-details" class="hidden">
+          <p class="settings-note">In the app, open Settings &gt; Brain &gt; PC and enter:</p>
+          <p class="settings-note">Address: <strong id="phone-address"></strong></p>
+          <p class="settings-note">Pairing code: <strong id="phone-code" class="phone-code"></strong></p>
+          <button type="button" id="phone-new-code" class="settings-action">Make a new pairing code</button>
+          <label class="settings-check"><input type="checkbox" id="phone-control"> Let the phone control the mouse and keyboard (tap the live screen in the app to click, type from the phone)</label>
+          <p class="settings-note">Off unless you tick it. Anyone holding a phone with the pairing code could then use this PC while Jarvis runs, so keep the code private. It can only be changed here, on the PC.</p>
+        </div>
+        <p class="settings-note">While this is on, Jarvis listens on your local network and anyone on it who has the pairing code can control this PC, so only use it on a network you trust and keep the code private. The connection is not encrypted. Making a new code disconnects every paired phone.</p>
+      </div>
+      <div class="settings-section" id="telegram-section">
+        <h2 class="settings-heading">Telegram</h2>
+        <p class="settings-note" id="tg-status">Not connected.</p>
+        <div id="tg-connect">
+          <div class="settings-field"><label for="tg-token">Bot token from BotFather</label></div>
+          <div class="inline-form"><input type="password" id="tg-token" autocomplete="off" placeholder="123456789:ABC-DEF…" aria-label="Telegram bot token"><button type="button" id="tg-save" class="settings-action">Connect</button></div>
+        </div>
+        <p class="settings-note hidden" id="tg-pair">Send this code to your bot in Telegram to pair it: <strong id="tg-code"></strong></p>
+        <div id="tg-options" class="hidden">
+          <label class="settings-check"><input type="checkbox" id="tg-mirror" checked> Send timers and reminders to my phone too</label>
+          <label class="settings-check"><input type="checkbox" id="tg-shot" checked> After a command from my phone (show the desktop, open an app), send a screenshot. It passes through Telegram's servers.</label>
+          <label class="settings-check"><input type="checkbox" id="tg-verify"> After that screenshot, let Jarvis look at it and tell me if the command did not work (needs a vision model; slower).</label>
+          <div class="settings-field"><label for="tg-brief">Daily briefing on Telegram at</label></div>
+          <div class="inline-form"><input type="time" id="tg-brief" aria-label="Daily briefing time"><button type="button" id="tg-brief-save" class="settings-action">Save</button></div>
+          <button type="button" id="tg-unpair" class="settings-action">Pair a different account</button>
+          <button type="button" id="tg-disconnect" class="settings-action danger">Disconnect the bot</button>
+        </div>
+        <p class="settings-note">Jarvis reads your messages from Telegram while it is running, so it answers only when this PC is on. Only the account you pair is answered. Anything that changes your PC waits for your Approve tap. Send /help to the bot for commands.</p>
+      </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-mail" role="tabpanel" aria-labelledby="tab-mail">
+      <div class="pane-intro"><h2 class="pane-title">Mail</h2><p>Reading and summarising your Gmail.</p></div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Gmail</h2>
+        <p class="settings-note" id="mail-status">Not connected. Jarvis can tell you how many emails arrived while you were away and what they were about. It only reads: it never sends, deletes or moves anything.</p>
+        <div class="settings-field"><label for="mail-address">Gmail address</label><input type="email" id="mail-address" maxlength="200" autocomplete="off" placeholder="you@gmail.com"></div>
+        <div class="settings-field"><label for="mail-password">App password</label><input type="password" id="mail-password" maxlength="100" autocomplete="new-password" placeholder="16 letters from Google (not your normal password)"></div>
+        <div class="settings-field"><label for="mail-filter">Tell me about</label><select id="mail-filter">
+          <option value="all">All new mail</option><option value="personal">Only the Gmail Primary tab (skips promotions, social and updates)</option></select></div>
+        <label class="settings-check"><input type="checkbox" id="mail-summarize" checked> Summarise what the emails are about with the AI model</label>
+        <label class="settings-check"><input type="checkbox" id="mail-cloud"> Allow the first lines of each email to be sent to a cloud AI model (when the AI model is not local, only senders and subjects are used)</label>
+        <div class="inline-form"><button type="button" id="mail-save">Save and check now</button><button type="button" id="mail-disconnect" class="hidden">Disconnect</button></div>
+        <p class="settings-note" id="mail-result" aria-live="polite"></p>
+        <p class="settings-note">To get an app password: turn on 2-Step Verification in your Google account, then open <b>myaccount.google.com/apppasswords</b>, name it “Jarvis” and copy the 16 letters. IMAP must be on in Gmail (Settings, Forwarding and POP/IMAP). The password is kept only in this PC's Jarvis folder; you can revoke it at any time.</p>
+        <p class="settings-note">Ask “any new emails?” in the window, by voice or on Telegram (/mail). The morning briefing includes it too. Jarvis only counts what arrived since you last asked.</p>
+      </div>
+    </div>
     <div class="settings-pane hidden" id="pane-keys" role="tabpanel" aria-labelledby="tab-keys">
+      <div class="pane-intro"><h2 class="pane-title">Shortcuts &amp; apps</h2><p>Keyboard shortcuts that work in any app, and Spotify.</p></div>
       <div class="settings-section">
         <h2 class="settings-heading">Dictation anywhere</h2>
         <label class="settings-check"><input type="checkbox" id="dict-enabled"> Hold a key, speak, let go: Jarvis types what you said into the app you are using</label>
@@ -525,44 +631,47 @@
         <p class="settings-note" id="spotify-status" role="status"></p>
       </div>
     </div>
-
-    <div class="settings-pane hidden" id="pane-mail" role="tabpanel" aria-labelledby="tab-mail">
+    <div class="settings-pane hidden" id="pane-chats" role="tabpanel" aria-labelledby="tab-chats">
+      <div class="pane-intro"><h2 class="pane-title">Chats</h2><p>Your saved conversations.</p></div>
       <div class="settings-section">
-        <h2 class="settings-heading">Gmail</h2>
-        <p class="settings-note" id="mail-status">Not connected. Jarvis can tell you how many emails arrived while you were away and what they were about. It only reads: it never sends, deletes or moves anything.</p>
-        <div class="settings-field"><label for="mail-address">Gmail address</label><input type="email" id="mail-address" maxlength="200" autocomplete="off" placeholder="you@gmail.com"></div>
-        <div class="settings-field"><label for="mail-password">App password</label><input type="password" id="mail-password" maxlength="100" autocomplete="new-password" placeholder="16 letters from Google (not your normal password)"></div>
-        <div class="settings-field"><label for="mail-filter">Tell me about</label><select id="mail-filter">
-          <option value="all">All new mail</option><option value="personal">Only the Gmail Primary tab (skips promotions, social and updates)</option></select></div>
-        <label class="settings-check"><input type="checkbox" id="mail-summarize" checked> Summarise what the emails are about with the AI model</label>
-        <label class="settings-check"><input type="checkbox" id="mail-cloud"> Allow the first lines of each email to be sent to a cloud AI model (when the AI model is not local, only senders and subjects are used)</label>
-        <div class="inline-form"><button type="button" id="mail-save">Save and check now</button><button type="button" id="mail-disconnect" class="hidden">Disconnect</button></div>
-        <p class="settings-note" id="mail-result" aria-live="polite"></p>
-        <p class="settings-note">To get an app password: turn on 2-Step Verification in your Google account, then open <b>myaccount.google.com/apppasswords</b>, name it “Jarvis” and copy the 16 letters. IMAP must be on in Gmail (Settings, Forwarding and POP/IMAP). The password is kept only in this PC's Jarvis folder; you can revoke it at any time.</p>
-        <p class="settings-note">Ask “any new emails?” in the window, by voice or on Telegram (/mail). The morning briefing includes it too. Jarvis only counts what arrived since you last asked.</p>
+        <h2 class="settings-heading">Your chats</h2>
+        <button type="button" id="export-chat" class="settings-action">⇩ Export this chat (Markdown)</button>
+        <button type="button" id="export-all" class="settings-action">⇩ Export all chats (JSON)</button>
+        <button type="button" id="import-chats" class="settings-action">⇧ Import chats (JSON)</button>
+        <input type="file" id="import-file" class="hidden" accept="application/json,.json">
+        <p class="settings-note" id="chats-note">Chats live in this browser only. Export them to keep a backup or move them to another browser. Importing adds chats and never replaces existing ones.</p>
       </div>
     </div>
-
-    <div class="settings-pane hidden" id="pane-timers" role="tabpanel" aria-labelledby="tab-timers">
+    <div class="settings-pane hidden" id="pane-memory" role="tabpanel" aria-labelledby="tab-memory">
+      <div class="pane-intro"><h2 class="pane-title">Memory &amp; documents</h2><p>What Jarvis remembers about you, and the documents it can read.</p></div>
       <div class="settings-section">
-        <h2 class="settings-heading">Backup</h2>
-        <p class="settings-note">Saves your settings, memory, notes, planner, study history and sign-in tokens (the <code>data</code> folder) into one encrypted file that only your passphrase opens. Put it on a USB stick or OneDrive. On a new computer, install Jarvis, copy the file into the folder below and restore it here. The passphrase is never stored, so if you forget it the backup cannot be opened.</p>
-        <p class="settings-note" id="backup-last" role="status"></p>
-        <div class="settings-field"><label for="backup-folder">Backup folder</label><input type="text" id="backup-folder" maxlength="300" spellcheck="false"></div>
-        <div class="settings-field"><label for="backup-pass">Passphrase</label><input type="password" id="backup-pass" autocomplete="new-password" maxlength="200"></div>
-        <div class="inline-form"><button type="button" id="backup-run">Back up now</button></div>
-        <div class="settings-field"><label for="backup-file">Restore from</label><select id="backup-file" aria-label="Backup to restore"></select></div>
-        <div class="inline-form"><button type="button" id="backup-restore" disabled>Restore this backup</button></div>
-        <p class="settings-note" id="backup-status" role="status"></p>
+        <h2 class="settings-heading">Long-term memory</h2>
+        <div class="inline-form"><input type="text" id="memory-input" maxlength="300" placeholder="Something for Jarvis to remember…" aria-label="New memory"><button type="button" id="memory-add" class="settings-action">Add</button></div>
+        <ul id="memory-list" class="tool-list" aria-label="Remembered items"></ul>
+        <button type="button" id="memory-clear" class="settings-action danger">Clear all memories</button>
+        <p class="settings-note" id="memory-note">You can also say “remember that my printer is the HP in the office”, “what do you remember?” or “forget the printer”. Memories are kept in memory.json next to server.py and sent with every request, so keep them short.</p>
       </div>
+      <div class="settings-section" id="docs-section">
+        <h2 class="settings-heading">Documents</h2>
+        <ul id="docs-list" class="tool-list" aria-label="Saved documents"></ul>
+        <button type="button" id="docs-add" class="settings-action">+ Add documents</button>
+        <label class="settings-check"><input type="checkbox" id="docs-on"> Answer my questions from these documents</label>
+        <p class="settings-note" id="docs-note">Files are read on this PC. Only the few passages that match your question go to the local Ollama model; nothing is sent to a cloud provider. PDF, Word, Excel, PowerPoint, CSV, text, Markdown and code files work. You can also drop files onto the chat. To change one, just ask in the chat (“fix the spelling in essay.docx”, “in budget.xlsx replace 2025 with 2026”): you get a new file and the original stays as it is. For that the whole document goes to your chosen AI model, so with a cloud model it is sent to that provider.</p>
+      </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-notes" role="tabpanel" aria-labelledby="tab-notes">
+      <div class="pane-intro"><h2 class="pane-title">Notes</h2><p>Your notes, which Jarvis can search and quiz you on.</p></div>
       <div class="settings-section">
-        <h2 class="settings-heading">File check</h2>
-        <p class="settings-note">Checks that every file Jarvis needs is in this folder, using the list in the GitHub repository (github.com/LoicTheGuyThatGits/Jarvis_File_Checker). Missing files can be downloaded again; each one is verified against its fingerprint first. You can also ask “check my files”. Your data, settings and passwords are never touched.</p>
-        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button><button type="button" id="files-update">Check for updates</button><button type="button" id="files-install" disabled>Install updates</button></div>
-        <label class="settings-check"><input type="checkbox" id="files-auto" checked> Tell me when the repository has an update</label>
-        <label class="settings-check"><input type="checkbox" id="files-changed"> Also replace files that differ from the repository (the old copy is kept in data/file-backups)</label>
-        <pre class="settings-note" id="files-report" style="white-space:pre-wrap" role="status"></pre>
+        <h2 class="settings-heading">Notes</h2>
+        <p class="settings-note">Say “note that the exam is in room 204” and later “what did I note about the exam?”. Notes stay on this PC. For things Jarvis should always know about you, say “remember that …” instead (Memory).</p>
+        <div class="inline-form"><input type="text" id="notes-text" maxlength="2000" placeholder="Write a note…" aria-label="New note"><button type="button" id="notes-add">Add</button></div>
+        <div class="inline-form"><input type="search" id="notes-find" placeholder="Find in my notes…" aria-label="Find in my notes"></div>
+        <ul id="notes-list" class="tool-list"></ul>
+        <p class="settings-note" id="notes-status" role="status"></p>
       </div>
+    </div>
+    <div class="settings-pane hidden" id="pane-pc" role="tabpanel" aria-labelledby="tab-pc">
+      <div class="pane-intro"><h2 class="pane-title">PC &amp; network</h2><p>The health of this PC, and your Wi-Fi and network.</p></div>
       <div class="settings-section">
         <h2 class="settings-heading">PC health</h2>
         <p class="settings-note">Checks disk space, memory, how long the PC has been on, temp files, startup programs and the heaviest programs. You can also ask “how's my PC?”. Say “clean up my temp files” to delete old ones (Jarvis asks you to confirm; it only touches temp files older than 3 days).</p>
@@ -575,85 +684,6 @@
         <div class="inline-form"><button type="button" id="net-check">Check the connection</button><button type="button" id="net-devices">Show devices</button><button type="button" id="net-mine" hidden>It is my own network: scan</button></div>
         <label class="settings-check"><input type="checkbox" id="net-watch"> Tell me when the connection gets clearly slower than usual or a new device joins</label>
         <pre class="settings-note" id="net-report" role="status" style="white-space:pre-wrap"></pre>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Startup briefing</h2>
-        <div class="settings-field"><label for="brief-mode">Give me a briefing</label><select id="brief-mode">
-          <option value="startup">Each time Jarvis starts</option>
-          <option value="daily">The first time I open it each day</option>
-          <option value="off">Never (only when I ask)</option>
-        </select></div>
-        <label class="settings-check"><input type="checkbox" id="brief-weather" checked> Weather</label>
-        <label class="settings-check"><input type="checkbox" id="brief-reminders" checked> Timers and reminders</label>
-        <label class="settings-check"><input type="checkbox" id="brief-system" checked> System status</label>
-        <div class="settings-field"><label for="brief-place">Weather location</label></div>
-        <div class="inline-form"><input type="text" id="brief-place" maxlength="80" placeholder="Town or city" aria-label="Weather location"><button type="button" id="brief-find">Set</button></div>
-        <button type="button" id="brief-now" class="settings-action">▶ Brief me now</button>
-        <p class="settings-note" id="brief-note">The briefing is read aloud when voice replies are on. You can also say “brief me” or “what's the weather”. Weather comes from Open-Meteo and needs an internet connection.</p>
-      </div>
-      <div class="settings-section" id="routines-section">
-        <h2 class="settings-heading">Routines</h2>
-        <ul id="routine-list" class="tool-list" aria-label="Saved routines"></ul>
-        <div class="settings-field"><label for="routine-name">Create a routine</label></div>
-        <div class="inline-form"><input type="text" id="routine-name" maxlength="40" placeholder="Name, for example Good night" aria-label="Routine name"></div>
-        <div class="inline-form" style="margin-top:6px"><input type="text" id="routine-phrases" maxlength="200" placeholder="Other phrases (optional, separated by commas)" aria-label="Other phrases"></div>
-        <ol id="routine-steps" class="tool-list" aria-label="Steps in this routine"></ol>
-        <div class="inline-form"><select id="step-type" aria-label="Step type">
-          <option value="open_app">Open an app</option><option value="open_url">Open a website</option><option value="open_folder">Open a folder</option><option value="show_desktop">Show the desktop</option><option value="close_app">Close an app</option>
-          <option value="command">Tell Jarvis…</option><option value="say">Say…</option><option value="volume_down">Volume down</option><option value="volume_up">Volume up</option>
-          <option value="wait">Wait</option><option value="briefing">Give the briefing</option><option value="run_command">Run PowerShell</option>
-        </select><input type="text" id="step-value" aria-label="Step detail"><button type="button" id="step-add" class="settings-action">Add</button><button type="button" id="step-cancel" class="settings-action hidden">Cancel</button></div>
-        <label class="settings-check"><input type="checkbox" id="routine-sched-on"> Start it by itself on a schedule</label>
-        <div class="inline-form routine-schedule hidden" id="routine-schedule" role="group" aria-label="When the routine starts">
-          <span class="routine-days" id="routine-days"><label><input type="checkbox" value="0">Mon</label><label><input type="checkbox" value="1">Tue</label><label><input type="checkbox" value="2">Wed</label><label><input type="checkbox" value="3">Thu</label><label><input type="checkbox" value="4">Fri</label><label><input type="checkbox" value="5">Sat</label><label><input type="checkbox" value="6">Sun</label></span>
-          <label class="cd-date">at <input type="time" id="routine-time" value="07:30" aria-label="Time"></label>
-        </div>
-        <label class="settings-check"><input type="checkbox" id="routine-auto"> Run without asking first (even with close-app or PowerShell steps)</label>
-        <button type="button" id="routine-save" class="settings-action">Save routine</button>
-        <p class="settings-note" id="routine-note">Say a routine's name, for example “good night”, or “run good night”. Unless you tick “Run without asking first”, Jarvis shows the steps and waits for your approval. With it ticked, every step runs immediately, including closing apps and PowerShell commands. A scheduled routine starts within ten minutes of its time while Jarvis is running (not later, if the PC was off), and asks for approval the same way. “Tell Jarvis…” steps can be anything you would type in chat, such as “start a 25 minute focus” or “play my study playlist”. You can also make routines in chat: “create a routine called study mode: open OneNote, start a 25 minute focus, play my study playlist”, “run good night every day at 22:30”, “add open Spotify to my study mode routine”, “my routines”.</p>
-      </div>
-      <div class="settings-section" id="telegram-section">
-        <h2 class="settings-heading">Telegram</h2>
-        <p class="settings-note" id="tg-status">Not connected.</p>
-        <div id="tg-connect">
-          <div class="settings-field"><label for="tg-token">Bot token from BotFather</label></div>
-          <div class="inline-form"><input type="password" id="tg-token" autocomplete="off" placeholder="123456789:ABC-DEF…" aria-label="Telegram bot token"><button type="button" id="tg-save" class="settings-action">Connect</button></div>
-        </div>
-        <p class="settings-note hidden" id="tg-pair">Send this code to your bot in Telegram to pair it: <strong id="tg-code"></strong></p>
-        <div id="tg-options" class="hidden">
-          <label class="settings-check"><input type="checkbox" id="tg-mirror" checked> Send timers and reminders to my phone too</label>
-          <label class="settings-check"><input type="checkbox" id="tg-shot" checked> After a command from my phone (show the desktop, open an app), send a screenshot. It passes through Telegram's servers.</label>
-          <label class="settings-check"><input type="checkbox" id="tg-verify"> After that screenshot, let Jarvis look at it and tell me if the command did not work (needs a vision model; slower).</label>
-          <div class="settings-field"><label for="tg-brief">Daily briefing on Telegram at</label></div>
-          <div class="inline-form"><input type="time" id="tg-brief" aria-label="Daily briefing time"><button type="button" id="tg-brief-save" class="settings-action">Save</button></div>
-          <button type="button" id="tg-unpair" class="settings-action">Pair a different account</button>
-          <button type="button" id="tg-disconnect" class="settings-action danger">Disconnect the bot</button>
-        </div>
-        <p class="settings-note">Jarvis reads your messages from Telegram while it is running, so it answers only when this PC is on. Only the account you pair is answered. Anything that changes your PC waits for your Approve tap. Send /help to the bot for commands.</p>
-      </div>
-      <div class="settings-section" id="phone-section">
-        <h2 class="settings-heading">Phone app (Android)</h2>
-        <label class="settings-check"><input type="checkbox" id="phone-enabled"> Let the Jarvis Android app connect to this PC over my network</label>
-        <p class="settings-note" id="phone-status">Off. Jarvis only answers on this PC.</p>
-        <div id="phone-details" class="hidden">
-          <p class="settings-note">In the app, open Settings &gt; Brain &gt; PC and enter:</p>
-          <p class="settings-note">Address: <strong id="phone-address"></strong></p>
-          <p class="settings-note">Pairing code: <strong id="phone-code" class="phone-code"></strong></p>
-          <button type="button" id="phone-new-code" class="settings-action">Make a new pairing code</button>
-          <label class="settings-check"><input type="checkbox" id="phone-control"> Let the phone control the mouse and keyboard (tap the live screen in the app to click, type from the phone)</label>
-          <p class="settings-note">Off unless you tick it. Anyone holding a phone with the pairing code could then use this PC while Jarvis runs, so keep the code private. It can only be changed here, on the PC.</p>
-        </div>
-        <p class="settings-note">While this is on, Jarvis listens on your local network and anyone on it who has the pairing code can control this PC, so only use it on a network you trust and keep the code private. The connection is not encrypted. Making a new code disconnects every paired phone.</p>
-      </div>
-      <div class="settings-section">
-        <h2 class="settings-heading">Timers and reminders</h2>
-        <div class="quick-timers" role="group" aria-label="Quick timers">
-          <button type="button" data-min="1">1 min</button><button type="button" data-min="5">5 min</button><button type="button" data-min="10">10 min</button><button type="button" data-min="25">25 min</button><button type="button" data-min="60">1 hour</button>
-        </div>
-        <div class="inline-form"><input type="number" id="timer-min" min="0.1" step="any" value="15" aria-label="Minutes"><input type="text" id="timer-label" maxlength="80" placeholder="Label (optional)" aria-label="Timer label"><button type="button" id="timer-start" class="settings-action">Start</button></div>
-        <ul id="timer-list" class="tool-list" aria-label="Active timers and reminders"></ul>
-        <button type="button" id="notify-enable" class="settings-action">🔔 Enable desktop notifications</button>
-        <p class="settings-note" id="timer-note">Try “set a timer for 10 minutes”, “remind me in 20 minutes to check the oven” or “remind me tomorrow at 9am to send the report”. Alerts ring while Jarvis is open in any browser tab, even in the background, and ones that came due while it was closed show when you reopen it.</p>
       </div>
     </div>
       <p id="settings-empty" class="settings-empty hidden">No setting matches that. Try another word.</p>
@@ -698,6 +728,7 @@
     <div id="quick-result" class="quick-result hidden" aria-live="polite"></div>
     <div class="quick-buttons"><button type="button" id="quick-copy" class="hidden">Copy</button><button type="button" id="quick-replace" class="hidden">Replace selection</button></div>
   </section>
+  <script>window.paneHas = function (pane, id) { var p = document.getElementById('pane-' + pane), el = document.getElementById(id); return !!(p && el && p.contains(el)); };</script>
   <script src="/js/wake.js"></script>
   <script src="/js/mail.js"></script>
   <script src="/js/shortcuts.js"></script>

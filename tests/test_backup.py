@@ -74,7 +74,7 @@ from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]; pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.click("#open-settings"); pg.click("#tab-timers"); pg.wait_for_function("document.querySelector('#backup-last').innerText.includes('today')")
+    pg.click("#open-settings"); pg.click("#tab-system"); pg.wait_for_function("document.querySelector('#backup-last').innerText.includes('today')")
     assert pg.input_value("#backup-folder")==str(out) and pg.locator("#backup-file option").count()==1 and pg.is_enabled("#backup-restore")
     pg.click("#backup-run"); pg.wait_for_function("document.querySelector('#backup-status').innerText.includes('at least')")
     pg.fill("#backup-pass","my long passphrase"); pg.click("#backup-run"); pg.wait_for_function("document.querySelector('#backup-status').innerText.startsWith('Backed up')"); assert pg.input_value("#backup-pass")==""

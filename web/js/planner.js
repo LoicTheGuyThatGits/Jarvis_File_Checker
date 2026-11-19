@@ -107,6 +107,6 @@
   $('cal-alerts').addEventListener('change', function () { calSend('/api/calendar/alerts', { on: $('cal-alerts').checked }); });
   function loadCal() { api('/api/calendar').then(showCal).catch(function () {}); }
   $('tab-plan').addEventListener('click', load);
-  window.addEventListener('jarvis:pane', function (e) { if (e.detail.pane === 'plan') load(); });
+  window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'cal-status')) load(); else if (paneHas(e.detail.pane, 'pro-status')) api('/api/proactive').then(showPro).catch(function () {}); });
   setInterval(function () { if (!$('pane-plan').classList.contains('hidden') && document.activeElement.tagName !== 'INPUT') load(); }, 5000);
 })();

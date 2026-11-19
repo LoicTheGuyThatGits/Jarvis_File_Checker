@@ -25,7 +25,7 @@
       }).catch(function (e) { $('spotify-status').textContent = e.message; });
     });
     $('spotify-disconnect').addEventListener('click', function () { api('/api/spotify/disconnect', {}).then(show).catch(function () {}); });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'keys') load(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'spotify-status')) load(); });
   }
   if ($('files-check')) {
     var last = null;
@@ -69,7 +69,7 @@
       STAGES.forEach(function (st) { var li = document.createElement('li'); li.textContent = (up >= st[0] ? '✓ ' : '○ ') + st[0] + ': ' + st[1]; list.appendChild(li); });
     };
     var loadTrain = function () { api('/api/training').then(showTrain).catch(function () {}); };
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadTrain(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'train-bar')) loadTrain(); });
     loadTrain();
   }
   if ($('backup-run')) {
@@ -95,7 +95,7 @@
       api('/api/backup/restore', { folder: $('backup-folder').value, file: sel.value, passphrase: $('backup-pass').value }).then(done).catch(fail);
     });
     $('backup-folder').addEventListener('change', function () { api('/api/backup/folder', { folder: $('backup-folder').value }).then(showB).catch(fail); });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'timers') loadB(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'backup-folder')) loadB(); });
   }
   if ($('health-run')) {
     $('health-run').addEventListener('click', function () {
@@ -115,7 +115,7 @@
     $('recap-show').addEventListener('click', function () {
       api('/api/recap/show', {}).then(function (d) { $('recap-text').textContent = d.text; }).catch(function (e) { $('recap-text').textContent = e.message; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') loadR(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'recap-on')) loadR(); });
   }
   if ($('router-on')) {
     var loadRouter = function () {
@@ -124,7 +124,7 @@
     $('router-on').addEventListener('change', function () {
       api('/api/router', { enabled: $('router-on').checked }).then(function (d) { $('router-note').textContent = d.enabled ? 'On. Jarvis shows which tool it chose under each such reply.' : 'Off.'; }).catch(function (e) { $('router-note').textContent = e.message; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'router-on')) loadRouter(); });
   }
   if ($('mcp-save')) {
     var mcpEditing = null;
@@ -181,7 +181,7 @@
         .then(function () { $('mcp-save').disabled = false; });
     });
     mcpType();
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') mcpLoad(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'mcp-list')) mcpLoad(); });
   }
   if ($('gr-add')) {
     var grFmt = function (x) { return x == null ? '–' : String(Math.round(x * 100) / 100); };
@@ -231,7 +231,7 @@
       if (!window.confirm('Start a new term? Averages will count only the grades you add from now on. Earlier grades are kept.')) return;
       api('/api/grades', { new_term: true }).then(function (d) { grDraw(d); $('gr-status').textContent = 'New term started.'; }).catch(grErr);
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') grLoad(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'gr-list')) grLoad(); });
     window.addEventListener('jarvis:reply', function (e) { if (e.detail && /grade|average|term/i.test(e.detail.text || '')) grLoad(); });
   }
   if ($('bench-start')) {
@@ -300,7 +300,7 @@
       var b = e.target.closest('.bench-pick'); if (!b || !benchRunId) return;
       api('/api/bench', { pick: { run: benchRunId, index: +b.dataset.i, model: b.dataset.m } }).then(drawState).catch(function (err) { $('bench-status').textContent = err.message; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') benchLoad(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'bench-models')) benchLoad(); });
   }
   if ($('tt-add')) {
     var ttDraw = function (d) {
@@ -325,7 +325,7 @@
     });
     var ttPrep = function () { api('/api/timetable', { prep: { on: $('tt-prep').checked, time: $('tt-prep-time').value } }).then(ttDraw).catch(function (e) { $('tt-status').textContent = e.message; }); };
     $('tt-prep').addEventListener('change', ttPrep); $('tt-prep-time').addEventListener('change', ttPrep);
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') ttLoad(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'tt-list')) ttLoad(); });
     window.addEventListener('jarvis:reply', function (e) { if (e.detail && /timetable|lesson/i.test(e.detail.text || '')) ttLoad(); });
   }
   if ($('cd-add')) {
@@ -354,7 +354,7 @@
       }).catch(function (e) { $('cd-status').textContent = e.message; });
     });
     if ($('countdown-chip')) $('countdown-chip').addEventListener('click', function () { if (window.JarvisUI) window.JarvisUI.openPane('plan'); });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') loadCountdowns(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'cd-list')) loadCountdowns(); });
     window.addEventListener('jarvis:reply', loadCountdowns);
     loadCountdowns(); setInterval(loadCountdowns, 30 * 60 * 1000);
   }
@@ -388,7 +388,7 @@
       api('/api/focus', { action: 'start', minutes: Number($('focus-minutes').value), label: $('focus-label').value }).then(drawFocus).catch(function (e) { $('focus-status').textContent = e.message; });
     });
     $('focus-stop').addEventListener('click', function () { api('/api/focus', { action: 'stop' }).then(drawFocus).catch(function (e) { $('focus-status').textContent = e.message; }); });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') { loadExams(); loadFocus(); } });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane) { if (paneHas(e.detail.pane, 'exam-status')) loadExams(); if (paneHas(e.detail.pane, 'focus-status')) loadFocus(); } });
   }
   if ($('net-check')) {
     var netBusy = function (on, msg) { ['net-check', 'net-devices', 'net-mine'].forEach(function (id) { $(id).disabled = on; }); if (msg) $('net-report').textContent = msg; };
@@ -407,7 +407,7 @@
       api('/api/network/devices', { mine: true }).then(netShow).catch(netFail).then(function () { netBusy(false); });
     });
     $('net-watch').addEventListener('change', function () { api('/api/network', { watch: $('net-watch').checked }).catch(netFail); });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'timers') api('/api/network').then(function (d) { $('net-watch').checked = d.watch; }).catch(function () {}); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'net-watch')) api('/api/network').then(function (d) { $('net-watch').checked = d.watch; }).catch(function () {}); });
   }
   if ($('jm-build')) {
     var jmTimer = null;
@@ -434,7 +434,7 @@
       api('/api/jarvis-model', {}).then(function (d) { $('jm-status').textContent = d.message; jmShow(d); })
         .catch(function (e) { $('jm-status').textContent = e.message; $('jm-build').disabled = false; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') jmLoad(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'jm-build')) jmLoad(); });
   }
   if ($('install-folder')) {
     var installLoad = function () {
@@ -454,7 +454,7 @@
       (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject(new Error('no clipboard'))).then(function () { $('install-status').textContent = 'Copied.'; },
         function () { var r = document.createRange(); r.selectNodeContents($('install-folder')); var sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); $('install-status').textContent = 'Selected: press Ctrl+C to copy.'; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'look') installLoad(); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'install-folder')) installLoad(); });
     installLoad();
   }
   if ($('selftest-run')) {
@@ -500,6 +500,6 @@
       var f = $('ctl-folder').value.trim(); if (!f) return;
       ctlSave({ folders: (ctlState.folders || []).concat([f]) }).then(function () { if ($('ctl-status').textContent === 'Saved.') $('ctl-folder').value = ''; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') api('/api/control').then(ctlShow).catch(function () {}); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'ctl-status')) api('/api/control').then(ctlShow).catch(function () {}); });
   }
 })();

@@ -29,7 +29,7 @@ with sync_playwright() as pw:
     b=pw.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(400)
-    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-look")
+    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-system")
     pg.click("#selftest-run"); pg.wait_for_function("document.querySelector('#selftest-report').textContent.startsWith('Jarvis self-check')",timeout=120000)
     assert not pg.is_disabled("#selftest-copy") and not errs, errs
     b.close()

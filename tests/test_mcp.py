@@ -155,7 +155,7 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(); pg = b.new_context(viewport={"width": 1280, "height": 900}).new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e))); pg.on("dialog", lambda dlg: dlg.accept())
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.evaluate("window.JarvisUI.openPane('ai')"); pg.wait_for_selector("#mcp-list .mcp-head")
+    pg.evaluate("window.JarvisUI.openPane('tools')"); pg.wait_for_selector("#mcp-list .mcp-head")
     assert "connected · 3 tools" in pg.text_content("#mcp-list .mcp-state") and pg.locator("#mcp-list .mcp-tools li").count() == 3
     assert pg.locator("#mcp-list .mcp-tools li", has_text="bulk_import").locator("input").first.is_disabled()
     pg.locator("#mcp-list .mcp-tools li", has_text="create_page").locator("label", has_text="use").locator("input").check(); pg.wait_for_timeout(300)

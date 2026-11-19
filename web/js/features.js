@@ -364,7 +364,7 @@
   });
   modelSel.addEventListener('change', function () { if (ai && modelSel.value) choose({ provider: ai.provider, model: modelSel.value }); });
   $('model-refresh').addEventListener('click', function () { refreshAi(true); });
-  window.addEventListener('jarvis:pane', function (e) { if (e.detail.pane === 'ai') refreshAi(true); });
+  window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'model-refresh')) refreshAi(true); });
   if (statusEl) { statusEl.parentNode.style.cursor = 'pointer'; statusEl.parentNode.title = 'Change the AI model'; statusEl.parentNode.addEventListener('click', function (e) { e.stopPropagation(); window.JarvisUI.openPane('ai'); }); }
   refreshAi(false);
 })();

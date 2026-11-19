@@ -29,6 +29,6 @@
     api('/api/mail/disconnect', {}).then(function (d) { show(d); $('mail-result').textContent = 'Disconnected. The saved password was removed.'; }).catch(function (e) { $('mail-result').textContent = e.message; });
   });
   $('tab-mail').addEventListener('click', load);
-  window.addEventListener('jarvis:pane', function (e) { if (e.detail.pane === 'mail') load(); });
+  window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'mail-result')) load(); });
   load();
 })();

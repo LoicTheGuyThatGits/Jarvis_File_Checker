@@ -30,7 +30,7 @@
     var refresh = function () { if (!busy && !$('pane-keys').classList.contains('hidden')) api('/api/shortcuts').then(show).catch(function () {}); };
     var loadKeys = function () { api('/api/shortcuts').then(show).catch(function () {}); };
     $('tab-keys').addEventListener('click', loadKeys);
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail.pane === 'keys') loadKeys(); });
+    window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'dict-enabled')) loadKeys(); });
     setInterval(refresh, 2500);
   }
   // ---- quick-actions panel ----

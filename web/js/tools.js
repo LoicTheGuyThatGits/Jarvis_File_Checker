@@ -379,7 +379,7 @@
   }
   if (trainBox) {
     trainBox.addEventListener('change', function () { api('/api/training', { enabled: trainBox.checked }).then(showTraining).catch(function () {}); });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail.pane === 'ai') api('/api/training').then(showTraining).catch(function () {}); });
+    window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'train-on')) api('/api/training').then(showTraining).catch(function () {}); });
     api('/api/training').then(showTraining).catch(function () {});
   }
 
@@ -399,7 +399,7 @@
   syncNotify();
 
   /* ----- keep lists fresh ----- */
-  window.addEventListener('jarvis:pane', function (e) { if (e.detail.pane === 'memory') refreshMemory(); if (e.detail.pane === 'timers') { refreshTimers(); syncNotify(); } });
+  window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'memory-list')) refreshMemory(); if (paneHas(e.detail.pane, 'timer-list')) { refreshTimers(); syncNotify(); } });
   window.addEventListener('jarvis:reply', function () { setTimeout(refreshTimers, 150); setTimeout(refreshMemory, 150); });
   refreshTimers(); refreshMemory();
   /* ================= startup briefing ================= */

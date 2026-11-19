@@ -77,6 +77,18 @@
     'study mode': 'quiz flashcards revise revision exam test homework learn practise', 'calendar': 'events agenda schedule appointments', 'alerts to your phone (telegram)': 'notifications push battery',
     'interface style': 'theme colour color look appearance dark light', 'telegram': 'bot token phone remote'
   };
+  /* long explanations fold to three lines with a "More" link (search always shows them whole) */
+  Array.prototype.forEach.call(document.querySelectorAll('.settings-section > p.settings-note'), function (p) {
+    if (p.id || p.getAttribute('role') || p.textContent.trim().length < 280) return;
+    p.classList.add('folded');
+    var more = document.createElement('button'); more.type = 'button'; more.className = 'note-more'; more.textContent = 'More';
+    more.setAttribute('aria-expanded', 'false');
+    more.addEventListener('click', function () {
+      var open = p.classList.toggle('folded') === false;
+      more.textContent = open ? 'Less' : 'More'; more.setAttribute('aria-expanded', String(open));
+    });
+    p.after(more);
+  });
   function norm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
   function setPanel(open) {
     panel.classList.toggle('hidden', !open);
@@ -104,6 +116,7 @@
     return norm(e.tab.textContent + ' ' + el.textContent + extra + ' ' + (h ? (SYNONYMS[norm(h.textContent)] || '') : ''));
   }
   function clearSearchMarks() {
+    $('settings-content').classList.remove('is-search');
     Array.prototype.forEach.call(document.querySelectorAll('.settings-group-label'), function (n) { n.remove(); });
     entries().forEach(function (e) { e.el.classList.remove('search-hidden'); });
     tabs.forEach(function (t) { t.classList.remove('has-match', 'no-match'); });
@@ -116,6 +129,7 @@
       searching = true;
       if (!seenSearchOnce) { seenSearchOnce = true; tabs.forEach(function (t) { window.dispatchEvent(new CustomEvent('jarvis:pane', { detail: { pane: t.dataset.pane } })); }); }   // lets every pane load its data once
     }
+    $('settings-content').classList.add('is-search');
     Array.prototype.forEach.call(document.querySelectorAll('.settings-group-label'), function (n) { n.remove(); });
     var words = q.split(/\s+/), hits = 0, paneHits = {};
     entries().forEach(function (e) {

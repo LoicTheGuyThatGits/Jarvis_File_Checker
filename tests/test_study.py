@@ -67,7 +67,7 @@ with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.click("#open-settings"); pg.click("#tab-notes"); pg.wait_for_function("document.querySelector('#study-stats').innerText.includes('1 missed question')")
+    pg.click("#open-settings"); pg.click("#tab-school"); pg.wait_for_function("document.querySelector('#study-stats').innerText.includes('1 missed question')")
     pg.click("#study-clear"); pg.wait_for_function("document.querySelector('#study-clear').disabled")
     pg.fill("#settings-search","flashcards"); pg.wait_for_timeout(300)
     assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)")==["Study mode"]

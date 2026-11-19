@@ -105,7 +105,7 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(); pg = b.new_context(viewport={"width": 1280, "height": 900}).new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.evaluate("window.JarvisUI.openPane('plan')"); pg.wait_for_selector("#tt-list .tt-text")
+    pg.evaluate("window.JarvisUI.openPane('school')"); pg.wait_for_selector("#tt-list .tt-text")
     assert pg.text_content("#tt-list .tt-day") == "Monday" and "13:30–14:15  Art · bring paints" in pg.text_content("#tt-list")
     assert pg.input_value("#tt-prep-time") == "20:15" and pg.is_checked("#tt-prep")
     pg.select_option("#tt-day", "2"); pg.fill("#tt-start", "14:00"); pg.fill("#tt-end", "14:45"); pg.fill("#tt-subject", "Chemistry"); pg.fill("#tt-room", "L2"); pg.click("#tt-add")

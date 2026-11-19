@@ -151,7 +151,7 @@ with sync_playwright() as pw:
     b=pw.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(400)
-    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-timers")
+    pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-pc")
     pg.wait_for_function("document.querySelector('#net-watch').checked",timeout=8000)
     pg.click("#net-check"); pg.wait_for_function("document.querySelector('#net-report').textContent.includes('Router: 2 ms') && !document.querySelector('#net-check').disabled",timeout=15000)
     assert pg.is_hidden("#net-mine")

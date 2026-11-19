@@ -60,5 +60,5 @@
   window.addEventListener('jarvis:reply', function (e) { if (e.detail && /deck|card|review/i.test(e.detail.text || '')) loadStudy(); });
   function loadStudy() { api('/api/study').then(showStudy).catch(function () {}); }
   $('study-clear').addEventListener('click', function () { api('/api/study/clear', {}).then(showStudy).catch(function () {}); });
-  window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'notes') { load(); loadStudy(); } });
+  window.addEventListener('jarvis:pane', function (e) { if (e.detail) { if (paneHas(e.detail.pane, 'notes-text')) load(); if (paneHas(e.detail.pane, 'study-stats')) loadStudy(); } });
 })();

@@ -94,7 +94,7 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(); pg = b.new_context(viewport={"width": 1280, "height": 900}).new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.evaluate("window.JarvisUI.openPane('notes')"); pg.wait_for_function("document.querySelector('#deck-stats').textContent.length > 0")
+    pg.evaluate("window.JarvisUI.openPane('school')"); pg.wait_for_function("document.querySelector('#deck-stats').textContent.length > 0")
     assert pg.text_content("#deck-stats").startswith("1 card due today, 2 in the deck") and pg.text_content("#deck-summary") == "Cards (2)"
     pg.fill("#deck-q", "capital of France"); pg.fill("#deck-a", "Paris"); pg.click("#deck-add")
     pg.wait_for_function("document.querySelector('#deck-summary').textContent === 'Cards (3)'")
