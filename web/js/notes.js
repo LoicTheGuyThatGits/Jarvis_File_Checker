@@ -36,7 +36,28 @@
     var done = d.sessions || [], asked = 0, right = 0; done.forEach(function (x) { asked += x.asked; right += x.correct; });
     $('study-stats').textContent = (done.length ? 'Last ' + done.length + ' sessions: ' + right + ' of ' + asked + ' right. ' : 'No quiz done yet. ') + (d.missed ? d.missed + ' missed question' + (d.missed === 1 ? '' : 's') + ' waiting.' : '');
     $('study-clear').disabled = !d.missed;
+    var dk = d.deck || { total: 0, due: 0, learned: 0 }, today = new Date().toISOString().slice(0, 10);
+    $('deck-stats').textContent = dk.total ? dk.due + ' card' + (dk.due === 1 ? '' : 's') + ' due today, ' + dk.total + ' in the deck, ' + dk.learned + ' well learned.' + (!dk.due && dk.next ? ' Next due ' + dk.next + '.' : '') : 'The deck is empty.';
+    $('deck-review').disabled = !dk.due; $('deck-summary').textContent = 'Cards (' + dk.total + ')';
+    var list = $('deck-list'); list.textContent = '';
+    (d.cards || []).forEach(function (c) {
+      var li = document.createElement('li'), text = document.createElement('span'), due = document.createElement('span'), x = document.createElement('button');
+      text.className = 'deck-text'; text.textContent = c.q + ' → ' + c.a;
+      due.className = 'deck-due' + (c.due <= today ? ' now' : ''); due.textContent = c.due <= today ? 'due' : c.due;
+      x.type = 'button'; x.className = 'settings-action'; x.textContent = 'Remove'; x.setAttribute('aria-label', 'Remove the card ' + c.q);
+      x.addEventListener('click', function () { api('/api/study/deck', { remove: c.id }).then(showStudy).catch(function () {}); });
+      li.append(text, due, x); list.append(li);
+    });
   }
+  $('deck-add').addEventListener('click', function () {
+    api('/api/study/deck', { add: { q: $('deck-q').value, a: $('deck-a').value } }).then(function (d) { showStudy(d); $('deck-q').value = ''; $('deck-a').value = ''; $('deck-q').focus(); })
+      .catch(function (e) { $('deck-stats').textContent = e.message; });
+  });
+  $('deck-review').addEventListener('click', function () {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    if (typeof window.sendMessage === 'function') window.sendMessage('review my cards');
+  });
+  window.addEventListener('jarvis:reply', function (e) { if (e.detail && /deck|card|review/i.test(e.detail.text || '')) loadStudy(); });
   function loadStudy() { api('/api/study').then(showStudy).catch(function () {}); }
   $('study-clear').addEventListener('click', function () { api('/api/study/clear', {}).then(showStudy).catch(function () {}); });
   window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'notes') { load(); loadStudy(); } });

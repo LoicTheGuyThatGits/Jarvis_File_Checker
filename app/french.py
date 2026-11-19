@@ -214,6 +214,16 @@ def _countdown_statement(m, now):
     return _countdown_text(m.group(1) + " " + m.group(2), now)
 
 
+def _fr_grade_rest(rest: str | None) -> str:
+    rest = (rest or "").lower()
+    out = ""
+    if re.search(r"coef(?:ficient)?\s*2|double", rest):
+        out += ", counts double"
+    if "hier" in rest:
+        out += " yesterday"
+    return out
+
+
 FR_DAY = r"(demain|aujourd['’]hui|ce\s+matin|cet\s+après-midi|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)"
 
 
@@ -288,6 +298,18 @@ RULES: list[tuple[str, object]] = [
     (rf"(?:mon\s+|ma\s+|l['’]|le\s+)?{EXAM}\s+(?:de\s+|d['’]|en\s+)(.+?)\s+(?:est|a\s+lieu|aura\s+lieu|c['’]est|tombe)\s+(.+)", _exam),
     (rf"(?:quand\s+(?:sont|est-ce\s+que\s+sont)\s+mes\s+{EXAM}s?|mes\s+{EXAM}s?|compte\s+à\s+rebours(?:\s+des\s+{EXAM}s?)?|(?:combien\s+de\s+(?:jours|temps)\s+(?:avant|jusqu['’]à)|c['’]est\s+quand)\s+(?:mes?\s+|mon\s+|ma\s+|les?\s+|l['’])?(?:prochains?\s+)?{EXAM}s?.*)", "exam countdown"),
     (rf"(?:planifie[rz]?|organise[rz]?|prépare[rz]?|prepare[rz]?|fais)(?:[- ]moi)?\s+(?:un\s+planning\s+de\s+|un\s+plan\s+de\s+|mes?\s+|les\s+)?révisions?(?:\s+pour\s+mes\s+{EXAM}s?)?", "plan my revision"),
+    # --- grades ---
+    (r"(?:j['’]ai\s+(?:eu|obtenu|fait|pris)|j['’]ai)\s+(?:un\s+|une\s+)?(\d{1,3}(?:[.,]\d{1,2})?)(?:\s+sur\s+(\d{1,3}))?\s+(?:en|à|au|a)\s+(?:l['’]|la\s+|le\s+)?([^,]+?)(\s*(?:,|\s)\s*(?:coefficient\s*2|coef\s*2|qui\s+compte\s+double|compte\s+double|double|hier).*)?",
+     lambda m, now: f"I got a {m.group(1)}" + (f"/{m.group(2)}" if m.group(2) else "") + f" in {m.group(3)}" + _fr_grade_rest(m.group(4))),
+    (r"(?:quelle\s+est\s+|c['’]est\s+quoi\s+)?ma\s+moyenne\s+(?:en|de|d['’]|à|a)\s*(.+)|(?:comment\s+je\s+m['’]en\s+sors|où\s+j['’]en\s+suis)\s+en\s+(.+)",
+     lambda m, now: f"what's my average in {m.group(1) or m.group(2)}"),
+    (r"(?:(?:montre|donne|affiche)(?:[- ]moi)?\s+)?(?:mes|toutes\s+mes)\s+(?:notes|moyennes)|ma\s+moyenne\s+(?:générale|generale)|quelle\s+est\s+ma\s+moyenne(?:\s+générale)?", "my grades"),
+    (r"(?:il\s+me\s+faut\s+combien|qu['’]est-ce\s+qu['’]il\s+me\s+faut|quelle\s+note\s+(?:il\s+me\s+faut|me\s+faut-il))\s+(?:au|à\s+mon|a\s+mon)\s+prochain\s+(?:test|contrôle|controle|examen)\s+(?:de|d['’]|en)\s*(.+?)\s+pour\s+(?:avoir|garder|atteindre)\s+(?:une\s+moyenne\s+de\s+|un\s+|une\s+)?(\d{1,3}(?:[.,]\d{1,2})?)",
+     lambda m, now: f"what do I need on the next {m.group(1)} test to get {m.group(2).replace(',', '.')}"),
+    (r"(?:il\s+me\s+faut\s+combien|qu['’]est-ce\s+qu['’]il\s+me\s+faut)\s+(?:en|pour\s+réussir\s+(?:en\s+)?)\s*(.+?)\s+pour\s+(?:avoir|garder|atteindre)\s+(?:une\s+moyenne\s+de\s+|un\s+|une\s+)?(\d{1,3}(?:[.,]\d{1,2})?)",
+     lambda m, now: f"what do I need on the next {m.group(1)} test to get {m.group(2).replace(',', '.')}"),
+    (r"(?:supprime|efface|enlève|enleve|annule)\s+ma\s+dernière\s+note|(?:supprime|efface|enlève|enleve|annule)\s+ma\s+derniere\s+note", "remove my last grade"),
+    (r"(?:commence[rz]?|nouveau|nouvelle)\s+(?:un\s+|une\s+)?(?:nouveau\s+|nouvelle\s+)?(?:semestre|trimestre|année\s+scolaire)", "start a new term"),
     # --- the timetable ---
     (r"(?:c['’]est\s+quoi|quel\s+est|c['’]est\s+quel)\s+(?:mon\s+)?prochain\s+cours|(?:mon\s+)?prochain\s+cours|j['’]ai\s+quoi\s+(?:comme\s+cours\s+)?(?:après|ensuite|maintenant)|(?:où|ou)\s+est\s+mon\s+prochain\s+cours", "what's my next class"),
     (rf"(?:qu['’]est-ce\s+que\s+j['’]ai|j['’]ai\s+quoi|quels?\s+cours\s+(?:j['’]ai|ai-je|est-ce\s+que\s+j['’]ai))\s+(?:comme\s+cours\s+)?(?:à\s+l['’]école\s+)?{FR_DAY}",
@@ -328,6 +350,9 @@ RULES: list[tuple[str, object]] = [
     (r"(?:ajoute[rz]?|mets?)\s+(.+?)\s+(?:à|a|dans)\s+mes\s+notes", lambda m, now: f"take a note: {m.group(1)}"),
     # --- study ---
     (r"(?:interroge[rz]?[- ]moi|teste[rz]?[- ]moi|pose[rz]?[- ]moi\s+des\s+questions|fais[- ]moi\s+(?:un\s+)?(?:quiz|quizz|test|qcm))(?:\s+(?:sur|à\s+propos\s+de|de|d['’])\s*(.+))?", lambda m, now: "quiz me" + (f" on {m.group(1)}" if m.group(1) else "")),
+    (r"(?:ajoute[rz]?|crée[rz]?|cree[rz]?|fais)(?:[- ]moi)?\s+une\s+(?:carte|fiche|flashcard)\s*:?\s*(.+?)\s*(\||=|->|→)\s*(.+)", lambda m, now: f"add a flashcard: {m.group(1)} | {m.group(3)}"),
+    (r"(?:révise[rz]?|revise[rz]?|réviser|reviser)\s+(?:mes|les)\s+(?:cartes|fiches|flashcards)(?:\s+du\s+jour|\s+d['’]aujourd['’]hui)?|(?:mes\s+)?(?:cartes|fiches)\s+à\s+réviser|révision\s+des\s+(?:cartes|fiches)", "review my cards"),
+    (r"combien\s+(?:de|d['’])\s*(?:cartes|fiches|flashcards)\s+(?:à\s+réviser|j['’]ai\s+à\s+réviser|sont\s+à\s+réviser)(?:\s+aujourd['’]hui)?|mon\s+(?:paquet|deck)(?:\s+de\s+cartes)?", "how many cards are due"),
     (r"(?:fais[- ]moi\s+(?:des\s+)?|crée[rz]?\s+(?:des\s+)?|des\s+)?(?:fiches|flashcards|cartes)(?:\s+de\s+révisions?)?(?:\s+(?:sur|de|d['’])\s*(.+))?", lambda m, now: "flashcards" + (f" on {m.group(1)}" if m.group(1) else "")),
     (r"(?:arrête[rz]?|arrete[rz]?|stoppe[rz]?|termine[rz]?)\s+(?:le\s+)?(?:quiz|quizz|test|les\s+fiches)", "stop the quiz"),
     # --- focus ---
@@ -364,7 +389,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

@@ -4,6 +4,11 @@
 "flashcards on the heart"   shows a question, then the answer when you ask
 "quiz me on what I got wrong" asks the questions you missed before
 "plan revision for the chemistry exam on 20 november"  adds the exam and three revision tasks in the planner
+"review my cards"           goes through the flashcards that are due today (spaced repetition)
+
+Spaced repetition: every flashcard you see, and every quiz question you miss, goes into your deck. A card you know comes back
+after 3, then 7, 14, 30 and 60 days; a card you miss comes back the next day and starts again. "add a flashcard: question | answer"
+adds your own.
 Questions come from your saved documents and notes (or the model's own knowledge when nothing matches). Everything stays on this PC.
 """
 from __future__ import annotations
@@ -19,6 +24,9 @@ from pathlib import Path
 import planner as planner_module
 
 IDLE_SECONDS, DEFAULT_QUESTIONS, MAX_QUESTIONS, KEEP_MISSED, KEEP_SESSIONS = 20 * 60, 5, 20, 100, 60
+INTERVALS = [1, 3, 7, 14, 30, 60]          # days until a card comes back, by box (box 0 = just missed)
+MAX_DECK, MAX_REVIEW = 2000, 40
+REMOVE_CARD = re.compile(r"(?:delete|remove|drop|bin|forget)\s+(?:this|that|the)\s+(?:card|question|one)|(?:i\s+)?(?:do\s?n'?t|dont)\s+need\s+(?:this|that)\s+(?:card|one)", re.I)
 STOP = re.compile(r"(?:stop|end|quit|cancel|finish|exit|leave)(?:\s+(?:the|this|my))?\s*(?:quiz|test|flash\s?cards?|cards|study(?:\s+mode)?|session|revision)?|that'?s enough|i'?m done|enough(?: for now)?|no more(?: questions)?", re.I)
 SKIP = re.compile(r"skip(?:\s+(?:it|this|that|this one))?|pass|i\s+(?:do\s?n'?t|dont)\s+know(?:\s+(?:this|that|it))?|idk|no idea|not sure|give up|show(?:\s+me)?(?:\s+the)?\s+answer|what(?:'s| is)\s+the\s+answer|reveal(?:\s+the\s+answer)?|answer(?:\s+please)?|flip(?:\s+(?:it|the card))?|turn it over", re.I)
 KNEW = re.compile(r"got it|i\s+knew\s+(?:it|that|this)|knew it|easy|i\s+know\s+(?:it|this|that)|correct|right|yes", re.I)
@@ -65,10 +73,92 @@ class Study:
         except (OSError, ValueError):
             data = {}
         data = data if isinstance(data, dict) else {}
-        for key in ("sessions", "missed"):
+        for key in ("sessions", "missed", "deck"):
             if not isinstance(data.get(key), list):
                 data[key] = []
         return data
+
+    # ---- the deck (spaced repetition) ----
+    @staticmethod
+    def _key(q: str) -> str:
+        return re.sub(r"\W+", " ", (q or "").lower()).strip()
+
+    def deck_add(self, q: str, a: str, topic: str = "", knew: bool = False, today=None, data: dict | None = None) -> dict:
+        """Adds a card (or, if it is already there and was missed, starts it again). Saves unless `data` is given."""
+        today = today or datetime.now().date()
+        own = data is None
+        data = data if data is not None else self.load()
+        key = self._key(q)
+        card = next((c for c in data["deck"] if self._key(c["q"]) == key), None)
+        if card is None:
+            if len(data["deck"]) >= MAX_DECK:
+                data["deck"] = sorted(data["deck"], key=lambda c: (c.get("box", 0) < 5, c.get("added", 0)))[1:]
+            box = 1 if knew else 0
+            card = {"id": "%08x" % self.rng.getrandbits(32), "q": q.strip()[:400], "a": a.strip()[:500], "topic": (topic or "")[:80], "box": box,
+                    "due": (today + timedelta(days=INTERVALS[box])).isoformat(), "added": time.time(), "reviews": 0, "lapses": 0}
+            data["deck"].append(card)
+        elif not knew:
+            card.update({"box": 0, "due": (today + timedelta(days=1)).isoformat(), "lapses": card.get("lapses", 0) + 1})
+        if own:
+            self.save(data)
+        return card
+
+    def deck_update(self, q: str, knew: bool, today=None) -> dict | None:
+        today = today or datetime.now().date()
+        data = self.load()
+        card = next((c for c in data["deck"] if self._key(c["q"]) == self._key(q)), None)
+        if card is None:
+            return None
+        card["reviews"] = card.get("reviews", 0) + 1
+        if knew:
+            card["box"] = min(card.get("box", 0) + 1, len(INTERVALS) - 1)
+        else:
+            card["box"], card["lapses"] = 0, card.get("lapses", 0) + 1
+        card["due"] = (today + timedelta(days=INTERVALS[card["box"]])).isoformat()
+        self.save(data)
+        return card
+
+    def deck_remove(self, card_id_or_q: str) -> bool:
+        data = self.load()
+        keep = [c for c in data["deck"] if c["id"] != card_id_or_q and self._key(c["q"]) != self._key(card_id_or_q)]
+        if len(keep) == len(data["deck"]):
+            return False
+        data["deck"] = keep
+        self.save(data)
+        return True
+
+    def deck_due(self, today=None) -> list[dict]:
+        today = (today or datetime.now().date()).isoformat()
+        return sorted([c for c in self.load()["deck"] if c["due"] <= today], key=lambda c: (c["due"], c.get("box", 0)))
+
+    def deck_stats(self, today=None) -> dict:
+        today = today or datetime.now().date()
+        deck = self.load()["deck"]
+        due = [c for c in deck if c["due"] <= today.isoformat()]
+        upcoming = sorted(c["due"] for c in deck if c["due"] > today.isoformat())
+        return {"total": len(deck), "due": len(due), "learned": sum(1 for c in deck if c.get("box", 0) >= 3), "next": upcoming[0] if upcoming else None}
+
+    def deck_text(self, today=None) -> str:
+        st = self.deck_stats(today)
+        if not st["total"]:
+            return ("Your flashcard deck is empty, sir. Cards you see in “flashcards on …”, and quiz questions you miss, are added to it; "
+                    "or add your own: “add a flashcard: What is the powerhouse of the cell? | The mitochondria”.")
+        head = f"{st['due']} card{'s' if st['due'] != 1 else ''} to review today" if st["due"] else "Nothing to review today"
+        nxt = f" The next ones are due on {datetime.strptime(st['next'], '%Y-%m-%d').strftime('%A %d %B')}." if not st["due"] and st["next"] else ""
+        return f"{head}, sir: {st['total']} card{'s' if st['total'] != 1 else ''} in your deck, {st['learned']} well learned.{nxt}" + (" Say “review my cards” to start." if st["due"] else "")
+
+    def start_review(self, count: int | None = None) -> str:
+        due = self.deck_due()
+        if not due:
+            return self.deck_text()
+        s = {"mode": "flash", "topic": "your review", "total": min(len(due), count or MAX_REVIEW), "asked": 0, "correct": 0, "partly": 0, "missed": [],
+             "current": None, "revealed": False, "asked_qs": [], "queue": [(c["q"], c["a"]) for c in due][: count or MAX_REVIEW], "passages": [], "at": time.time(),
+             "redo": False, "review": True, "seen": []}
+        self.session = s
+        first = self.present(s)
+        more = f" ({len(due) - s['total']} more after this)" if len(due) > s["total"] else ""
+        return (f"Review: {s['total']} card{'s' if s['total'] != 1 else ''} due{more}. Say “show answer” to flip, “got it” or “again” to score yourself, "
+                f"“delete this card” to drop one, “stop” to end; what you have done is saved as you go.\n\n{first}")
 
     def save(self, data: dict) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -78,7 +168,9 @@ class Study:
 
     def public(self) -> dict:
         data = self.load()
-        return {"active": bool(self.session), "sessions": data["sessions"][-10:], "missed": len(data["missed"])}
+        cards = sorted(data["deck"], key=lambda c: (c["due"], c.get("box", 0)))[:300]
+        return {"active": bool(self.session), "sessions": data["sessions"][-10:], "missed": len(data["missed"]), "deck": self.deck_stats(),
+                "cards": [{"id": c["id"], "q": c["q"], "a": c["a"], "topic": c.get("topic", ""), "box": c.get("box", 0), "due": c["due"]} for c in cards]}
 
     # ---- questions ----
     def next_question(self, s: dict) -> tuple[str, str] | None:
@@ -115,25 +207,37 @@ class Study:
             data["sessions"].append({"at": time.time(), "topic": s["topic"], "mode": s["mode"], "asked": asked, "correct": s["correct"], "partly": s["partly"]})
             data["sessions"] = data["sessions"][-KEEP_SESSIONS:]
         known = {m["q"] for m in data["missed"]}
-        for q, a in s["missed"]:
-            if q not in known:
-                data["missed"].append({"q": q, "a": a, "topic": s["topic"], "at": time.time()})
-        data["missed"] = data["missed"][-KEEP_MISSED:]
+        if not s.get("review"):
+            for q, a in s["missed"]:
+                if q not in known:
+                    data["missed"].append({"q": q, "a": a, "topic": s["topic"], "at": time.time()})
+            data["missed"] = data["missed"][-KEEP_MISSED:]
+            missed_qs = {q for q, _ in s["missed"]}
+            for q, a, knew in s.get("seen", []):                     # flashcards you saw go into the deck
+                if q not in missed_qs:
+                    self.deck_add(q, a, s["topic"], knew=knew, data=data)
+            for q, a in s["missed"]:                                 # and everything you missed
+                self.deck_add(q, a, s["topic"], knew=False, data=data)
         self.save(data)
         if asked <= 0:
             return (lead + ". " if lead else "") + "Quiz ended, sir."
         score = f"{s['correct']} of {asked} right" + (f", {s['partly']} partly" if s["partly"] else "")
         text = (lead + ". " if lead else "") + f"{'Cards' if s['mode'] == 'flash' else 'Quiz'} finished, sir: {score}."
+        if s.get("review"):
+            st = self.deck_stats()
+            return text + (f" The ones you missed come back tomorrow." if s["missed"] else "") + (f" {st['due']} still due today." if st["due"] else " Nothing else is due today.")
         if s["missed"]:
             text += "\nTo review:\n" + "\n".join(f"• {q} → {a}" for q, a in s["missed"][:6]) + "\nSay “quiz me on what I got wrong” to go through them again."
         else:
             text += " Nothing missed."
+        if s.get("seen") or s["missed"]:
+            text += " These cards are in your deck now; I will bring them back when they are due."
         return text
 
     def start(self, topic: str, mode: str, count: int, missed_only: bool = False) -> str:
         topic = topic.strip(" .,:;")
         s = {"mode": mode, "topic": topic or "your material", "total": max(1, min(count, MAX_QUESTIONS)), "asked": 0, "correct": 0, "partly": 0, "missed": [],
-             "current": None, "revealed": False, "asked_qs": [], "queue": [], "passages": [], "at": time.time(), "redo": missed_only}
+             "current": None, "revealed": False, "asked_qs": [], "queue": [], "passages": [], "at": time.time(), "redo": missed_only, "seen": []}
         note = ""
         if missed_only:
             data = self.load()
@@ -209,14 +313,26 @@ class Study:
             return self.finish(s)
         cur = s["current"]
         if s["mode"] == "flash":
+            if REMOVE_CARD.fullmatch(t):
+                self.deck_remove(cur["q"])
+                s["asked_qs"].append(cur["q"])
+                return self.advance(s, "Removed from your deck.")
             if SKIP.fullmatch(t):
                 s["revealed"] = True
                 return f"Answer: {cur['a']}\nSay “got it” or “again”."
             if KNEW.fullmatch(t):
                 s["correct"] += 1
+                if s.get("review"):
+                    card = self.deck_update(cur["q"], True)
+                    days = INTERVALS[card["box"]] if card else None
+                    return self.advance(s, f"Good. Back in {days} days." if days else "Good.")
+                s["seen"].append((cur["q"], cur["a"], True))
                 return self.advance(s, "Good.")
             if MISSED.fullmatch(t):
                 self.mark_missed(s)
+                if s.get("review"):
+                    self.deck_update(cur["q"], False)
+                    return self.advance(s, f"Answer: {cur['a']}\nIt comes back tomorrow." if not s["revealed"] else "It comes back tomorrow.")
                 return self.advance(s, "I will keep it for review.")
             if NEXT.fullmatch(t):
                 return self.advance(s, "")
@@ -294,8 +410,24 @@ class Study:
                 when = planner_module.parse_when(m.group(1), now)
                 if when.get("date") is not None:
                     return self.plan_revision(when["rest"], when, now)
-            if re.fullmatch(r"(?:my\s+)?(?:study|quiz)\s+(?:stats|statistics|progress|scores?|history)|how\s+am\s+i\s+(?:doing|going)\s+(?:at|with|in)\s+(?:my\s+)?(?:studying|revision|quizzes)", low):
+            if re.fullmatch(r"(?:my\s+)?(?:study|quiz)\s+(?:stats|statistics|progress|scores?|history)|how\s+am\s+i\s+doing\s+(?:at|with|in)\s+(?:my\s+)?(?:studying|revision|quizzes)|how\s+am\s+i\s+going\s+(?:at|with|in)\s+(?:my\s+)?(?:studying|revision|quizzes)", low):
                 return self.stats_text()
+            # ---- the deck ----
+            m = (re.fullmatch(r"(?:add|make|create|new|save)\s+(?:a\s+|this\s+)?(?:new\s+)?flash\s?card\s*:?\s*(?P<q>.+?)\s*(?:\||=|->|→|::|\s[-–—]\s)\s*(?P<a>.+)", t, re.I)
+                 or re.fullmatch(r"(?:add|make|create|new|save)\s+(?:a\s+|this\s+)?(?:new\s+)?flash\s?card\s*:?\s*(?P<q>[^?]{4,}\?)\s*(?P<a>[^?]+)", t, re.I))
+            if m:
+                q, a = m.group("q").strip(" :"), m.group("a").strip()
+                if len(q) < 3 or not a:
+                    return "Give the question and the answer, sir, for example “add a flashcard: capital of Peru | Lima”."
+                card = self.deck_add(q, a, "your own cards", knew=False, today=now.date())
+                return f"Added to your deck, sir: “{card['q']}” → {card['a']}. It comes up for review tomorrow."
+            if re.fullmatch(r"(?:add|create|new|save)\s+(?:a\s+|this\s+)?(?:new\s+)?flash\s?card(?:\s*:.*)?", t, re.I):
+                return "Give the question and the answer, sir, for example “add a flashcard: capital of Peru | Lima”."
+            m = re.fullmatch(r"(?:(?:let'?s\s+)?(?:do\s+)?(?:my\s+)?(?:flash\s?card\s+|card\s+)?reviews?|review\s+(?:my\s+|the\s+|today'?s\s+)?(?:flash\s?cards?|cards|deck|due\s+cards)(?:\s+(?:for\s+)?today)?|(?:flash\s?card|card)\s+review|start\s+(?:my\s+)?(?:flash\s?card\s+|card\s+)?review)(?:\s+(?:with\s+)?(\d{1,2})(?:\s+cards?)?)?", low)
+            if m:
+                return self.start_review(int(m.group(1)) if m.group(1) else None)
+            if re.fullmatch(r"how\s+many\s+(?:flash\s?)?cards\s+(?:are\s+|do\s+i\s+have\s+)?(?:due|to\s+review|left)(?:\s+today)?|(?:show\s+|what(?:'s|\s+is)\s+in\s+)?my\s+(?:flash\s?card\s+)?deck|(?:flash\s?)?cards\s+due(?:\s+today)?|what(?:'s|\s+is)\s+due(?:\s+today)?", low):
+                return self.deck_text(now.date())
             count = DEFAULT_QUESTIONS
             m = re.search(r"\b(\d{1,2})\s+(?:questions?|cards?|flash\s?cards?)\b", t, re.I)
             if m:

@@ -814,6 +814,12 @@ def build_briefing(weather: bool = True, reminders: bool = True, system: bool = 
                 parts += countdowns_module.soon(countdowns_obj(), now)[:3]
             except Exception:
                 pass
+            try:
+                due = study_obj().deck_stats(now.date())["due"]
+                if due:
+                    parts.append(f"You have {due} flashcard{'s' if due != 1 else ''} to review today; say “review my cards”.")
+            except Exception:
+                pass
         if system:
             snap = system_snapshot()
             notes = []
@@ -963,6 +969,7 @@ import exams as exams_module
 import countdowns as countdowns_module
 import timetable as timetable_module
 import bench as bench_module
+import grades as grades_module
 import focus as focus_module
 import search_all
 import network as network_module
@@ -1150,6 +1157,26 @@ def planner_obj():
         PLANNER_CACHE["path"], PLANNER_CACHE["obj"] = path, planner_module.Planner(path)
         PLANNER_CACHE["obj"].extra_events = timetable_events
     return PLANNER_CACHE["obj"]
+
+
+# ---------------- grades ----------------
+GRADES: dict = {"path": None, "obj": None}
+
+
+def grades_obj() -> "grades_module.Grades":
+    path = data_path("grades.json")
+    if GRADES["path"] != path:
+        GRADES["path"], GRADES["obj"] = path, grades_module.Grades(path)
+    return GRADES["obj"]
+
+
+def grades_command(text: str) -> str | None:
+    known = sorted({l["subject"] for l in timetable_obj().lessons()})
+    return grades_module.command(text, grades_obj(), datetime.now(), known, planner_module.parse_when)
+
+
+def grades_public() -> dict:
+    return {**grades_module.summary(grades_obj()), "known": sorted({l["subject"] for l in timetable_obj().lessons()} | {g["subject"] for g in grades_obj().data()["grades"]})}
 
 
 # ---------------- the model test bench ----------------
@@ -5290,6 +5317,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/bench":
             self.send_json(200, bench_status())
             return
+        if path == "/api/grades":
+            self.send_json(200, grades_public())
+            return
         if path == "/api/exams":
             self.send_json(200, {"exams": exams_public()})
             return
@@ -5828,6 +5858,27 @@ class Handler(BaseHTTPRequestHandler):
                                 net.trust(mac, (net.wifi().get("ssid") or "") if iface["wifi"] else "")
                                 audit("network: marked as the user's own network")
                             self.send_json(200, {"text": personalize(net.devices_text(net.scan(iface, sweep=True)))})
+            elif path == "/api/grades":
+                try:
+                    store = grades_obj()
+                    if payload.get("remove"):
+                        store.remove(str(payload["remove"]))
+                    elif isinstance(payload.get("scale"), dict):
+                        sc = payload["scale"]
+                        store.set_scale(sc.get("preset") if sc.get("preset") in grades_module.PRESETS else None, **{k: sc.get(k) for k in ("min", "max", "pass", "higher_better", "round") if k in sc})
+                    elif payload.get("new_term"):
+                        store.new_term()
+                    elif isinstance(payload.get("add"), dict):
+                        a = payload["add"]
+                        try:
+                            value, weight = float(str(a.get("value")).replace(",", ".")), float(a.get("weight") or 1)
+                            day = datetime.strptime(str(a.get("date") or datetime.now().date().isoformat()), "%Y-%m-%d").date()
+                        except (TypeError, ValueError):
+                            raise ValueError("Give the grade as a number, for example 5 or 4.5.") from None
+                        store.add(str(a.get("subject") or ""), value, weight, day, str(a.get("note") or ""))
+                    self.send_json(200, grades_public())
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path == "/api/bench":
                 try:
                     bench = bench_obj()
@@ -6030,6 +6081,23 @@ class Handler(BaseHTTPRequestHandler):
             elif path == "/api/spotify/disconnect":
                 spotify_module.disconnect(spotify_path())
                 self.send_json(200, spotify_module.public(spotify_path(), spotify_redirect()))
+            elif path == "/api/study/deck":
+                st = study_obj()
+                try:
+                    if payload.get("remove"):
+                        st.deck_remove(str(payload["remove"]))
+                    elif isinstance(payload.get("add"), dict):
+                        q, a = str(payload["add"].get("q") or "").strip(), str(payload["add"].get("a") or "").strip()
+                        if len(q) < 3 or not a:
+                            raise ValueError("Write a question and its answer.")
+                        st.deck_add(q, a, str(payload["add"].get("topic") or "your own cards"))
+                    elif payload.get("clear") is True:
+                        data = st.load()
+                        data["deck"] = []
+                        st.save(data)
+                    self.send_json(200, st.public())
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path == "/api/study/clear":
                 st = study_obj()
                 data = st.load()
@@ -6782,6 +6850,10 @@ class Handler(BaseHTTPRequestHandler):
         focus_reply = focus_obj().command(latest)
         if focus_reply:
             self.send_json(200, {"reply": focus_reply, "action": None})
+            return
+        grades_reply = grades_command(latest)
+        if grades_reply:
+            self.send_json(200, {"reply": grades_reply, "action": None})
             return
         exams_reply = exams_command(latest)
         if exams_reply:

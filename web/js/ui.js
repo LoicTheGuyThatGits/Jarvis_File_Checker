@@ -62,6 +62,8 @@
     'exams and revision': 'exam test countdown revise study plan schedule days left',
     'countdowns': 'countdown days until how long holiday holidays vacation christmas birthday trip event date left weeks',
     'timetable': 'timetable school lessons classes schedule next class room bring subject emploi du temps cours evening',
+    'flashcard deck': 'flashcards cards deck spaced repetition review due study learn remember fiches cartes',
+    'grades': 'grades marks average averages report card test results scale term semester notes moyenne pass',
     'compare models': 'compare models test bench benchmark speed quality which model better faster ollama evaluate fine-tune',
     'focus timer': 'pomodoro concentrate deep work study session break timer',
     'this jarvis': 'install folder path location where running directory version copy python data folder',

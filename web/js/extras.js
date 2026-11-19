@@ -126,6 +126,57 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
   }
+  if ($('gr-add')) {
+    var grFmt = function (x) { return x == null ? '–' : String(Math.round(x * 100) / 100); };
+    var grDraw = function (d) {
+      var sel = $('gr-preset');
+      if (!sel.options.length) { Object.keys(d.presets).forEach(function (k) { var o = document.createElement('option'); o.value = k; o.textContent = d.presets[k]; sel.append(o); }); var c = document.createElement('option'); c.value = 'custom'; c.textContent = 'My own scale'; sel.append(c); }
+      sel.value = d.scale.preset; $('gr-custom').classList.toggle('hidden', d.scale.preset !== 'custom');
+      $('gr-min').value = d.scale.min; $('gr-max').value = d.scale.max; $('gr-pass').value = d.scale.pass; $('gr-higher').checked = !!d.scale.higher_better;
+      $('gr-value').min = d.scale.min; $('gr-value').max = d.scale.max;
+      var dl = $('gr-subjects'); dl.textContent = ''; (d.known || []).forEach(function (n) { var o = document.createElement('option'); o.value = n; dl.append(o); });
+      var list = $('gr-list'); list.textContent = '';
+      d.subjects.forEach(function (sub) {
+        var li = document.createElement('li'), head = document.createElement('div'), chips = document.createElement('div');
+        head.className = 'gr-head'; chips.className = 'gr-chips';
+        var name = document.createElement('strong'); name.textContent = sub.subject;
+        var avg = document.createElement('span'); avg.className = 'gr-avg' + (sub.passing ? '' : ' low'); avg.textContent = grFmt(sub.average) + (sub.rounded != null && sub.rounded !== sub.average ? ' → ' + grFmt(sub.rounded) : '');
+        var n = document.createElement('span'); n.className = 'settings-note'; n.textContent = sub.count + ' grade' + (sub.count === 1 ? '' : 's');
+        head.append(name, avg, n);
+        sub.grades.forEach(function (g) {
+          var chip = document.createElement('span'), x = document.createElement('button');
+          chip.className = 'gr-chip'; chip.title = g.date + (g.note ? ' · ' + g.note : '') + (g.weight !== 1 ? ' · weight ' + g.weight : '');
+          chip.textContent = grFmt(g.value) + (g.weight === 2 ? '×2' : g.weight === 3 ? '×3' : g.weight === 0.5 ? '×½' : '');
+          x.type = 'button'; x.textContent = '×'; x.setAttribute('aria-label', 'Remove ' + g.value + ' in ' + sub.subject + ' from ' + g.date);
+          x.addEventListener('click', function () { api('/api/grades', { remove: g.id }).then(grDraw).catch(function (e) { $('gr-status').textContent = e.message; }); });
+          chip.append(x); chips.append(chip);
+        });
+        li.append(head, chips); list.append(li);
+      });
+      if (!d.subjects.length) { var li = document.createElement('li'); li.textContent = 'No grades yet' + (d.term_start ? ' this term' : '') + '.'; list.append(li); }
+      $('gr-overall').textContent = d.overall == null ? '' : 'Overall average (mean of the subject averages): ' + grFmt(d.overall) + (d.term_start ? ' · term started ' + d.term_start : '') + (d.earlier ? ' · ' + d.earlier + ' earlier grade' + (d.earlier === 1 ? '' : 's') + ' kept' : '');
+    };
+    var grLoad = function () { api('/api/grades').then(grDraw).catch(function () {}); };
+    var grErr = function (e) { $('gr-status').textContent = e.message; };
+    $('gr-date').value = new Date().toISOString().slice(0, 10);
+    $('gr-add').addEventListener('click', function () {
+      api('/api/grades', { add: { subject: $('gr-subject').value, value: $('gr-value').value, weight: $('gr-weight').value, date: $('gr-date').value, note: $('gr-note').value } })
+        .then(function (d) { grDraw(d); $('gr-status').textContent = 'Added.'; $('gr-value').value = ''; $('gr-note').value = ''; $('gr-weight').value = '1'; $('gr-value').focus(); }).catch(grErr);
+    });
+    $('gr-preset').addEventListener('change', function () {
+      if (this.value === 'custom') { $('gr-custom').classList.remove('hidden'); return; }
+      api('/api/grades', { scale: { preset: this.value } }).then(function (d) { grDraw(d); $('gr-status').textContent = 'Scale saved.'; }).catch(function (e) { grErr(e); grLoad(); });
+    });
+    $('gr-scale-save').addEventListener('click', function () {
+      api('/api/grades', { scale: { min: $('gr-min').value, max: $('gr-max').value, pass: $('gr-pass').value, higher_better: $('gr-higher').checked, round: 0 } }).then(function (d) { grDraw(d); $('gr-status').textContent = 'Scale saved.'; }).catch(grErr);
+    });
+    $('gr-term').addEventListener('click', function () {
+      if (!window.confirm('Start a new term? Averages will count only the grades you add from now on. Earlier grades are kept.')) return;
+      api('/api/grades', { new_term: true }).then(function (d) { grDraw(d); $('gr-status').textContent = 'New term started.'; }).catch(grErr);
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') grLoad(); });
+    window.addEventListener('jarvis:reply', function (e) { if (e.detail && /grade|average|term/i.test(e.detail.text || '')) grLoad(); });
+  }
   if ($('bench-start')) {
     var benchTimer = null, benchRunId = null, benchShown = '';
     var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };

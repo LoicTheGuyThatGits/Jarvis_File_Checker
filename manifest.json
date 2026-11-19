@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "f4530798e85b86865126ad5420b4782b2d6e38451004ce568381f86664509400",
-   "size": 70793
+   "sha256": "9ecf17b00c5c25f9e23c9fd5dac14470f017c96224ee27f2265d2f3dc7f84538",
+   "size": 72680
   },
   {
    "path": "app/backup.py",
@@ -64,13 +64,18 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "d46b75f84d046ebe5ed6ba34951c9f21cfd55a6ceff3de5d9c56d69d71aad8e3",
-   "size": 29688
+   "sha256": "0d6760c2a842a60eb00168e10811c3fc9bd8efea63465f991b4b7a18eb18c589",
+   "size": 32611
   },
   {
    "path": "app/gmail_reader.py",
    "sha256": "fdc654f4e9fc86b06afcef5ad214dbc849c6b52d049e0a62dc44d952368f2ea2",
    "size": 8814
+  },
+  {
+   "path": "app/grades.py",
+   "sha256": "5272c94fe78397676b1ae36cb20f9319c536b648bfb88fabfa3aeea5669d544e",
+   "size": 21451
   },
   {
    "path": "app/ical.py",
@@ -154,8 +159,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "18fe7929bea4655f2c821a6fef5d2431bb8d55f77f915e53c56dc6ba988f70a8",
-   "size": 436114
+   "sha256": "0082cff8bd103565c7318e9041e5f55de22db0dabf634e5ac90f5ddc58155690",
+   "size": 439792
   },
   {
    "path": "app/set-address.py",
@@ -174,8 +179,8 @@
   },
   {
    "path": "app/study.py",
-   "sha256": "807e2cf9f4059746304c155d33b943d06fafb2df2b7817be057ae9c005cd894d",
-   "size": 19200
+   "sha256": "39eac83abc1db59d9c86b0455a2fef11a91f57f55159f1aee5c6cc86961d6238",
+   "size": 28545
   },
   {
    "path": "app/telegram_bot.py",
@@ -294,8 +299,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "8c1c338f8b372ac0493b5310aeda0e979c9e789daae206842b3709dd0229507c",
-   "size": 54967
+   "sha256": "79f9c1f60e5143cd527c61ea0cfb2dfd834b60f05dfbda89dd1a3f753fc2980b",
+   "size": 56423
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -309,8 +314,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "1cafc7ee1cf2b1fa410e6037ba3dc56c9ecafbd3d5f7e63077e6f592027b0554",
-   "size": 66684
+   "sha256": "94333b05084ccafc3b33cb519b8a1d567a2cbc339b448a7c01305affe7dae137",
+   "size": 70242
   },
   {
    "path": "web/js/app.js",
@@ -329,8 +334,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "da54f2282241b2034048f1d0416828ceb816fb1fa93f3151a418393b46ffdeb8",
-   "size": 32760
+   "sha256": "950230ec1590786f8838828f56f197512db7cfe8817eda57b8575a6df12ef45e",
+   "size": 37770
   },
   {
    "path": "web/js/features.js",
@@ -344,8 +349,8 @@
   },
   {
    "path": "web/js/notes.js",
-   "sha256": "ad02ac59bc6a9ead35dbbaa9b8925e8d03fe0af9ca67ff9545349d0d1a80aaf4",
-   "size": 3499
+   "sha256": "10db72d76360fa9912d893a71925e6c736696f983b5f4e9504336b341fb97744",
+   "size": 5442
   },
   {
    "path": "web/js/phone.js",
@@ -374,8 +379,8 @@
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "62f23d92fb25e9ac4cb1b08bb5457b4979ab2531270eaa92ec50dc938d112b8c",
-   "size": 18326
+   "sha256": "da58d55b68837ee4069d47f41555ac0beb6081ca1f3a3e58ffb20023aa1c9e56",
+   "size": 18548
   },
   {
    "path": "web/js/wake.js",

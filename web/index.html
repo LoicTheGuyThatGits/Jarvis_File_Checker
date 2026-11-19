@@ -361,6 +361,11 @@
         <p class="settings-note">Say “quiz me on chapter 3” and Jarvis asks questions from your saved documents (Settings > Chats) and your notes, one at a time, and marks your answers. Also: “flashcards on the heart”, “quiz me with 10 questions”, “quiz me on what I got wrong”, “plan revision for the chemistry exam on 20 November” (adds the exam and three revision tasks to your planner) and “my study stats”. Say “stop quiz” to end. Everything stays on this PC.</p>
         <p class="settings-note" id="study-stats" role="status"></p>
         <div class="inline-form"><button type="button" id="study-clear">Clear missed questions</button></div>
+        <h3 class="settings-subheading">Flashcard deck</h3>
+        <p class="settings-note">Spaced repetition: the flashcards you see and the quiz questions you miss go into your deck. A card you know comes back after 3, 7, 14, 30 and then 60 days; one you miss comes back the next day. Say “review my cards” (the morning briefing tells you how many are due), “how many cards are due”, or “add a flashcard: capital of Peru | Lima”. During a review, “delete this card” drops one.</p>
+        <p class="settings-note" id="deck-stats" role="status"></p>
+        <div class="inline-form deck-form"><input type="text" id="deck-q" placeholder="Question" maxlength="400" aria-label="Question"><input type="text" id="deck-a" placeholder="Answer" maxlength="500" aria-label="Answer"><button type="button" id="deck-add">Add card</button><button type="button" id="deck-review" class="settings-action">Review now</button></div>
+        <details class="deck-cards"><summary id="deck-summary">Cards</summary><ul class="settings-list" id="deck-list"></ul></details>
       </div>
     </div>
 
@@ -421,6 +426,25 @@
         <ul class="settings-list tt-list" id="tt-list"></ul>
         <div class="inline-form"><label class="settings-check"><input type="checkbox" id="tt-prep"> The evening before school, tell me what tomorrow brings (first lesson, what to bring, tests and tasks due) at</label><input type="time" id="tt-prep-time" value="19:00" aria-label="Time of the evening message"></div>
         <p class="settings-note" id="tt-status" role="status"></p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Grades</h2>
+        <p class="settings-note">Your grades and averages per subject. In chat: “I got a 5 in maths”, “I got 4.5 on the French test, counts double”, “I got 17/20 in English” (converted to your scale), “what's my average in maths?”, “my grades”, “what do I need on the next maths test to keep a 4.5?”, “what do I need to pass French?”, “remove my last grade”, “start a new term”; in French too (“j'ai eu un 5 en maths”, “quelle est ma moyenne en maths ?”). Averages are weighted (a test that counts double has weight 2) and shown with the report-card rounding.</p>
+        <div class="inline-form gr-scale"><label class="cd-date">Scale <select id="gr-preset" aria-label="Grading scale"></select></label><span id="gr-custom" class="hidden">
+          <label class="cd-date">lowest <input type="number" id="gr-min" step="any" aria-label="Lowest grade"></label><label class="cd-date">highest <input type="number" id="gr-max" step="any" aria-label="Highest grade"></label><label class="cd-date">pass <input type="number" id="gr-pass" step="any" aria-label="Pass mark"></label>
+          <label class="settings-check"><input type="checkbox" id="gr-higher" checked> higher is better</label><button type="button" id="gr-scale-save" class="settings-action">Save scale</button></span></div>
+        <div class="inline-form gr-form">
+          <input type="text" id="gr-subject" list="gr-subjects" placeholder="Subject" maxlength="40" aria-label="Subject"><datalist id="gr-subjects"></datalist>
+          <input type="number" id="gr-value" step="0.01" placeholder="Grade" aria-label="Grade">
+          <select id="gr-weight" aria-label="Weight"><option value="1">counts once</option><option value="2">counts double</option><option value="3">counts triple</option><option value="0.5">counts half</option></select>
+          <input type="date" id="gr-date" aria-label="Date">
+          <input type="text" id="gr-note" placeholder="Note (optional)" maxlength="60" aria-label="Note">
+          <button type="button" id="gr-add">Add</button>
+        </div>
+        <p class="settings-note" id="gr-overall"></p>
+        <ul class="settings-list gr-list" id="gr-list"></ul>
+        <div class="inline-form"><button type="button" id="gr-term" class="settings-action">Start a new term</button></div>
+        <p class="settings-note" id="gr-status" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Countdowns</h2>
