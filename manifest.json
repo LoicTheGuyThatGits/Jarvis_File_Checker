@@ -64,8 +64,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "0d6760c2a842a60eb00168e10811c3fc9bd8efea63465f991b4b7a18eb18c589",
-   "size": 32611
+   "sha256": "ce9c0f9f4cbdc6f5b48fa0b67fe0d01be4bfe3893189f7361782627a3a2470b8",
+   "size": 32722
   },
   {
    "path": "app/gmail_reader.py",
@@ -314,8 +314,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "94333b05084ccafc3b33cb519b8a1d567a2cbc339b448a7c01305affe7dae137",
-   "size": 70242
+   "sha256": "daf957f9f9af2523e22edb67a36208ecd80450b6e0b0a41775ced9838c3946d2",
+   "size": 70262
   },
   {
    "path": "web/js/app.js",
