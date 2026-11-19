@@ -68,7 +68,7 @@ asked=[]; answer={"v":'{"steps": []}'}
 S.router_ask_model=lambda system,user:(asked.append((system,user)) or answer["v"])
 chatted=[]
 orig=S.Handler.proxy_chat if hasattr(S.Handler,"proxy_chat") else None
-s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==23 and all(t["risk"] in ("read","write") for t in d["tools"])
+s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==24 and all(t["risk"] in ("read","write") for t in d["tools"])
 names={t["name"] for t in d["tools"]}; assert not any(w in n for n in names for w in ("delete","mail","backup","restore","clean","update","file","command")), names
 # off: the model is never asked
 answer["v"]=J(("add_event",{"title":"physics test","when":"on the 20th"}))
@@ -166,7 +166,7 @@ with sync_playwright() as pw:
     pg.on("pageerror",lambda e:errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(400)
     pg.click("button:has-text('Settings') >> nth=0"); pg.click("#tab-tools")
-    pg.wait_for_function("document.querySelector('#router-on').checked && document.querySelector('#router-note').textContent.includes('23 tools')",timeout=8000)
+    pg.wait_for_function("document.querySelector('#router-on').checked && document.querySelector('#router-note').textContent.includes('24 tools')",timeout=8000)
     pg.uncheck("#router-on"); pg.wait_for_function("document.querySelector('#router-note').textContent==='Off.'",timeout=8000); assert S.router_enabled() is False
     pg.check("#router-on"); pg.wait_for_function("document.querySelector('#router-note').textContent.startsWith('On.')",timeout=8000); assert S.router_enabled() is True
     pg.keyboard.press("Escape")

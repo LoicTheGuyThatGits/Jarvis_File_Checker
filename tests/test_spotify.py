@@ -35,10 +35,18 @@ class H(BaseHTTPRequestHandler):
         u=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(u.query)
         if u.path=="/v1/me": return self.send(200,{"display_name":"Loic"})
         if u.path=="/v1/me/player/devices": return self.send(200,{"devices":st["devices"]})
+        if u.path=="/v1/me/player": return self.send(200,{"item":{"name":"Now","uri":"spotify:track:now"}}) if st.get("playing",True) else self.send(204)
+        if u.path=="/v1/me/player/queue":
+            q_=[{"name":x.split(":")[-1].replace("_"," ").title(),"uri":x,"artists":[{"name":"Some Artist"}]} for x in st["queued"][-8:]]
+            return self.send(200,{"currently_playing":{"name":"Now","uri":"spotify:track:now","artists":[{"name":"DJ"}]} if st.get("playing",True) else None,"queue":q_+q_})
+        if u.path=="/v1/albums/d/tracks": return self.send(200,{"items":[{"uri":"spotify:track:d%d"%i} for i in range(1,15)]})
+        if u.path=="/v1/playlists/w/tracks": return self.send(200,{"items":[{"track":{"uri":"spotify:track:w1"}},{"track":{"uri":"spotify:episode:e"}},{"track":{"uri":"spotify:track:w2"}}]})
         if u.path=="/v1/me/playlists": return self.send(200,{"items":[{"name":"Workout Mix","uri":"spotify:playlist:w"},{"name":"Chill","uri":"spotify:playlist:c"}]})
         if u.path=="/v1/search":
             kind=q["type"][0]; term=q["q"][0].lower()
             if "nothing" in term: return self.send(200,{kind+"s":{"items":[]}})
+            if kind=="track" and term.startswith('artist:"'): return self.send(200,{"tracks":{"items":[{"name":n,"uri":"spotify:track:"+n.replace(" ","_").lower(),"artists":[{"name":"Queen"}]} for n in ("Bohemian Rhapsody","Radio Ga Ga","Under Pressure","Under Pressure","Somebody to Love")]}})
+            if kind=="track" and " and " in term and "bobby" not in term: return self.send(200,{"tracks":{"items":[]}})
             if kind=="track": return self.send(200,{"tracks":{"items":[{"name":term.split(" artist:")[0].title(),"uri":"spotify:track:"+term.split(" artist:")[0].replace(" ","_"),"artists":[{"name":"Some Artist"}]}]}})
             if kind=="album": return self.send(200,{"albums":{"items":[{"name":"Discovery","uri":"spotify:album:d","artists":[{"name":"Daft Punk"}]}]}})
             if kind=="artist": return self.send(200,{"artists":{"items":[{"name":"Queen","uri":"spotify:artist:q"}] if term=="queen" else []}})
@@ -68,7 +76,36 @@ assert "Queen" in sp.command("play Queen on spotify",path) and st["played"][-1][
 assert "Playing “Radiohead”" in sp.command("play Radiohead on spotify",path) and st["played"][-1][1]["uris"], "unknown artist name falls back to a song"
 assert "Added" in sp.command("queue Yellow on spotify",path) and st["queued"]==["spotify:track:yellow"]
 assert "could not find" in sp.command("play nothing at all on spotify",path)
-assert "only queue single songs" in sp.command("queue the album Discovery on spotify",path)
+# ---- the queue ----
+def q(text):
+    st["queued"].clear(); return sp.command(text,path)
+for t in ("queue Yellow","add Yellow to the queue","put Yellow in my queue","Jarvis, could you add Yellow to my Spotify queue please","play Yellow next","play Yellow after this song","queue up the song Yellow"):
+    r=q(t); assert r=="Added “Yellow” by Some Artist to your queue, sir." and st["queued"]==["spotify:track:yellow"],(t,r,st["queued"])
+r=q("queue Yellow by Coldplay"); assert st["queued"]==["spotify:track:yellow"] and "Yellow" in r
+r=q("queue Yellow, Fix You and then Clocks"); assert st["queued"]==["spotify:track:yellow","spotify:track:fix_you","spotify:track:clocks"] and r.startswith("Added “Yellow” by Some Artist, “Fix You” by Some Artist and “Clocks”"),r
+r=q("queue Yellow and Fix You"); assert st["queued"]==["spotify:track:yellow","spotify:track:fix_you"],r
+r=q("queue Me and Bobby McGee"); assert st["queued"]==["spotify:track:me_and_bobby_mcgee"],r
+r=q("queue a song by Queen"); assert len(st["queued"])==1 and st["queued"][0] in ("spotify:track:bohemian_rhapsody","spotify:track:radio_ga_ga","spotify:track:under_pressure","spotify:track:somebody_to_love"),r
+r=q("queue 3 songs by Queen"); assert len(st["queued"])==3 and len(set(st["queued"]))==3,r
+r=q("queue 10 songs by Queen"); assert len(st["queued"])==4,"only the distinct songs found"
+r=q("queue the album Discovery by Daft Punk"); assert len(st["queued"])==14 and r=="Added the album “Discovery” by Daft Punk (14 songs) to your queue, sir.",r
+r=q("queue my workout playlist"); assert st["queued"]==["spotify:track:w1","spotify:track:w2"] and "Workout Mix" in r,r
+r=q("queue Yellow then nothing at all"); assert st["queued"]==["spotify:track:yellow"] and r.endswith("I could not find nothing at all."),r
+r=q("queue nothing at all"); assert r=="I could not find nothing at all on Spotify, sir." and not st["queued"]
+assert q("queue it").startswith("Which song should I add to the queue") and q("queue this song").startswith("Which song")
+assert "Clear queue" in q("clear the queue") and "Clear queue" in q("remove Yellow from the queue")
+q("queue Yellow, Clocks")
+r=sp.command("what's in my queue",path); assert r=="Now playing “Now” by DJ. Up next, sir: 1. “Yellow” by Some Artist; 2. “Clocks” by Some Artist.",r
+assert sp.command("what song is next",path)==r and sp.command("show my queue",path)==r
+# nothing playing: the first song starts, the rest are queued behind it
+st["playing"]=False; n=len(st["played"]); real_sleep=time.sleep; time.sleep=lambda s:None
+r=q("queue Yellow then Clocks"); assert st["played"][n:]==[(["dev1"],{"uris":["spotify:track:yellow"]})] and st["queued"]==["spotify:track:clocks"] and r.startswith("Nothing was playing, so I started Spotify with"),r
+r=q("queue Yellow"); assert r=="Nothing was playing, so I started “Yellow” by Some Artist on Spotify, sir." and not st["queued"],r
+assert sp.command("what's in my queue",path).startswith("Nothing is playing on Spotify")
+st["playing"]=True; time.sleep=real_sleep
+# not queue requests
+for t in ("play the next song","play next","add homework next","add milk to my shopping list","what's next","what's up next"):
+    assert sp.queue_request(t) is None,t
 st["premium"]=False; assert "Premium" in sp.command("play Yellow on spotify",path); st["premium"]=True
 # token refresh
 cfg=sp.load(path); cfg["expires_at"]=0; sp.save(path,cfg); n=st["tokens"]; sp.command("play Yellow on spotify",path); assert st["tokens"]==n+1 and st["last_form"]["grant_type"]=="refresh_token"
@@ -93,7 +130,14 @@ s,page=call("GET",f"/api/spotify/callback?code=goodcode&state={state}"); assert 
 s,d=call("GET","/api/spotify"); assert d["connected"] and d["user"]=="Loic"
 st["devices"]=[{"id":"dev1","is_active":True,"is_restricted":False}]
 r=call("POST","/api/chat",{"messages":[{"role":"user","content":"play Blinding Lights on Spotify"}],"stream":False})[1]["reply"]; assert "Playing" in r, r
+chat=lambda t: call("POST","/api/chat",{"messages":[{"role":"user","content":t}],"stream":False})[1]["reply"]
+for t in ("queue Yellow","add Yellow to the queue","add Yellow by Coldplay to my queue","play Yellow next","queue up Yellow please","put Yellow in the queue","ajoute Yellow à la file d'attente"):
+    st["queued"].clear(); r=chat(t); assert st["queued"]==["spotify:track:yellow"] and ("Added" in r or "Ajouté" in r or "ajouté" in r or "file" in r), (t, r)
+st["queued"].clear(); r=chat("queue 3 songs by Queen"); assert len(st["queued"])==3, r
+r=chat("what's in my queue"); assert "Up next" in r, r
+r=chat("qu'est-ce qu'il y a dans la file d'attente"); assert st["queued"] and ("suivre" in r or "Up next" in r or "attente" in r or "ensuite" in r.lower() or "1." in r), r
 s,d=call("POST","/api/spotify/disconnect",{}); assert not d["connected"]
+assert "not connected" in chat("queue Yellow") and "not connected" in chat("what's in my queue")
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_context(viewport={"width":1280,"height":900}).new_page(); errs=[]

@@ -1883,6 +1883,9 @@ def router_registry() -> tools_registry.Registry:
     def play_music(args):
         return spotify_module.command(f"play {args['what']} on spotify", spotify_path(), spotify_launch)
 
+    def queue_music(args):
+        return spotify_module.command(f"queue {args['what']} on spotify", spotify_path(), spotify_launch)
+
     reg.add("add_task", "Put something the person has to do on their to-do list.",
             {"text": {"desc": "what has to be done, without the date words", "required": True}, "when": {"desc": "optional deadline: " + when_desc}},
             add_task, r"\b(?:to-?do|task|list|need to|have to|got to|gotta|must|should|don'?t (?:let me )?forget|homework|hand in|finish|buy|bring|pack)\b",
@@ -1933,6 +1936,9 @@ def router_registry() -> tools_registry.Registry:
     reg.add("play_music", "Play a song, artist, album or playlist on Spotify.",
             {"what": {"desc": "the song, artist, album or playlist named in the message", "required": True}},
             play_music, r"\b(?:play|put on|listen to|spotify|music|song|playlist|album)\b")
+    reg.add("queue_music", "Add songs to the Spotify queue, to play after the current song (not now).",
+            {"what": {"desc": "the song(s), \"a song by <artist>\", album or playlist named in the message", "required": True}},
+            queue_music, r"\b(?:queue|next|after this|up next|afterwards)\b")
     reg.add("days_until", "Say how many days are left until something: a vacation, a holiday, a birthday, Christmas, an event in the calendar or a date.",
             {"what": {"desc": "the thing or date named in the message, e.g. \"the Christmas vacation\", \"my birthday\", \"25 December\"", "required": True, "free": True}},
             days_until_step, r"\b(?:days?|weeks?|sleeps|long)\s+(?:left\s+|to\s+go\s+)?(?:until|till|til|before|to)\b|\bcountdowns?\b|\bhow\s+(?:far|soon)\s+(?:off|away)\b",

@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "384f62dfd87de926a1bdbff4c1aec2722c5fb8230efe9306f4d517caab0a9127",
-   "size": 75497
+   "sha256": "556a7262649c9489cffb7b9d02d21d67e29c3fe665c99e76b7bb5be55cecb57b",
+   "size": 76233
   },
   {
    "path": "app/backup.py",
@@ -69,8 +69,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "ce9c0f9f4cbdc6f5b48fa0b67fe0d01be4bfe3893189f7361782627a3a2470b8",
-   "size": 32722
+   "sha256": "dd126493a1ae8c2f7127d08089bef8e4ecd1b7c1ccf54e0e63e65e6f42668333",
+   "size": 33958
   },
   {
    "path": "app/gmail_reader.py",
@@ -169,8 +169,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "c196361b9e127eb211d74b2a4446f08cd02bb3ef1631e084966ea08d43155c55",
-   "size": 457732
+   "sha256": "25354016ad40aead5d290f51f3232278b9a085ee3d6f8246acadf0afd18a86d3",
+   "size": 458177
   },
   {
    "path": "app/set-address.py",
@@ -184,8 +184,8 @@
   },
   {
    "path": "app/spotify.py",
-   "sha256": "e1a06c164e95787d2eb81c831edb024efc697b43bf3e1bc611bdd6abd16126f2",
-   "size": 14371
+   "sha256": "e74ce9a1d9bbaa1025ff9c2cfb118df07d7481e42226fc89b3a8b1531309dd81",
+   "size": 28643
   },
   {
    "path": "app/study.py",

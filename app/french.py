@@ -380,6 +380,11 @@ RULES: list[tuple[str, object]] = [
     (r"clique[rz]?\s+sur\s+(?:le\s+lien\s+|l['’]onglet\s+|le\s+menu\s+)?(.+)", lambda m, now: f"click on {m.group(1)}"),
     (r"(?:qu['’]est-ce\s+qu['’]il\s+y\s+a|qu['’]y\s+a-t-il|c['’]est\s+quoi)\s+(?:sur|à)\s+(?:mon\s+|l['’])écran|regarde[rz]?\s+(?:mon\s+|l['’])écran", "what's on my screen"),
     # --- music ---
+    (r"(?:qu['’]est-ce\s+qu['’]il\s+y\s+a|qu['’]y\s+a-t-il|c['’]est\s+quoi|montre(?:[- ]moi)?)\s+(?:dans\s+)?(?:la|ma)\s+file(?:\s+d['’]attente)?(?:\s+(?:sur|de)\s+spotify)?|(?:quelle\s+est|c['’]est\s+quoi)\s+la\s+(?:prochaine|chanson\s+suivante)(?:\s+chanson|\s+musique)?|quelle\s+(?:chanson|musique)\s+(?:vient\s+)?(?:après|ensuite)", "what's in my queue"),
+    (r"(?:vide[rz]?|efface[rz]?)\s+(?:la|ma)\s+file(?:\s+d['’]attente)?", "clear the queue"),
+    (r"(?:mets?|ajoute[rz]?)\s+(?:une|des|quelques|(\d+))\s+(?:chansons?|musiques?|titres?)\s+(?:de|du\s+groupe)\s+(.+?)\s+(?:à|a|dans)\s+(?:la|ma)\s+file(?:\s+d['’]attente)?", lambda m, now: f"queue {m.group(1) or 'a few'} songs by {m.group(2)}"),
+    (r"(?:ajoute[rz]?|rajoute[rz]?|mets?|mettre)\s+(.+?)\s+(?:à|a|dans)\s+(?:la|ma)\s+file(?:\s+d['’]attente)?(?:\s+(?:sur|de)\s+spotify)?", lambda m, now: "queue " + re.sub(r"\s+(?:puis|ensuite|et\s+après)\s+", " then ", re.sub(r"\s+(?:de|du\s+groupe|par)\s+(?=[A-Z])", " by ", m.group(1)))),
+    (r"(?:mets?|joue[rz]?)\s+(.+?)\s+(?:juste\s+)?(?:après|ensuite)(?:\s+(?:celle-ci|cette\s+chanson|ça))?", lambda m, now: "play " + re.sub(r"\s+(?:de|du\s+groupe|par)\s+(?=[A-Z])", " by ", m.group(1)) + " next"),
     (r"(?:mets?|joue[rz]?|lance[rz]?)\s+(.+?)\s+sur\s+spotify", lambda m, now: f"play {m.group(1)} on spotify"),
     # --- updates, backup, PC health ---
     (r"(?:vérifie[rz]?|verifie[rz]?|cherche[rz]?)\s+(?:les\s+|s['’]il\s+y\s+a\s+des\s+)?mises?\s+à\s+jour|(?:y\s+a-t-il|il\s+y\s+a)\s+(?:une|des)\s+mises?\s+à\s+jour", "check for updates"),
