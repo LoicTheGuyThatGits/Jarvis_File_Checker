@@ -214,6 +214,20 @@ def _countdown_statement(m, now):
     return _countdown_text(m.group(1) + " " + m.group(2), now)
 
 
+FR_DAY = r"(demain|aujourd['’]hui|ce\s+matin|cet\s+après-midi|lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)"
+
+
+def fr_day(word: str | None) -> str:
+    w = (word or "").lower().replace("’", "'")
+    if not w:
+        return ""
+    if w == "demain":
+        return " tomorrow"
+    if w.startswith("aujourd") or w.startswith("ce matin") or w.startswith("cet"):
+        return " today"
+    return " on " + DAYS.get(w, w)
+
+
 FR_UNITS = {"jours": "days", "semaines": "weeks", "mois": "months", "dodos": "sleeps", "temps": "days"}
 FAMOUS = r"(?:vacances|noël|noel|pâques|paques|nouvel\s+an|réveillon|reveillon|anniversaire|halloween|saint[- ]valentin|week-?end|rentrée|rentree)"
 
@@ -274,6 +288,18 @@ RULES: list[tuple[str, object]] = [
     (rf"(?:mon\s+|ma\s+|l['’]|le\s+)?{EXAM}\s+(?:de\s+|d['’]|en\s+)(.+?)\s+(?:est|a\s+lieu|aura\s+lieu|c['’]est|tombe)\s+(.+)", _exam),
     (rf"(?:quand\s+(?:sont|est-ce\s+que\s+sont)\s+mes\s+{EXAM}s?|mes\s+{EXAM}s?|compte\s+à\s+rebours(?:\s+des\s+{EXAM}s?)?|(?:combien\s+de\s+(?:jours|temps)\s+(?:avant|jusqu['’]à)|c['’]est\s+quand)\s+(?:mes?\s+|mon\s+|ma\s+|les?\s+|l['’])?(?:prochains?\s+)?{EXAM}s?.*)", "exam countdown"),
     (rf"(?:planifie[rz]?|organise[rz]?|prépare[rz]?|prepare[rz]?|fais)(?:[- ]moi)?\s+(?:un\s+planning\s+de\s+|un\s+plan\s+de\s+|mes?\s+|les\s+)?révisions?(?:\s+pour\s+mes\s+{EXAM}s?)?", "plan my revision"),
+    # --- the timetable ---
+    (r"(?:c['’]est\s+quoi|quel\s+est|c['’]est\s+quel)\s+(?:mon\s+)?prochain\s+cours|(?:mon\s+)?prochain\s+cours|j['’]ai\s+quoi\s+(?:comme\s+cours\s+)?(?:après|ensuite|maintenant)|(?:où|ou)\s+est\s+mon\s+prochain\s+cours", "what's my next class"),
+    (rf"(?:qu['’]est-ce\s+que\s+j['’]ai|j['’]ai\s+quoi|quels?\s+cours\s+(?:j['’]ai|ai-je|est-ce\s+que\s+j['’]ai))\s+(?:comme\s+cours\s+)?(?:à\s+l['’]école\s+)?{FR_DAY}",
+     lambda m, now: "what classes do I have" + fr_day(m.group(1))),
+    (rf"(?:à|a)\s+quelle\s+heure\s+(?:je\s+commence|est-ce\s+que\s+je\s+commence|commence\s+l['’]école|commencent\s+les\s+cours)(?:\s+l['’]école)?\s*{FR_DAY}?",
+     lambda m, now: "when do I start" + fr_day(m.group(1))),
+    (rf"(?:à|a)\s+quelle\s+heure\s+(?:je\s+finis|je\s+termine|est-ce\s+que\s+je\s+finis|finit\s+l['’]école|finissent\s+les\s+cours)(?:\s+l['’]école)?\s*{FR_DAY}?",
+     lambda m, now: "when do I finish" + fr_day(m.group(1))),
+    (rf"(?:qu['’]est-ce\s+que\s+je\s+dois|je\s+dois|il\s+faut)\s+(?:prendre|apporter|emporter|amener)(?:\s+quoi)?(?:\s+à\s+l['’]école)?\s*{FR_DAY}?",
+     lambda m, now: "what do I need to bring" + (fr_day(m.group(1)) or " tomorrow")),
+    (r"quand\s+(?:est|ai-je|j['’]ai|est-ce\s+que\s+j['’]ai)\s+(?:mon\s+)?(?:prochain\s+)?cours\s+(?:de\s+|d['’])(.+)", lambda m, now: f"when is my next {m.group(1)} class"),
+    (r"(?:(?:montre|affiche|lis|donne)(?:[- ]moi)?\s+)?(?:mon|l['’])\s*(?:emploi\s+du\s+temps|horaire)(?:\s+de\s+la\s+semaine)?", "show my timetable"),
     # --- countdowns ("how many days until the Christmas vacation") ---
     (r"(?:ajoute[rz]?|crée[rz]?|cree[rz]?|mets?|lance[rz]?|fais|démarre[rz]?|demarre[rz]?)(?:[- ]moi)?\s+(?:un\s+)?compte\s+à\s+rebours\s+(?:pour|jusqu['’]à|jusqu['’]au|avant|de|des|du)\s+(.+)", _countdown),
     (r"((?:les\s+|mes\s+|nos\s+)?vacances\b.*?|(?:mon\s+|l['’])\s*anniversaire)\s+(?:sont|est|commencent|commence|tombent?|vont\s+être|va\s+être|c['’]est|ont\s+lieu|a\s+lieu)\s+((?:du|le|de)\s+.+|\d.+)", _countdown_statement),
@@ -338,7 +364,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:combien|quand|vacances|rebours|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

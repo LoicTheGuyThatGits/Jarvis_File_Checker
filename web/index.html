@@ -270,6 +270,18 @@
         <p class="settings-note" id="jm-status" role="status"></p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">Compare models</h2>
+        <p class="settings-note">Ask several local models the same questions, with the instructions Jarvis gives them in chat, to see which is faster and which answers better before you switch, or after training one. Each answer is checked automatically (Jarvis's manner, the right fact, French answered in French, PC requests turned into the right action, code in a code block), and you can pick the best answer to each question yourself, without seeing which model wrote it. “My own questions” takes your last ten messages from the training log (it stays on this PC). Smart commands adds 40 tool-picking examples per model. A comparison takes a few minutes per model; results are kept in <code>data\bench</code>. Also: <code>compare-models.bat</code>.</p>
+        <div class="bench-models" id="bench-models" role="group" aria-label="Models to compare"></div>
+        <div class="inline-form">
+          <select id="bench-set" aria-label="Questions"><option value="built-in">Built-in questions (20)</option><option value="mine">My own questions</option><option value="both">Both</option></select>
+          <label class="settings-check"><input type="checkbox" id="bench-smart"> Smart commands too</label>
+          <button type="button" id="bench-start">Compare</button><button type="button" id="bench-stop" class="hidden">Stop</button>
+        </div>
+        <p class="settings-note" id="bench-status" role="status"></p>
+        <div id="bench-results"></div>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Computer control</h2>
         <p class="settings-note">How Autopilot sees and works on this PC. Besides the screenshot, Jarvis reads the open windows, the controls Windows reports and all the text on the screen (Windows' own OCR), so it can click things by name and number instead of guessing positions. A model that cannot see pictures can still work from that text alone. Stop it at any time with the Stop button or Ctrl+Shift+F10.</p>
         <label class="settings-field">How Autopilot looks at the screen
@@ -393,6 +405,22 @@
         <div class="inline-form"><button type="button" id="pro-test">Test it now</button><button type="button" id="pro-mute">Not now</button></div>
         <p class="settings-note" id="pro-status"></p>
         <p class="settings-note">An event about to start and a nearly empty battery always get through the hourly limit and “not now”; during quiet hours only events do. Everything else is held and given together afterwards. You can also say “not now”, “do not disturb for two hours” or “you can interrupt me again”. With this switched off, events and tasks still pop up as reminders.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Timetable</h2>
+        <p class="settings-note">Your weekly lessons, if your school does not give you an iCal link (that goes under Calendars). Ask “what's my next class?”, “when do I finish today?”, “what classes do I have tomorrow?”, “when is my next maths lesson?” or “what do I need to bring tomorrow?”. Lessons also show up in “what do I have tomorrow”, in the morning briefing, and not at all during your holidays (countdowns with a first and last day, such as “Christmas vacation”). In chat: “add maths every Monday and Thursday from 8:15 to 9:00 in room B12”, “for PE I need to bring my sports kit”, “remove history from my timetable”.</p>
+        <div class="inline-form tt-form">
+          <select id="tt-day" aria-label="Day"><option value="0">Monday</option><option value="1">Tuesday</option><option value="2">Wednesday</option><option value="3">Thursday</option><option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option></select>
+          <input type="time" id="tt-start" value="08:15" aria-label="Start">
+          <input type="time" id="tt-end" value="09:00" aria-label="End">
+          <input type="text" id="tt-subject" placeholder="Subject" maxlength="40" aria-label="Subject">
+          <input type="text" id="tt-room" placeholder="Room" maxlength="20" aria-label="Room (optional)">
+          <input type="text" id="tt-bring" placeholder="Bring (optional)" maxlength="120" aria-label="What to bring (optional)">
+          <button type="button" id="tt-add">Add</button>
+        </div>
+        <ul class="settings-list tt-list" id="tt-list"></ul>
+        <div class="inline-form"><label class="settings-check"><input type="checkbox" id="tt-prep"> The evening before school, tell me what tomorrow brings (first lesson, what to bring, tests and tasks due) at</label><input type="time" id="tt-prep-time" value="19:00" aria-label="Time of the evening message"></div>
+        <p class="settings-note" id="tt-status" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Countdowns</h2>
@@ -532,9 +560,14 @@
           <option value="command">Tell Jarvis…</option><option value="say">Say…</option><option value="volume_down">Volume down</option><option value="volume_up">Volume up</option>
           <option value="wait">Wait</option><option value="briefing">Give the briefing</option><option value="run_command">Run PowerShell</option>
         </select><input type="text" id="step-value" aria-label="Step detail"><button type="button" id="step-add" class="settings-action">Add</button><button type="button" id="step-cancel" class="settings-action hidden">Cancel</button></div>
+        <label class="settings-check"><input type="checkbox" id="routine-sched-on"> Start it by itself on a schedule</label>
+        <div class="inline-form routine-schedule hidden" id="routine-schedule" role="group" aria-label="When the routine starts">
+          <span class="routine-days" id="routine-days"><label><input type="checkbox" value="0">Mon</label><label><input type="checkbox" value="1">Tue</label><label><input type="checkbox" value="2">Wed</label><label><input type="checkbox" value="3">Thu</label><label><input type="checkbox" value="4">Fri</label><label><input type="checkbox" value="5">Sat</label><label><input type="checkbox" value="6">Sun</label></span>
+          <label class="cd-date">at <input type="time" id="routine-time" value="07:30" aria-label="Time"></label>
+        </div>
         <label class="settings-check"><input type="checkbox" id="routine-auto"> Run without asking first (even with close-app or PowerShell steps)</label>
         <button type="button" id="routine-save" class="settings-action">Save routine</button>
-        <p class="settings-note" id="routine-note">Say a routine's name, for example “good night”, or “run good night”. Unless you tick “Run without asking first”, Jarvis shows the steps and waits for your approval. With it ticked, every step runs immediately, including closing apps and PowerShell commands.</p>
+        <p class="settings-note" id="routine-note">Say a routine's name, for example “good night”, or “run good night”. Unless you tick “Run without asking first”, Jarvis shows the steps and waits for your approval. With it ticked, every step runs immediately, including closing apps and PowerShell commands. A scheduled routine starts within ten minutes of its time while Jarvis is running (not later, if the PC was off), and asks for approval the same way. “Tell Jarvis…” steps can be anything you would type in chat, such as “start a 25 minute focus” or “play my study playlist”. You can also make routines in chat: “create a routine called study mode: open OneNote, start a 25 minute focus, play my study playlist”, “run good night every day at 22:30”, “add open Spotify to my study mode routine”, “my routines”.</p>
       </div>
       <div class="settings-section" id="telegram-section">
         <h2 class="settings-heading">Telegram</h2>

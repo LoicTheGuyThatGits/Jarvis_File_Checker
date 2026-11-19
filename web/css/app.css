@@ -576,3 +576,37 @@ html[data-boot="play"] .boot{display:flex}
 #cd-list li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 #cd-list li .cd-text{flex:1;min-width:0;overflow-wrap:anywhere}
 #cd-list li.cd-past{opacity:.6}
+
+.routine-schedule{flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}
+.routine-schedule.hidden{display:none}
+.routine-days{display:inline-flex;flex-wrap:wrap;gap:4px}
+.routine-days label{display:inline-flex;align-items:center;gap:3px;padding:3px 7px;border:1px solid var(--a20);border-radius:5px;font-size:12px;color:var(--muted);cursor:pointer}
+.routine-days label:has(input:checked){border-color:var(--accent);color:var(--text);background:var(--a12)}
+.routine-days input{margin:0}
+
+.tt-form{flex-wrap:wrap;gap:6px}
+.tt-form #tt-subject{flex:1 1 120px;min-width:0}
+.tt-form #tt-room{flex:0 1 80px;min-width:0}
+.tt-form #tt-bring{flex:1 1 140px;min-width:0}
+.tt-list li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.tt-list .tt-day{font-weight:600;color:var(--accent);margin-top:6px}
+.tt-list .tt-text{flex:1;min-width:0;overflow-wrap:anywhere}
+
+.bench-models{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.bench-models label{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--a20);border-radius:5px;font-size:12px;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+.bench-models label:has(input:checked){border-color:var(--accent);background:var(--a12)}
+.bench-table{width:100%;border-collapse:collapse;font-size:12px;margin:6px 0 10px}
+.bench-table th,.bench-table td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--a12);vertical-align:top}
+.bench-table td.num{font-family:var(--mono);text-align:right}
+.bench-wrap{overflow-x:auto;max-width:100%}
+.bench-q{border:1px solid var(--a12);border-radius:6px;margin:6px 0;padding:6px 8px}
+.bench-q summary{cursor:pointer;font-size:12px;color:var(--text)}
+.bench-q summary .bench-pickmark{color:var(--accent);margin-left:6px}
+.bench-ans{border-top:1px dashed var(--a12);padding:6px 0;font-size:12px}
+.bench-ans-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;color:var(--muted)}
+.bench-ans-head strong{color:var(--accent)}
+.bench-ans pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:4px 0;font:12px/1.45 var(--mono);color:var(--text);max-height:240px;overflow:auto}
+.bench-check{font-size:11px}
+.bench-check.ok{color:var(--muted)}
+.bench-check.bad{color:var(--warn)}
+.bench-ans.picked{background:var(--a12)}

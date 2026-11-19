@@ -342,6 +342,7 @@
       });
       bar.appendChild(quiet); row.after(bar);
       if (ev.download && typeof window.addDownloadCard === 'function') window.addDownloadCard(ev.download, bar);
+      if (ev.action && typeof showAction === 'function') showAction(ev.action);
     }
     if (ev.speak !== false && !ev.missed) window.dispatchEvent(new CustomEvent('jarvis:reply', { detail: { text: text, streamed: false } }));
   }
@@ -466,7 +467,7 @@
     clear(rList);
     if (!routines.length) rList.appendChild(el('li', 'tool-empty', 'No routines yet.'));
     routines.forEach(function (r) {
-      var li = el('li', 'tool-item'), text = el('span', 'tool-text', r.name + ' · ' + r.steps.length + ' step' + (r.steps.length === 1 ? '' : 's'));
+      var li = el('li', 'tool-item'), text = el('span', 'tool-text', r.name + ' · ' + r.steps.length + ' step' + (r.steps.length === 1 ? '' : 's') + (r.schedule ? ' · ' + schedText(r.schedule) : ''));
       var run = el('button', 'tool-act', 'Run'), edit = el('button', 'tool-act', 'Edit'), del = el('button', 'tool-del', '×');
       [run, edit, del].forEach(function (b) { b.type = 'button'; });
       del.setAttribute('aria-label', 'Delete ' + r.name); del.title = 'Delete';
@@ -476,7 +477,7 @@
       });
       edit.addEventListener('click', function () {
         stopStepEdit(); editingId = r.id; draft = JSON.parse(JSON.stringify(r.steps)); $('routine-name').value = r.name; $('routine-phrases').value = (r.phrases || []).join(', ');
-        $('routine-auto').checked = !!r.auto; renderDraft(); rNote.textContent = 'Editing “' + r.name + '”. Change the steps and press Save routine.';
+        $('routine-auto').checked = !!r.auto; setSched(r.schedule); renderDraft(); rNote.textContent = 'Editing “' + r.name + '”. Change the steps and press Save routine.';
       });
       del.addEventListener('click', function () { api('/api/routines/delete', { id: r.id }).then(function (d) { routines = d.items; if (editingId === r.id) resetDraft(); renderRoutines(); }).catch(function (e) { rNote.textContent = e.message; }); });
       li.append(text, run, edit, del); rList.appendChild(li);
@@ -509,7 +510,23 @@
       li.append(text, edit, up, down, del); rSteps.appendChild(li);
     });
   }
-  function resetDraft() { editingId = null; draft = []; stopStepEdit(); $('routine-name').value = ''; $('routine-phrases').value = ''; $('routine-auto').checked = false; renderDraft(); }
+  function resetDraft() { editingId = null; draft = []; stopStepEdit(); $('routine-name').value = ''; $('routine-phrases').value = ''; $('routine-auto').checked = false; setSched(null); renderDraft(); }
+  var DAY_NAMES = ['Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays', 'Sundays'];
+  function schedText(sc) {
+    var d = sc.days.join(','), when = d === '0,1,2,3,4,5,6' ? 'every day' : d === '0,1,2,3,4' ? 'weekdays' : d === '5,6' ? 'weekends' : sc.days.map(function (i) { return DAY_NAMES[i]; }).join(', ');
+    return when + ' at ' + sc.time;
+  }
+  function dayBoxes() { return Array.prototype.slice.call(document.querySelectorAll('#routine-days input')); }
+  function setSched(sc) {
+    $('routine-sched-on').checked = !!sc; $('routine-schedule').classList.toggle('hidden', !sc);
+    dayBoxes().forEach(function (b) { b.checked = sc ? sc.days.indexOf(+b.value) >= 0 : +b.value < 5; });
+    $('routine-time').value = sc ? sc.time : '07:30';
+  }
+  function getSched() {
+    if (!$('routine-sched-on').checked) return null;
+    return { days: dayBoxes().filter(function (b) { return b.checked; }).map(function (b) { return +b.value; }), time: $('routine-time').value };
+  }
+  $('routine-sched-on').addEventListener('change', function () { $('routine-schedule').classList.toggle('hidden', !this.checked); });
   function syncStepInput() { var h = STEP_HINTS[$('step-type').value] || ['', '']; $('step-value').placeholder = h[0]; $('step-value').value = h[1]; $('step-value').disabled = $('step-type').value === 'briefing' || $('step-type').value === 'show_desktop'; }
   $('step-type').addEventListener('change', syncStepInput); syncStepInput();
   function addStep() {
@@ -527,9 +544,10 @@
   $('routine-save').addEventListener('click', function () {
     var risky = draft.some(function (s) { return s.type === 'close_app' || s.type === 'run_command'; });
     if ($('routine-auto').checked && risky && !window.confirm('This routine will close apps or run PowerShell commands as soon as you start it, without asking. Save it that way?')) return;
-    api('/api/routines', { id: editingId, name: $('routine-name').value, phrases: $('routine-phrases').value, steps: draft, auto: $('routine-auto').checked }).then(function (d) {
+    api('/api/routines', { id: editingId, name: $('routine-name').value, phrases: $('routine-phrases').value, steps: draft, auto: $('routine-auto').checked, schedule: getSched() }).then(function (d) {
       routines = d.items; var n = $('routine-name').value.trim(); resetDraft(); renderRoutines(); rNote.textContent = 'Saved “' + n + '”. Say its name, or press Run.';
     }).catch(function (e) { rNote.textContent = e.message; });
   });
-  api('/api/routines').then(function (d) { routines = d.items; renderRoutines(); }).catch(function () {}); renderDraft();
+  api('/api/routines').then(function (d) { routines = d.items; renderRoutines(); }).catch(function () {}); setSched(null); renderDraft();
+  window.addEventListener('jarvis:reply', function (e) { if (e.detail && /routine/i.test(e.detail.text || '')) api('/api/routines').then(function (d) { routines = d.items; renderRoutines(); }).catch(function () {}); });
 })();

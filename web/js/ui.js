@@ -61,6 +61,8 @@
     'smart commands (experimental)': 'tool router brain understand natural language function calling agent undo',
     'exams and revision': 'exam test countdown revise study plan schedule days left',
     'countdowns': 'countdown days until how long holiday holidays vacation christmas birthday trip event date left weeks',
+    'timetable': 'timetable school lessons classes schedule next class room bring subject emploi du temps cours evening',
+    'compare models': 'compare models test bench benchmark speed quality which model better faster ollama evaluate fine-tune',
     'focus timer': 'pomodoro concentrate deep work study session break timer',
     'this jarvis': 'install folder path location where running directory version copy python data folder',
     'self-check': 'self test diagnostics check what works broken problems report debug',

@@ -140,14 +140,17 @@ class Countdowns:
         tmp.replace(self.path)
 
     def items(self, today: date | None = None) -> list[dict]:
-        """Soonest first; ones that ended more than a month ago are dropped."""
+        """Soonest first; ones that ended more than a month before `today` are left out. Only those that ended more than a month
+        before the real date are deleted from the file (asking about a day in the future must not delete anything)."""
         today = today or date.today()
+        real = date.today()
         with self.lock:
             items = self._load()
-            keep = [i for i in items if (i["end"] or i["start"]) >= today - timedelta(days=KEEP_AFTER_DAYS)]
+            keep = [i for i in items if (i["end"] or i["start"]) >= real - timedelta(days=KEEP_AFTER_DAYS)]
             if len(keep) != len(items):
                 self._save(keep)
-        return sorted(keep, key=lambda i: (i["start"], i["name"].lower()))
+        shown = [i for i in keep if (i["end"] or i["start"]) >= today - timedelta(days=KEEP_AFTER_DAYS)]
+        return sorted(shown, key=lambda i: (i["start"], i["name"].lower()))
 
     def add(self, name: str, start: date, end: date | None = None, mine: bool = False) -> tuple[dict, bool]:
         """(the countdown, True when it replaced one with the same name)."""

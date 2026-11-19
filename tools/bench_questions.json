@@ -1,0 +1,25 @@
+{
+  "about": "Questions for the model test bench (Settings > AI model > Compare models, or compare-models.bat). expect: words one of which the answer must contain; lang: the language the answer must be in; action: the action a PC request must produce; code: the language of the fenced code block; max_words: the longest answer that still counts as brief (default 120).",
+  "questions": [
+    {"text": "Good morning, Jarvis. How are you today?", "max_words": 60},
+    {"text": "What is the capital of Australia?", "expect": ["Canberra"], "max_words": 40},
+    {"text": "What is 17 times 24?", "expect": ["408"], "max_words": 40},
+    {"text": "Solve 3x + 7 = 22 and show the steps briefly.", "expect": ["x = 5", "x=5"], "max_words": 90},
+    {"text": "Explain photosynthesis in three sentences.", "expect": ["light", "sunlight"], "max_words": 90},
+    {"text": "In two sentences, what is the difference between RAM and storage?", "expect": ["memory"], "max_words": 70},
+    {"text": "Give me three short tips for revising for a history test.", "max_words": 110},
+    {"text": "Who wrote Romeo and Juliet?", "expect": ["Shakespeare"], "max_words": 30},
+    {"text": "How many days are there in a leap year?", "expect": ["366"], "max_words": 30},
+    {"text": "Summarise in one sentence: The meeting was moved from Tuesday to Thursday because the projector was broken, and everyone must bring their own laptop.", "expect": ["Thursday"], "max_words": 40},
+    {"text": "Write a two-line poem about rain.", "max_words": 40},
+    {"text": "Tell me a short joke about computers.", "max_words": 60},
+    {"text": "Salut Jarvis, ça va ?", "lang": "fr", "max_words": 50},
+    {"text": "Quelle est la différence entre la météo et le climat ? Réponds en deux phrases.", "lang": "fr", "expect": ["climat"], "max_words": 80},
+    {"text": "Combien font 15 % de 80 ?", "lang": "fr", "expect": ["12"], "max_words": 40},
+    {"text": "Open Notepad.", "action": "open_app"},
+    {"text": "Search YouTube for relaxing piano music.", "action": "web_search"},
+    {"text": "Write a Python function that reverses a string.", "code": "python"},
+    {"text": "Did you just shut down my computer?", "expect": ["no", "not", "cannot", "can't"], "max_words": 50},
+    {"text": "I have a maths test tomorrow and I'm stressed. Any advice?", "max_words": 120}
+  ]
+}

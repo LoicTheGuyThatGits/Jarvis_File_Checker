@@ -126,6 +126,100 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') loadRouter(); });
   }
+  if ($('bench-start')) {
+    var benchTimer = null, benchRunId = null, benchShown = '';
+    var esc = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+    var letters = 'ABCD';
+    var order = function (run, i) {            // the same shuffled order for a question every time it is drawn
+      var m = run.models.slice(), seed = 7 + i * 31 + run.id.length;
+      for (var k = m.length - 1; k > 0; k--) { seed = (seed * 9301 + 49297) % 233280; var j = Math.floor(seed / 233280 * (k + 1)); var t = m[k]; m[k] = m[j]; m[j] = t; }
+      return m;
+    };
+    var drawRun = function (run) {
+      var box = $('bench-results');
+      if (!run) { box.textContent = ''; return; }
+      var key = JSON.stringify([run.id, run.summary, run.questions.map(function (q) { return q.pick; })]);
+      if (key === benchShown) return; benchShown = key; benchRunId = run.id;
+      var html = '<p class="settings-note">Comparison of ' + esc(run.at) + (run.stopped ? ' (stopped early)' : '') + ':</p><div class="bench-wrap"><table class="bench-table"><thead><tr><th>Model</th><th>Seconds per answer</th><th>Tokens per second</th><th>Checks passed</th><th>Your picks</th>' + (run.smart ? '<th>Smart commands</th>' : '') + '</tr></thead><tbody>';
+      run.models.forEach(function (m) {
+        var s = run.summary[m] || {}, sm = (run.smart || {})[m] || {};
+        html += '<tr><td>' + esc(m) + (s.errors ? ' <span class="bench-check bad">(' + s.errors + ' failed)</span>' : '') + '</td><td class="num">' + (s.avg_seconds == null ? '–' : s.avg_seconds) + '</td><td class="num">' + (s.tokens_per_second == null ? '–' : s.tokens_per_second) + '</td><td class="num">' + (s.checks_pct == null ? '–' : s.checks_passed + '/' + s.checks_total + ' (' + s.checks_pct + '%)') + '</td><td class="num">' + (s.picks || 0) + '</td>' + (run.smart ? '<td class="num">' + (sm.right_tool_pct == null ? (sm.error ? 'failed' : '–') : sm.right_tool_pct + '% right, ' + sm.false_alarm_pct + '% false alarms') + '</td>' : '') + '</tr>';
+      });
+      html += '</tbody></table></div>';
+      run.questions.forEach(function (q, i) {
+        var models = order(run, i), picked = q.pick;
+        html += '<details class="bench-q"><summary>' + (i + 1) + '. ' + esc(q.text) + (q.source === 'mine' ? ' <em>(yours)</em>' : '') + (picked ? '<span class="bench-pickmark">✓ ' + esc(picked) + '</span>' : '') + '</summary>';
+        models.forEach(function (m, k) {
+          var a = q.answers[m]; if (!a) return;
+          var label = picked ? esc(m) : 'Answer ' + letters[k];
+          html += '<div class="bench-ans' + (picked === m ? ' picked' : '') + '"><div class="bench-ans-head"><strong>' + label + '</strong>' + (a.seconds != null ? '<span>' + a.seconds + ' s</span>' : '') +
+            (a.checks || []).map(function (c) { return '<span class="bench-check ' + (c[1] ? 'ok' : 'bad') + '">' + (c[1] ? '✓ ' : '✗ ') + esc(c[0]) + '</span>'; }).join('') +
+            '<button type="button" class="settings-action bench-pick" data-i="' + i + '" data-m="' + esc(m) + '">' + (picked === m ? 'Picked' : 'Best') + '</button></div>' +
+            (a.error ? '<p class="bench-check bad">' + esc(a.error) + '</p>' : '<pre>' + esc(a.text) + '</pre>') + '</div>';
+        });
+        html += '</details>';
+      });
+      var open = Array.prototype.map.call(box.querySelectorAll('details.bench-q'), function (d) { return d.open; });
+      box.innerHTML = html;
+      Array.prototype.forEach.call(box.querySelectorAll('details.bench-q'), function (d, i) { if (open[i]) d.open = true; });
+    };
+    var drawState = function (d) {
+      var models = d.models || [], box = $('bench-models');
+      if (box.dataset.list !== models.join('|')) {
+        var was = Array.prototype.filter.call(box.querySelectorAll('input:checked'), function () { return true; }).map(function (x) { return x.value; });
+        box.dataset.list = models.join('|'); box.textContent = '';
+        models.forEach(function (m) {
+          var l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox'; c.value = m;
+          c.checked = was.length ? was.indexOf(m) >= 0 : (m === d.current || m.split(':')[0] === d.current || models.length <= 2);
+          l.append(c, document.createTextNode(m)); box.append(l);
+        });
+        if (!models.length) box.textContent = d.ollama ? 'No models in Ollama yet.' : 'Ollama is not running, so the models cannot be listed.';
+      }
+      $('bench-start').classList.toggle('hidden', !!d.running); $('bench-stop').classList.toggle('hidden', !d.running);
+      $('bench-status').textContent = d.running ? 'Working: ' + d.step + ' (' + d.done + ' of ' + d.total + ')…' : d.error ? 'Stopped: ' + d.error : '';
+      if (d.own_available === 0) { var o = $('bench-set').querySelector('option[value="mine"]'); if (o) o.textContent = 'My own questions (none logged yet)'; }
+      if (!d.running) drawRun(d.run);
+      clearTimeout(benchTimer); if (d.running) benchTimer = setTimeout(benchLoad, 1500);
+    };
+    var benchLoad = function () { api('/api/bench').then(drawState).catch(function (e) { $('bench-status').textContent = e.message; }); };
+    $('bench-start').addEventListener('click', function () {
+      var models = Array.prototype.map.call(document.querySelectorAll('#bench-models input:checked'), function (x) { return x.value; });
+      if (models.length > 4) { $('bench-status').textContent = 'Pick at most four models.'; return; }
+      api('/api/bench', { start: { models: models, set: $('bench-set').value, smart: $('bench-smart').checked } }).then(drawState).catch(function (e) { $('bench-status').textContent = e.message; });
+    });
+    $('bench-stop').addEventListener('click', function () { api('/api/bench', { stop: true }).then(drawState).catch(function () {}); });
+    $('bench-results').addEventListener('click', function (e) {
+      var b = e.target.closest('.bench-pick'); if (!b || !benchRunId) return;
+      api('/api/bench', { pick: { run: benchRunId, index: +b.dataset.i, model: b.dataset.m } }).then(drawState).catch(function (err) { $('bench-status').textContent = err.message; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'ai') benchLoad(); });
+  }
+  if ($('tt-add')) {
+    var ttDraw = function (d) {
+      var list = $('tt-list'), last = -1; list.textContent = '';
+      (d.lessons || []).forEach(function (l) {
+        if (l.day !== last) { last = l.day; var h = document.createElement('li'); h.className = 'tt-day'; h.textContent = d.days[l.day]; list.append(h); }
+        var li = document.createElement('li'), text = document.createElement('span'), x = document.createElement('button');
+        text.className = 'tt-text'; text.textContent = l.start + '–' + l.end + '  ' + l.subject + (l.room ? ' · ' + l.room : '') + (l.bring ? ' · bring ' + l.bring : '');
+        x.type = 'button'; x.className = 'settings-action'; x.textContent = 'Remove'; x.setAttribute('aria-label', 'Remove ' + l.subject + ' on ' + d.days[l.day] + ' at ' + l.start);
+        x.addEventListener('click', function () { api('/api/timetable', { remove: l.id }).then(ttDraw).catch(function (e) { $('tt-status').textContent = e.message; }); });
+        li.append(text, x); list.append(li);
+      });
+      if (!(d.lessons || []).length) { var li = document.createElement('li'); li.textContent = 'No lessons yet.'; list.append(li); }
+      if (d.prep) { $('tt-prep').checked = !!d.prep.on; $('tt-prep-time').value = d.prep.time; }
+      if (d.text) $('tt-status').textContent = d.text;
+    };
+    var ttLoad = function () { api('/api/timetable').then(ttDraw).catch(function () {}); };
+    $('tt-add').addEventListener('click', function () {
+      api('/api/timetable', { day: +$('tt-day').value, start: $('tt-start').value, end: $('tt-end').value, subject: $('tt-subject').value, room: $('tt-room').value, bring: $('tt-bring').value })
+        .then(function (d) { ttDraw(d); $('tt-subject').value = ''; $('tt-room').value = ''; $('tt-bring').value = ''; $('tt-start').value = $('tt-end').value; $('tt-subject').focus(); })
+        .catch(function (e) { $('tt-status').textContent = e.message; });
+    });
+    var ttPrep = function () { api('/api/timetable', { prep: { on: $('tt-prep').checked, time: $('tt-prep-time').value } }).then(ttDraw).catch(function (e) { $('tt-status').textContent = e.message; }); };
+    $('tt-prep').addEventListener('change', ttPrep); $('tt-prep-time').addEventListener('change', ttPrep);
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && e.detail.pane === 'plan') ttLoad(); });
+    window.addEventListener('jarvis:reply', function (e) { if (e.detail && /timetable|lesson/i.test(e.detail.text || '')) ttLoad(); });
+  }
   if ($('cd-add')) {
     var cdShort = function (c) { return c.on ? (c.left === 0 ? 'last day' : c.left + ' d left') : c.days === 0 ? 'today' : c.days === 1 ? 'tomorrow' : c.days + ' d'; };
     var drawCountdowns = function (d) {

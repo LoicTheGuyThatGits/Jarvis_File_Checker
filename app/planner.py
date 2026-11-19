@@ -322,10 +322,18 @@ class Planner:
         return out
 
     # ---- spoken summaries ----
+    extra_events = None          # a function (start, end) -> [{"title", "start"}] for things kept elsewhere, such as timetable lessons
+
     def agenda_text(self, start: datetime, end: datetime, now: datetime, label: str) -> str:
         with self.lock:
             data = self.load()
-        events = sorted([e for e in data["events"] if start.timestamp() <= e["start"] < end.timestamp()], key=lambda e: e["start"])
+        extra = []
+        if self.extra_events:
+            try:
+                extra = list(self.extra_events(start, end))
+            except Exception:
+                extra = []
+        events = sorted([e for e in data["events"] + extra if start.timestamp() <= e["start"] < end.timestamp()], key=lambda e: e["start"])
         tasks = [t for t in data["tasks"] if not t.get("done") and t.get("due") and start.timestamp() <= t["due"] < end.timestamp()]
         if not events and not tasks:
             return f"Nothing is planned {label}, sir."

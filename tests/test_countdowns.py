@@ -115,6 +115,8 @@ fr_reply = call("POST", "/api/chat", {"messages": [{"role": "user", "content": "
 assert "20" in fr_reply["reply"], fr_reply
 
 # ---------- the page ----------
+# asking about a day far ahead (the timetable does) must not delete anything
+S.day_off(datetime.now().date() + timedelta(days=90)); assert [i["name"] for i in S.countdowns_obj().items()] == ["school trip", "ski week"]
 from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:
     b = pw.chromium.launch(); pg = b.new_context(viewport={"width": 1280, "height": 900}).new_page(); errs = []
@@ -127,7 +129,7 @@ with sync_playwright() as pw:
     pg.fill("#cd-name", "Exam party"); pg.fill("#cd-start", (datetime.now() + timedelta(days=1)).date().isoformat()); pg.click("#cd-add")
     pg.wait_for_function("document.querySelector('#cd-status').textContent.startsWith('Added')")
     assert pg.text_content("#countdown-days") == "tomorrow" and pg.text_content("#countdown-name") == "Exam party"
-    assert pg.locator("#cd-list li").count() == 3
+    assert pg.locator("#cd-list li").count() == 3, pg.evaluate("[...document.querySelectorAll('#cd-list li')].map(l=>l.textContent)")
     pg.locator("#cd-list li", has_text="Exam party").locator("button").click()
     pg.wait_for_function("document.querySelector('#cd-status').textContent === 'Removed Exam party.'")
     ph = b.new_context(viewport={"width": 390, "height": 844}).new_page(); ph.on("pageerror", lambda e: errs.append(str(e)))

@@ -73,6 +73,6 @@ with sync_playwright() as p:
     pg.locator("#cal-sources .plan-del").click(); pg.wait_for_function("document.querySelector('#cal-sources').innerText.includes('No calendar imported')")
     ical.time.time=real
     pg.fill("#settings-search","timetable"); pg.wait_for_timeout(300)
-    assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)")==["Import a calendar"]
+    assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)").count("Import a calendar")==1
     assert not errs, errs
 print("ical ok"); os._exit(0)

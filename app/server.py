@@ -799,6 +799,12 @@ def build_briefing(weather: bool = True, reminders: bool = True, system: bool = 
             mail_line = mail_brief_line()
             if mail_line:
                 parts.append(mail_line)
+            try:
+                school = timetable_module.brief_line(timetable_obj(), now, day_off)
+                if school:
+                    parts.append(school)
+            except Exception:
+                pass
             plan_line = planner_obj().brief_line(now)
             if plan_line:
                 parts.append(plan_line)
@@ -955,6 +961,8 @@ import overlay as overlay_module
 import french as french_module
 import exams as exams_module
 import countdowns as countdowns_module
+import timetable as timetable_module
+import bench as bench_module
 import focus as focus_module
 import search_all
 import network as network_module
@@ -1140,7 +1148,140 @@ def planner_obj():
     path = data_path("planner.json")
     if PLANNER_CACHE["path"] != path:
         PLANNER_CACHE["path"], PLANNER_CACHE["obj"] = path, planner_module.Planner(path)
+        PLANNER_CACHE["obj"].extra_events = timetable_events
     return PLANNER_CACHE["obj"]
+
+
+# ---------------- the model test bench ----------------
+BENCH: dict = {"path": None, "obj": None}
+
+
+def bench_ask(model: str, system: str, user: str) -> tuple[str, float, int | None]:
+    """One question to a local model, as chat would ask it: (answer, seconds, tokens written)."""
+    base = provider_profiles()["local"]["base"]
+    ensure_ollama(base)
+    messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
+    request = urllib.request.Request(base + "/chat/completions", data=json_bytes({"model": model, "stream": False, "messages": messages}), method="POST",
+                                     headers={"Authorization": "Bearer ollama", "Content-Type": "application/json"})
+    started = time.time()
+    with urllib.request.urlopen(request, timeout=300) as response:
+        data = json.loads(response.read().decode("utf-8", errors="replace"))
+    seconds = time.time() - started
+    tokens = (data.get("usage") or {}).get("completion_tokens")
+    return str(data["choices"][0]["message"]["content"] or ""), seconds, int(tokens) if isinstance(tokens, (int, float)) else None
+
+
+def bench_smart(model: str, limit: int) -> dict:
+    """Smart commands on part of the labelled examples (spread over all tools), with one model."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("jarvis_router_eval", ROOT / "tools" / "router_eval.py")
+    router_eval = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(router_eval)
+    examples = json.loads((ROOT / "tools" / "router_examples.json").read_text(encoding="utf-8"))["examples"]
+    step = max(1, len(examples) // max(1, limit))
+    chosen = examples[::step][:limit]
+    result = router_eval.evaluate(router_registry(), lambda system, user: router_ask_model(system, user, model), chosen, None)
+    return {k: result[k] for k in ("examples", "right_tool_pct", "right_arguments_pct", "false_alarm_pct", "seconds_per_call")}
+
+
+def bench_obj() -> "bench_module.Bench":
+    path = data_path("bench")
+    if BENCH["path"] != path:
+        BENCH["path"], BENCH["obj"] = path, bench_module.Bench(path, bench_ask, bench_smart)
+    return BENCH["obj"]
+
+
+def bench_questions(which: str, own: int = 10) -> list[dict]:
+    builtin = bench_module.load_questions(ROOT / "tools" / "bench_questions.json")
+    mine = bench_module.own_questions(training_dir(), own) if which in ("mine", "both") else []
+    return mine if which == "mine" else builtin + mine if which == "both" else builtin
+
+
+def bench_status() -> dict:
+    local = provider_profiles()["local"]
+    names = ollama_models(local["base"]) if ollama_up(local["base"]) else None
+    models = [n for n in (names or []) if "embed" not in n.lower()]
+    return {**bench_obj().state(), "models": models, "ollama": names is not None, "current": ai_settings(provider="local")["model"],
+            "own_available": len(bench_module.own_questions(training_dir(), 10))}
+
+
+# ---------------- the weekly timetable ----------------
+TIMETABLE: dict = {"path": None, "obj": None}
+TEST_WORDS = re.compile(r"\b(?:tests?|exams?|quiz(?:zes)?|contr[ôo]les?|examens?|evaluations?|assessments?|mocks?)\b", re.I)
+
+
+def timetable_obj() -> "timetable_module.Timetable":
+    path = data_path("timetable.json")
+    if TIMETABLE["path"] != path:
+        TIMETABLE["path"], TIMETABLE["obj"] = path, timetable_module.Timetable(path)
+    return TIMETABLE["obj"]
+
+
+def day_off(day) -> str | None:
+    """The name of the holiday a day falls in (from your countdowns with a first and last day), or None."""
+    try:
+        for item in countdowns_obj().items():
+            if item["end"] and item["start"] <= day <= item["end"] and re.search(countdowns_module.HOLIDAY_WORDS, item["name"], re.I):
+                return item["name"]
+    except Exception:
+        pass
+    return None
+
+
+def timetable_extras() -> dict:
+    def on_day(day):
+        start = datetime.combine(day, datetime.min.time()).timestamp()
+        return start, start + 86400
+    def tests(day):
+        a, b = on_day(day)
+        return [e["title"] for e in planner_obj().load()["events"] if a <= e.get("start", 0) < b and TEST_WORDS.search(e.get("title", ""))]
+    def due(day):
+        a, b = on_day(day)
+        return [t["text"] for t in planner_obj().load()["tasks"] if not t.get("done") and t.get("due") and a <= t["due"] < b]
+    return {"tests": tests, "due": due}
+
+
+def timetable_events(start: datetime, end: datetime) -> list[dict]:
+    """Lessons between two moments, as calendar events, so “what do I have tomorrow” includes them."""
+    out, day = [], start.date()
+    while datetime.combine(day, datetime.min.time()) < end and len(out) < 200:
+        for l in timetable_module.lessons_on(timetable_obj(), day, day_off):
+            when = timetable_module.at(day, l["start"])
+            if start <= when < end:
+                out.append({"title": l["subject"] + (f" ({l['room']})" if l.get("room") else ""), "start": when.timestamp(), "lesson": True})
+        day += timedelta(days=1)
+    return out
+
+
+def timetable_command(text: str) -> str | None:
+    return timetable_module.command(text, timetable_obj(), datetime.now(), day_off, timetable_extras())
+
+
+def timetable_public() -> dict:
+    now = datetime.now()
+    nxt = timetable_module.next_lesson(timetable_obj(), now, day_off)
+    return {"lessons": timetable_obj().lessons(), "prep": timetable_obj().config(), "days": timetable_module.DAYS,
+            "next": {"subject": nxt[0]["subject"], "room": nxt[0].get("room"), "start": nxt[1].isoformat(timespec="minutes")} if nxt else None}
+
+
+def timetable_tick(now: float, notify) -> None:
+    """In the evening (19:00 unless changed), once: what tomorrow brings at school."""
+    tt = timetable_obj()
+    cfg = tt.config()
+    if not cfg["on"]:
+        return
+    now_dt = datetime.fromtimestamp(now)
+    h, m = (int(x) for x in cfg["time"].split(":"))
+    late = (now_dt - now_dt.replace(hour=h, minute=m, second=0, microsecond=0)).total_seconds()
+    if not 0 <= late <= 3600:
+        return
+    note = timetable_module.evening_note(tt, now_dt, day_off, timetable_extras())
+    if note and tt.mark_note(now_dt.date().isoformat()):
+        publish_event({"type": "proactive", "id": "timetable-" + now_dt.date().isoformat(), "text": note, "chat": True})
+        try:
+            notify("🎒 " + note)
+        except Exception:
+            pass
 
 
 def planner_command(text: str) -> str | None:
@@ -1551,14 +1692,29 @@ def router_set_enabled(on: bool) -> None:
     save_settings()
 
 
-def router_ask_model(system: str, user: str) -> str:
-    """One short question to the chosen model, asking for JSON, with a low temperature so it does not get creative."""
-    ai = ai_settings()
+def local_chat_instructions() -> str:
+    """What a local model is told in chat (before your memory and documents are added). The model test bench uses it too."""
+    return (
+            "You are Jarvis, a personal assistant on the user's Windows PC. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " "
+            "Answer normally in plain text. ONLY when the user clearly asks you to do something on the PC, reply with exactly one JSON object and nothing else: "
+            '{"reply":"short note","action":{...}}. Actions: {"type":"open_app","name":"Notepad"}; {"type":"web_search","query":"search terms","site":"google"}; {"type":"open_url","url":"https://..."}; '
+            '{"type":"run_command","command":"PowerShell command"}; {"type":"generate_image","prompt":"detailed prompt"}; '
+            "For code, use markdown fenced blocks that name the language, like ```python. When the user asks you to create or save a file or project, give each file its own fenced block whose opening line names the file, like ```html index.html or ```python app.py "
+            "(a website is usually index.html, style.css and script.js); do not use JSON for that, because the app offers to save those blocks for approval. Never claim files are saved. "
+            "Never claim an action is done. No destructive commands."
+            " When you build a web page, small app, game, animation or SVG, give ONE complete self-contained ```html block (all CSS in <style> and all JavaScript in <script>, no external files, no CDN links, no network calls, no placeholders) so the user can click Preview and run it at once; keep the explanation to a few lines, and use only local data. For code in any language, write complete, working code that runs as given, with correct imports, and mention how to run it."
+        
+    )
+
+
+def router_ask_model(system: str, user: str, model: str | None = None) -> str:
+    """One short question to the chosen model (or to the local model named), asking for JSON, with a low temperature so it does not get creative."""
+    ai = ai_settings(provider="local") if model else ai_settings()
     if not ai["key"]:
         raise ValueError("no model")
     if ai["is_local"]:
         ensure_ollama(ai["base"])
-    body = {"model": ai["model"], "stream": False, "temperature": 0, "max_tokens": 300, "response_format": {"type": "json_object"},
+    body = {"model": model or ai["model"], "stream": False, "temperature": 0, "max_tokens": 300, "response_format": {"type": "json_object"},
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]}
     for attempt in (0, 1):
         request = urllib.request.Request(ai["base"] + "/chat/completions", data=json_bytes(body), method="POST",
@@ -2476,6 +2632,14 @@ def alerts_tick(now: float | None = None, notify=None) -> None:
     recap_tick()
     focus_tick()
     network_watch_in_background()
+    try:
+        routines_tick(now, notify)
+    except Exception as exc:
+        print(f"[jarvis] scheduled routines: {exc}")
+    try:
+        timetable_tick(now, notify)
+    except Exception as exc:
+        print(f"[jarvis] timetable: {exc}")
     due = planner_obj().due_notifications(now, cfg["lead_minutes"] * 60)
     if proactive_obj().config()["enabled"]:        # Proactive Jarvis decides what to say, when, and where
         proactive_tick(now, due)
@@ -2595,7 +2759,42 @@ def validate_routine(payload: dict) -> dict:
     if not isinstance(steps_in, list) or not 1 <= len(steps_in) <= ROUTINE_STEPS_MAX:
         raise ValueError(f"A routine needs between 1 and {ROUTINE_STEPS_MAX} steps.")
     steps = [validate_step(step) for step in steps_in]
-    return {"name": name, "phrases": phrases, "steps": steps, "auto": bool(payload.get("auto"))}
+    return {"name": name, "phrases": phrases, "steps": steps, "auto": bool(payload.get("auto")), "schedule": validate_schedule(payload.get("schedule"))}
+
+
+WEEKDAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def validate_schedule(raw: object) -> dict | None:
+    """{"days": [0..6, Monday = 0], "time": "HH:MM"}, or None for a routine you only start yourself."""
+    if not raw:
+        return None
+    if not isinstance(raw, dict):
+        raise ValueError("The schedule needs days and a time.")
+    try:
+        days = sorted({int(d) for d in (raw.get("days") or []) if 0 <= int(d) <= 6})
+    except (TypeError, ValueError):
+        raise ValueError("The schedule's days must be numbers from 0 (Monday) to 6 (Sunday).") from None
+    m = re.fullmatch(r"([01]?\d|2[0-3])[:.h]([0-5]\d)", str(raw.get("time") or "").strip())
+    if not days or not m:
+        raise ValueError("A schedule needs at least one day and a time such as 07:30.")
+    return {"days": days, "time": f"{int(m.group(1)):02d}:{m.group(2)}"}
+
+
+def describe_schedule(schedule: dict | None) -> str:
+    if not schedule:
+        return ""
+    days = schedule["days"]
+    if days == list(range(7)):
+        when = "every day"
+    elif days == list(range(5)):
+        when = "every weekday"
+    elif days == [5, 6]:
+        when = "at the weekend"
+    else:
+        names = [WEEKDAY_NAMES[d] + "s" for d in days]
+        when = "on " + (names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1])
+    return f"{when} at {schedule['time']}"
 
 
 def routine_save(payload: dict) -> list[dict]:
@@ -2689,6 +2888,267 @@ def routine_command(text: str) -> dict | None:
         names |= {re.sub(r"(?: routine| mode)$", "", n) for n in names}
         if forms & names:
             return routine
+    return None
+
+
+# ---- routines that run on a schedule ----
+def routines_state_path() -> Path:
+    return data_path("routines-state.json")
+
+
+def routines_tick(now: float | None = None, notify=None) -> list[str]:
+    """Called about every 20 seconds: start each scheduled routine once, within 10 minutes of its time (not later: a PC that was off
+    does not run this morning's routine at noon). Returns the names started."""
+    now_dt = datetime.fromtimestamp(time.time() if now is None else now)
+    started = []
+    with ROUTINES_LOCK:
+        try:
+            state = json.loads(routines_state_path().read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            state = {}
+        last = state.get("last") if isinstance(state.get("last"), dict) else {}
+        today = now_dt.date().isoformat()
+        due = []
+        for routine in load_routines():
+            sched = routine.get("schedule")
+            if not sched or now_dt.weekday() not in sched.get("days", []) or last.get(routine.get("id")) == today:
+                continue
+            hh, mm = (int(x) for x in sched["time"].split(":"))
+            late = (now_dt - now_dt.replace(hour=hh, minute=mm, second=0, microsecond=0)).total_seconds()
+            if 0 <= late <= 600:
+                last[routine["id"]] = today
+                due.append(routine)
+        if due:
+            routines_state_path().write_text(json.dumps({"last": last}, indent=2), encoding="utf-8")
+    for routine in due:
+        start_scheduled_routine(routine, notify or phone_notify, today)
+        started.append(routine["name"])
+    return started
+
+
+def start_scheduled_routine(routine: dict, notify, today: str) -> None:
+    when = describe_schedule(routine.get("schedule"))
+    event_id = f"routine-{routine['id']}-{today}"
+    if routine.get("auto"):
+        def run() -> None:
+            lines = RoutineRunner().run_routine_steps(routine["steps"])
+            audit(f"ran the scheduled routine {routine['name']}")
+            publish_event({"type": "proactive", "id": event_id, "chat": True, "speak": False,
+                           "text": f"I ran your “{routine['name']}” routine, sir, as scheduled ({when})." + ("\n" + "\n".join(lines) if lines else "")})
+            try:
+                notify(f"⏰ Ran your “{routine['name']}” routine.")
+            except Exception:
+                pass
+        threading.Thread(target=run, daemon=True).start()
+        return
+    token = secrets.token_urlsafe(24)
+    with PENDING_LOCK:
+        PENDING[token] = {"type": "routine", "name": routine["name"], "steps": routine["steps"]}
+    publish_event({"type": "proactive", "id": event_id, "chat": True,
+                   "text": f"It is time for your “{routine['name']}” routine, sir ({when}). Review the steps, then approve.",
+                   "action": {"type": "routine", "name": routine["name"], "steps": [describe_step(st) for st in routine["steps"]], "approval_id": token}})
+    try:
+        notify(f"⏰ Your “{routine['name']}” routine is waiting for your approval in Jarvis on the PC.")
+    except Exception:
+        pass
+
+
+# ---- making and changing routines by chat ----
+SCHED_DAYS = r"(?:mon|tues|wednes|thurs|fri|satur|sun)days?"
+SCHEDULE_RE = re.compile(
+    rf"(?P<days>every\s+(?:day|morning|evening|night|weekday|week\s*day|school\s+day|weekend(?:\s+day)?|{SCHED_DAYS})(?:\s*(?:,|and|&)\s*{SCHED_DAYS})*"
+    rf"|(?:on\s+)?(?:weekdays|week\s*days|school\s+days|weekends|{SCHED_DAYS}(?:\s*(?:,|and|&)\s*{SCHED_DAYS})*)|daily)"
+    r"\s+at\s+(?P<time>\d{1,2}(?:[:.h]\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)?|noon|midday|midnight)", re.I)
+SCHEDULE_RE2 = re.compile(rf"at\s+(?P<time>\d{{1,2}}(?:[:.h]\d{{2}})?\s*(?:am|pm)?|noon|midday|midnight)\s+(?P<days>every\s+\w+(?:\s*(?:,|and|&)\s*{SCHED_DAYS})*|on\s+\w+(?:\s*(?:,|and|&)\s*{SCHED_DAYS})*|daily)", re.I)
+
+
+def parse_clock(text: str) -> str | None:
+    t = text.strip().lower().replace(".", "") if re.search(r"[ap]\.m\.", text.lower()) else text.strip().lower()
+    if t in ("noon", "midday"):
+        return "12:00"
+    if t == "midnight":
+        return "00:00"
+    m = re.fullmatch(r"(\d{1,2})(?:[:.h](\d{2}))?\s*(am|pm)?", t)
+    if not m:
+        return None
+    h, mi = int(m.group(1)), int(m.group(2) or 0)
+    if m.group(3) == "pm" and h < 12:
+        h += 12
+    if m.group(3) == "am" and h == 12:
+        h = 0
+    return f"{h:02d}:{mi:02d}" if 0 <= h <= 23 and 0 <= mi <= 59 else None
+
+
+def parse_days(text: str) -> list[int]:
+    t = text.lower()
+    if re.search(r"\bweek\s*days?\b|\bschool\s+days?\b", t):
+        return list(range(5))
+    if re.search(r"\bweekends?\b", t):
+        return [5, 6]
+    found = sorted({i for i, name in enumerate(WEEKDAY_NAMES) if re.search(rf"\b{name[:3].lower()}", t)})
+    if found:
+        return found
+    return list(range(7)) if re.search(r"\b(?:day|daily|morning|evening|night)\b", t) else []
+
+
+def split_schedule(text: str) -> tuple[str, dict | None]:
+    """'..., every weekday at 7:30' -> ('...', {"days": [0..4], "time": "07:30"})."""
+    for rx in (SCHEDULE_RE, SCHEDULE_RE2):
+        m = None
+        for m in rx.finditer(text):
+            pass
+        if m and not text[m.end():].strip(" .!?"):
+            clock, days = parse_clock(m.group("time")), parse_days(m.group("days"))
+            if clock and days:
+                rest = re.sub(r"[\s,;]*(?:and\s+)?(?:run\s+it\s+|do\s+it\s+|start\s+it\s+)?$", "", text[:m.start()]).strip(" ,;")
+                return rest, {"days": days, "time": clock}
+    return text, None
+
+
+STEP_SPLIT = re.compile(r"\s*(?:;|,\s*(?:and\s+)?(?:then\s+)?|\s+and\s+then\s+|\s+then\s+|\s+and\s+(?=(?:open|launch|close|quit|start|play|pause|set|say|wait|turn|mute|show|give|tell|put|lock|read|add|remind)\b))\s*", re.I)
+
+
+def step_from_text(text: str) -> dict:
+    """One routine step from a few words: 'open OneNote', 'open youtube.com', 'close chrome', 'say good night', 'wait 5 seconds',
+    'turn the volume down by 20', 'show the desktop', 'give me the briefing'; anything else is said to Jarvis ('start a 25 minute focus')."""
+    t = re.sub(r"\s+", " ", text).strip(" .;,")
+    low = t.lower()
+    m = re.fullmatch(r"(?:open|go to|launch|visit)\s+(?:the\s+)?(?:website\s+|site\s+|page\s+)?((?:https?://)?[\w-]+(?:\.[\w-]+)+(?:/\S*)?)", t, re.I)
+    if m:
+        url = m.group(1) if m.group(1).lower().startswith("http") else "https://" + m.group(1)
+        return validate_step({"type": "open_url", "url": url})
+    m = re.fullmatch(r"open\s+(?:my\s+|the\s+)?(desktop|documents|downloads|pictures|music|videos)(?:\s+folder)?", low) or re.fullmatch(r"open\s+(?:the\s+)?folder\s+(.+)", t, re.I)
+    if m:
+        return validate_step({"type": "open_folder", "path": FOLDER_ALIASES.get(m.group(1).lower(), m.group(1)) if m.re.pattern.startswith("open\\s+(?:my") else m.group(1)})
+    if re.fullmatch(r"(?:show|go to)\s+(?:me\s+)?the\s+desktop|minimi[sz]e\s+(?:all|everything)(?:\s+windows)?", low):
+        return {"type": "show_desktop"}
+    m = re.fullmatch(r"(?:open|launch)\s+(?:the\s+)?(?:app\s+)?(.{1,40}?)(?:\s+app)?", t, re.I)
+    if m and not re.search(r"\b(?:my|a|an|the)\b", m.group(1), re.I):
+        try:
+            return validate_step({"type": "open_app", "name": m.group(1)})
+        except ValueError:
+            pass
+    m = re.fullmatch(r"(?:close|quit|exit)\s+(?:the\s+)?([\w.\- ]{1,40}?)(?:\s+app)?", t, re.I)
+    if m and not re.search(r"\b(?:all|everything|my|windows|apps)\b", m.group(1), re.I):
+        try:
+            return validate_step({"type": "close_app", "name": m.group(1).strip()})
+        except ValueError:
+            pass
+    m = re.fullmatch(r"say\s+[\"“]?(.+?)[\"”]?", t, re.I)
+    if m:
+        return validate_step({"type": "say", "text": m.group(1)})
+    m = re.fullmatch(r"wait\s+(?:for\s+)?(\d{1,2})\s*(?:seconds?|secs?|s)", low)
+    if m:
+        return validate_step({"type": "wait", "seconds": int(m.group(1))})
+    m = re.fullmatch(r"(?:turn\s+(?:the\s+)?volume\s+(up|down)|volume\s+(up|down)|turn\s+(up|down)\s+the\s+volume)(?:\s+(?:by\s+)?(\d{1,3})\s*(?:%|percent)?)?", low)
+    if m:
+        direction = m.group(1) or m.group(2) or m.group(3)
+        percent = int(m.group(4) or 10)
+        return validate_step({"type": "volume", "direction": direction, "steps": max(1, min(50, round(percent / 2)))})
+    if re.fullmatch(r"(?:give\s+me\s+|read\s+(?:me\s+)?|play\s+)?(?:the\s+|my\s+)?(?:morning\s+)?briefing", low):
+        return {"type": "briefing"}
+    return validate_step({"type": "command", "text": t})
+
+
+ROUTINE_CREATE = re.compile(
+    r"(?:create|make|add|set\s+up|build|save|new)\s+(?:me\s+)?(?:a\s+)?(?:new\s+)?routine\s+(?:called|named)\s+[\"“']?(?P<name>[^:\"”,]{1,40}?)[\"”']?\s*(?::|,|-|–|=|\s+that|\s+which|\s+to|\s+where\s+you)\s*(?P<steps>.+)"
+    r"|(?:create|make|add|set\s+up|build|save|new)\s+(?:me\s+)?(?:a\s+|an\s+)?(?:new\s+)?[\"“']?(?P<name2>[\w' &+-]{1,40}?)[\"”']?\s+routine\s*(?::|,|-|–|=|\s+that|\s+which|\s+to|\s+where\s+you)\s*(?P<steps2>.+)"
+    r"|when\s+i\s+say\s+[\"“']?(?P<name3>[^,:\"”]{1,40}?)[\"”']?\s*[,:]\s*(?P<steps3>.+)", re.I)
+ROUTINE_LIST = re.compile(r"(?:(?:what\s+are|show(?:\s+me)?|list|read(?:\s+me)?|tell\s+me)\s+)?(?:all\s+)?my\s+routines|what\s+routines\s+do\s+i\s+have|routines", re.I)
+ROUTINE_DELETE = re.compile(r"(?:delete|remove|forget|scrap)\s+(?:the\s+|my\s+)?(?:routine\s+(?:called\s+)?(?P<a>.+)|(?P<b>.+?)\s+routine)", re.I)
+ROUTINE_UNSCHEDULE = re.compile(r"(?:stop\s+(?:running\s+)?|unschedule\s+|don'?t\s+run\s+)(?:the\s+|my\s+)?(?P<n>.+?)(?:\s+routine)?\s+(?:automatically|on\s+(?:a|its)\s+schedule|every\s+\w+)|unschedule\s+(?:the\s+|my\s+)?(?P<n2>.+?)(?:\s+routine)?", re.I)
+ROUTINE_SCHEDULE = re.compile(r"(?:run|start|do|schedule|play)\s+(?:the\s+|my\s+)?(?P<n>.+?)(?:\s+routine)?\s+(?:for\s+)?(?P<when>(?:every|on|daily|at)\b.+)", re.I)
+ROUTINE_ADD_STEP = re.compile(r"add\s+(?:a\s+step\s+)?[\"“']?(?P<s>.+?)[\"”']?\s+to\s+(?:the\s+end\s+of\s+)?(?:my\s+|the\s+)?(?P<n>.+?)\s+routine", re.I)
+
+
+def routine_by_name(name: str) -> dict | None:
+    key = re.sub(r"(?: routine| mode)$", "", _phrase_key(name))
+    for routine in load_routines():
+        names = {_phrase_key(routine["name"])} | {_phrase_key(p) for p in routine.get("phrases", [])}
+        if key in names | {re.sub(r"(?: routine| mode)$", "", n) for n in names}:
+            return routine
+    return None
+
+
+def routine_summary(routine: dict) -> str:
+    sched = describe_schedule(routine.get("schedule"))
+    steps = "\n".join(f"{i}. {describe_step(st)}" for i, st in enumerate(routine["steps"], 1))
+    return f"“{routine['name']}”" + (f", {sched}" if sched else "") + (", runs without asking" if routine.get("auto") else "") + ":\n" + steps
+
+
+def routine_chat_command(text: str) -> str | None:
+    """Make, list, schedule, extend and delete routines by chat. Running one is routine_command's job."""
+    t = re.sub(r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?)?", "", (text or "").strip(), flags=re.I)
+    t = re.sub(r"\s*(?:please)?\s*[.!?]*$", "", t, flags=re.I).strip()
+    if not t or len(t) > 600:
+        return None
+    if ROUTINE_LIST.fullmatch(t):
+        items = load_routines()
+        if not items:
+            return "You have no routines yet, sir. Say, for example, “create a routine called study mode: open OneNote, start a 25 minute focus, play my study playlist”."
+        lines = []
+        for r in items:
+            sched = describe_schedule(r.get("schedule"))
+            lines.append(f"• {r['name']}: {len(r['steps'])} step{'s' if len(r['steps']) != 1 else ''}" + (f", {sched}" if sched else ""))
+        return "Your routines, sir:\n" + "\n".join(lines) + "\nSay a routine's name to run it."
+    m = ROUTINE_CREATE.fullmatch(t)
+    if m:
+        name = (m.group("name") or m.group("name2") or m.group("name3")).strip(" '\"")
+        body, schedule = split_schedule(m.group("steps") or m.group("steps2") or m.group("steps3"))
+        pieces = [p for p in STEP_SPLIT.split(body) if p and p.strip(" .,;")]
+        if not pieces:
+            return "Which steps should the routine have, sir? For example: “create a routine called study mode: open OneNote, start a 25 minute focus, play my study playlist”."
+        try:
+            steps = [step_from_text(p) for p in pieces]
+            existing = routine_by_name(name)
+            payload = {"name": name, "phrases": existing.get("phrases", []) if existing else [], "steps": steps, "auto": False,
+                       "schedule": schedule or (existing or {}).get("schedule"), "id": (existing or {}).get("id")}
+            items = routine_save(payload)
+        except ValueError as exc:
+            return f"I could not save that routine: {exc}"
+        saved = next(r for r in items if _phrase_key(r["name"]) == _phrase_key(validate_routine(payload)["name"]))
+        audit(f"{'changed' if existing else 'made'} the routine {saved['name']} by chat")
+        head = f"{'Updated' if existing else 'Saved'} your routine {routine_summary(saved)}\n"
+        how = f"Say “{saved['name']}” to run it; I will show the steps and wait for your approval."
+        if saved.get("schedule"):
+            how += f" It also starts {describe_schedule(saved['schedule'])}, and waits for your approval then too."
+        return head + how
+    m = ROUTINE_ADD_STEP.fullmatch(t)
+    if m and routine_by_name(m.group("n")):
+        routine = routine_by_name(m.group("n"))
+        try:
+            steps = routine["steps"] + [step_from_text(p) for p in STEP_SPLIT.split(m.group("s")) if p.strip()]
+            routine_save({**routine, "steps": steps})
+        except ValueError as exc:
+            return f"I could not change that routine: {exc}"
+        return f"Added that to your routine {routine_summary(routine_by_name(m.group('n')))}"
+    m = ROUTINE_UNSCHEDULE.fullmatch(t)
+    if m:
+        routine = routine_by_name(m.group("n") or m.group("n2"))
+        if routine:
+            if not routine.get("schedule"):
+                return f"The “{routine['name']}” routine has no schedule, sir; it only runs when you start it."
+            routine_save({**routine, "schedule": None})
+            return f"The “{routine['name']}” routine will no longer start by itself, sir. Say “{routine['name']}” whenever you want it."
+    m = ROUTINE_SCHEDULE.fullmatch(t)
+    if m:
+        routine = routine_by_name(m.group("n"))
+        if routine:
+            _, schedule = split_schedule("x " + m.group("when"))
+            if not schedule:
+                return "When should it run, sir? For example: “run good night every day at 22:30” or “run study mode on Mondays and Thursdays at 17:00”."
+            try:
+                routine_save({**routine, "schedule": schedule})
+            except ValueError as exc:
+                return str(exc)
+            return (f"Done, sir: the “{routine['name']}” routine now starts {describe_schedule(schedule)}. "
+                    + ("It runs without asking, because you set it to." if routine.get("auto") else "I will show its steps then and wait for your approval."))
+    m = ROUTINE_DELETE.fullmatch(t)
+    if m:
+        routine = routine_by_name(m.group("a") or m.group("b"))
+        if routine:
+            routine_delete(routine["id"])
+            return f"Deleted the “{routine['name']}” routine, sir."
     return None
 
 
@@ -4824,6 +5284,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/countdowns":
             self.send_json(200, {"items": countdowns_module.public(countdowns_obj(), datetime.now())})
             return
+        if path == "/api/timetable":
+            self.send_json(200, timetable_public())
+            return
+        if path == "/api/bench":
+            self.send_json(200, bench_status())
+            return
         if path == "/api/exams":
             self.send_json(200, {"exams": exams_public()})
             return
@@ -5362,6 +5828,44 @@ class Handler(BaseHTTPRequestHandler):
                                 net.trust(mac, (net.wifi().get("ssid") or "") if iface["wifi"] else "")
                                 audit("network: marked as the user's own network")
                             self.send_json(200, {"text": personalize(net.devices_text(net.scan(iface, sweep=True)))})
+            elif path == "/api/bench":
+                try:
+                    bench = bench_obj()
+                    if self._from_phone and payload.get("start"):
+                        raise ValueError("Start a comparison at the PC.")
+                    if payload.get("stop"):
+                        bench.stop()
+                    elif isinstance(payload.get("pick"), dict):
+                        p = payload["pick"]
+                        bench.pick(str(p.get("run") or ""), int(p.get("index", -1)), str(p.get("model") or ""))
+                    elif isinstance(payload.get("start"), dict):
+                        st = payload["start"]
+                        which = st.get("set") if st.get("set") in ("built-in", "mine", "both") else "built-in"
+                        system = local_chat_instructions() + language_instruction()
+                        bench.start(list(st.get("models") or []), bench_questions(which), system, 40 if st.get("smart") else 0)
+                    self.send_json(200, bench_status())
+                except (ValueError, TypeError) as exc:
+                    self.send_json(400, {"error": str(exc)})
+            elif path == "/api/timetable":
+                try:
+                    tt = timetable_obj()
+                    if payload.get("remove"):
+                        tt.remove(str(payload["remove"]))
+                        text = "Removed."
+                    elif isinstance(payload.get("prep"), dict):
+                        tt.set_config(payload["prep"].get("on"), payload["prep"].get("time"))
+                        text = "Saved."
+                    else:
+                        try:
+                            day = int(payload.get("day"))
+                        except (TypeError, ValueError):
+                            raise ValueError("Pick a day.") from None
+                        lesson, replaced = tt.add(day, str(payload.get("start") or ""), str(payload.get("end") or "") or None, str(payload.get("subject") or ""),
+                                                  str(payload.get("room") or ""), str(payload.get("bring") or ""))
+                        text = f"{'Changed' if replaced else 'Added'}: {timetable_module.DAYS[lesson['day']]} {lesson['start']}–{lesson['end']} {lesson['subject']}."
+                    self.send_json(200, {**timetable_public(), "text": text})
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path == "/api/countdowns":
                 try:
                     store = countdowns_obj()
@@ -6118,8 +6622,7 @@ class Handler(BaseHTTPRequestHandler):
                     done = powershell(f"$p = Get-Process -Name '{name}' -ErrorAction SilentlyContinue; if ($p) {{ $p | ForEach-Object {{ [void]$_.CloseMainWindow() }}; 'closed' }} else {{ 'none' }}")
                     lines.append(f"Asked {step['name']} to close." if "closed" in done.stdout else f"{step['name']} was not running.")
                 elif kind == "command":
-                    reply = explicit_assistant_command(step["text"])
-                    lines.append(reply or f"I could not run “{step['text']}” as a command.")
+                    lines.append(routine_chat(step["text"]))
                 elif kind == "say":
                     lines.append(step["text"])
                 elif kind == "volume":
@@ -6256,7 +6759,11 @@ class Handler(BaseHTTPRequestHandler):
         if undo_reply:
             self.send_json(200, {"reply": undo_reply, "action": None})
             return
-        routine = routine_command(latest)
+        routine_reply = routine_chat_command(latest) if payload.get("source") != "routine" else None
+        if routine_reply:
+            self.send_json(200, {"reply": routine_reply, "action": None})
+            return
+        routine = routine_command(latest) if payload.get("source") != "routine" else None
         if routine:
             self.start_routine(routine)
             return
@@ -6283,6 +6790,10 @@ class Handler(BaseHTTPRequestHandler):
         countdown_reply = countdown_command(latest)
         if countdown_reply:
             self.send_json(200, {"reply": countdown_reply, "action": None})
+            return
+        timetable_reply = timetable_command(latest)
+        if timetable_reply:
+            self.send_json(200, {"reply": timetable_reply, "action": None})
             return
         if recap_module.command(latest):
             self.send_json(200, {"reply": recap_text(), "action": None})
@@ -6498,16 +7009,7 @@ class Handler(BaseHTTPRequestHandler):
         if is_local_provider:
             # Local models are slower per token: use a short prompt, answer normal chat in plain text, and
             # skip JSON-constrained decoding (it slows generation). JSON is only used when an action is needed.
-            instructions = (
-                "You are Jarvis, a personal assistant on the user's Windows PC. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " "
-                "Answer normally in plain text. ONLY when the user clearly asks you to do something on the PC, reply with exactly one JSON object and nothing else: "
-                '{"reply":"short note","action":{...}}. Actions: {"type":"open_app","name":"Notepad"}; {"type":"web_search","query":"search terms","site":"google"}; {"type":"open_url","url":"https://..."}; '
-                '{"type":"run_command","command":"PowerShell command"}; {"type":"generate_image","prompt":"detailed prompt"}; '
-                "For code, use markdown fenced blocks that name the language, like ```python. When the user asks you to create or save a file or project, give each file its own fenced block whose opening line names the file, like ```html index.html or ```python app.py "
-                "(a website is usually index.html, style.css and script.js); do not use JSON for that, because the app offers to save those blocks for approval. Never claim files are saved. "
-                "Never claim an action is done. No destructive commands."
-                " When you build a web page, small app, game, animation or SVG, give ONE complete self-contained ```html block (all CSS in <style> and all JavaScript in <script>, no external files, no CDN links, no network calls, no placeholders) so the user can click Preview and run it at once; keep the explanation to a few lines, and use only local data. For code in any language, write complete, working code that runs as given, with correct imports, and mention how to run it."
-            )
+            instructions = local_chat_instructions()
         if web_result is not None:
             # A research answer is text only: no action list, so nothing written on a web page can make Jarvis act.
             instructions = (
@@ -6645,8 +7147,8 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(parsed, dict):
                 raise ValueError("the model did not return a JSON object")
             # Saved with the exact prompt, so good answers can later train a model made just to be Jarvis.
-            exchange_id = training_log("research" if web_result is not None else "documents" if doc_hits is not None else "chat",
-                                       model, ai["provider"], instructions, safe_messages, raw_answer)
+            exchange_id = None if payload.get("source") == "routine" else training_log("research" if web_result is not None else "documents" if doc_hits is not None else "chat",
+                                                                                     model, ai["provider"], instructions, safe_messages, raw_answer)
             reply = str(parsed.get("reply", ""))[:30000]
             action = parsed.get("action")
             if isinstance(action, dict) and action.get("type") == "web_search":
@@ -7500,6 +8002,38 @@ class Handler(BaseHTTPRequestHandler):
         with PENDING_LOCK:
             PENDING.pop(token, None)
         self.send_json(200, {"ok": True})
+
+
+
+class RoutineRunner(Handler):
+    """Runs routine steps without a browser (a scheduled routine), and sends a routine's “Tell Jarvis” steps through the normal chat."""
+    def __init__(self):
+        self.result = None
+        self.headers = {}
+        self.client_address = ("127.0.0.1", 0)
+        self._remote = False
+
+    def send_json(self, status: int, obj: object) -> None:
+        if self.result is None:
+            if isinstance(obj, dict) and isinstance(obj.get("reply"), str):
+                obj = {**obj, "reply": personalize(obj["reply"])}
+            self.result = (status, obj)
+
+
+def routine_chat(text: str) -> str:
+    """A routine step said to Jarvis, answered the way chat would answer it. Anything that needs approval is not done."""
+    runner = RoutineRunner()
+    try:
+        runner.chat({"messages": [{"role": "user", "content": text}], "stream": False, "source": "routine"})
+    except Exception as exc:
+        return f"“{text}” did not work: {exc}"
+    status, obj = runner.result or (500, {"error": "no answer"})
+    if status != 200 or not isinstance(obj, dict):
+        return f"“{text}” did not work: {(obj or {}).get('error', 'no answer') if isinstance(obj, dict) else 'no answer'}"
+    reply = str(obj.get("reply") or "").strip()
+    if obj.get("action"):
+        reply = (reply + " " if reply else "") + "(That needs your approval, so I left it for now; ask me again in chat.)"
+    return reply or "Done."
 
 
 if __name__ == "__main__":
