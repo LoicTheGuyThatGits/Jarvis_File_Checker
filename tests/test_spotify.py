@@ -23,7 +23,8 @@ class H(BaseHTTPRequestHandler):
             if f.get("grant_type")==["authorization_code"] and f.get("code")!=["goodcode"]: return self.send(400,{"error":"invalid_grant","error_description":"bad code"})
             return self.send(200,{"access_token":"AT%d"%st["tokens"],"refresh_token":"RT","expires_in":3600 if not st.get("short") else 1})
         assert self.headers["Authorization"].startswith("Bearer AT")
-        if u.path=="/v1/me/player/queue": st["queued"].append(q["uri"][0]); return self.send(204)
+        if u.path=="/v1/me/player/queue":            # the real Spotify answers 200 with a body that is not JSON
+            st["queued"].append(q["uri"][0]); b=b"8f2a1c9e"; self.send_response(200); self.send_header("Content-Length",str(len(b))); self.end_headers(); self.wfile.write(b); return
         self.send(404,{})
     def do_PUT(self):
         u=urllib.parse.urlparse(self.path); q=urllib.parse.parse_qs(u.query); b=json.loads(self.body() or "{}")

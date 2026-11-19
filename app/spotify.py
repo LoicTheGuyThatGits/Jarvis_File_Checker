@@ -134,7 +134,10 @@ class Client:
         try:
             with urllib.request.urlopen(req, timeout=20) as r:
                 raw = r.read().decode("utf-8", "replace")
-                return json.loads(raw) if raw.strip() else {}
+                try:
+                    return json.loads(raw) if raw.strip() else {}
+                except ValueError:                   # some calls (adding to the queue) answer 200 with a body that is not JSON
+                    return {}
         except urllib.error.HTTPError as exc:
             try:
                 err = json.loads(exc.read().decode("utf-8", "replace")).get("error") or {}

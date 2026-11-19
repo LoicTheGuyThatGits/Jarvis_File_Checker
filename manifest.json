@@ -184,8 +184,8 @@
   },
   {
    "path": "app/spotify.py",
-   "sha256": "e74ce9a1d9bbaa1025ff9c2cfb118df07d7481e42226fc89b3a8b1531309dd81",
-   "size": 28643
+   "sha256": "304a9463200886175d91958dad8875bbdd3c5559bad68059a7196e0ab28e3ae6",
+   "size": 28826
   },
   {
    "path": "app/study.py",
