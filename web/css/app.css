@@ -738,17 +738,30 @@ html[data-boot="play"] .boot{display:flex}
 .call-green:hover{background:color-mix(in srgb,#3ddc84 40%,transparent)}
 .call-screen[data-phase="ringing"] .call-green{animation:callShake 1.3s ease-in-out infinite}
 @keyframes callShake{0%,60%,100%{transform:rotate(0)}10%,30%,50%{transform:rotate(-9deg)}20%,40%{transform:rotate(9deg)}}
-.call-orb{position:relative;width:92px;height:92px;margin:0 auto}
-.call-orb span{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:.75}
-.call-orb span:nth-child(1){inset:30px;background:var(--accent);box-shadow:0 0 22px var(--accent)}
-.call-orb span:nth-child(2){inset:16px;opacity:.5}
-.call-screen[data-phase="ringing"] .call-orb span:nth-child(3),.call-screen[data-phase="connecting"] .call-orb span:nth-child(3){animation:callWave 1.4s ease-out infinite}
-.call-screen[data-phase="speaking"] .call-orb span:nth-child(1){animation:speakPulse .38s ease-in-out infinite alternate}
-.call-screen[data-phase="listening"] .call-orb span:nth-child(2){animation:callWave 1.8s ease-out infinite}
-.call-screen[data-phase="thinking"] .call-orb span:nth-child(2){border-style:dashed;animation:callSpin 1.6s linear infinite}
-.call-screen[data-phase="muted"] .call-orb,.call-screen[data-phase="ended"] .call-orb{opacity:.35}
-@keyframes callWave{from{transform:scale(.7);opacity:.9}to{transform:scale(1.25);opacity:0}}
-@keyframes callSpin{to{transform:rotate(360deg)}}
 @media (max-width:640px){.call-button{padding-inline:8px}}
 @media (prefers-reduced-motion:reduce){.call-screen *{animation:none!important}}
 .orb-stage{overflow-x:clip}   /* the rings grow while Jarvis speaks: never make a phone scroll sideways */
+
+/* the call orb: a small reactor whose ring of bars moves with the voice */
+.call-orb{--s:156px;position:relative;width:var(--s);height:var(--s);margin:0 auto;--v:0}
+.call-ring{position:absolute;inset:0;width:100%;height:100%;fill:none;stroke:var(--accent);overflow:visible;filter:drop-shadow(0 0 4px var(--a45))}
+.call-ring-a{animation:callSpin 40s linear infinite}
+.call-ring-b{animation:callSpin 24s linear infinite reverse}
+.call-ring-c{animation:callSpin 12s linear infinite}
+.call-screen[data-phase="speaking"] .call-ring-c{animation-duration:3s}
+.call-screen[data-phase="thinking"] .call-ring-b{animation-duration:4s}
+.call-bars{position:absolute;inset:0}
+.call-bars i{position:absolute;left:50%;top:50%;width:3px;height:calc(var(--s) * .2);border-radius:2px;background:var(--accent);box-shadow:0 0 6px var(--accent);
+  transform-origin:50% 0;transform:translateX(-50%) rotate(var(--a)) translateY(calc(var(--s) * .235)) scaleY(var(--l,.05));opacity:calc(.35 + var(--l,.05))}
+.call-core{position:absolute;left:50%;top:50%;width:calc(var(--s) * .26);height:calc(var(--s) * .26);margin:calc(var(--s) * -.13) 0 0 calc(var(--s) * -.13);border-radius:50%;
+  background:radial-gradient(circle,var(--ice) 0 18%,var(--accent) 45%,transparent 72%);box-shadow:0 0 calc(18px + var(--v) * 60px) var(--accent);
+  transform:scale(calc(.9 + var(--v) * .7));transition:box-shadow .08s}
+.call-screen[data-phase="muted"] .call-orb,.call-screen[data-phase="ended"] .call-orb{opacity:.35;filter:grayscale(.6)}
+.call-ico{width:26px;height:26px;fill:currentColor;display:block}
+.call-ico-down{transform:rotate(135deg)}
+.call-round .call-ico{width:28px;height:28px}
+.call-round[aria-pressed="true"]{position:relative}
+.call-round[aria-pressed="true"]::after{content:"";position:absolute;left:50%;top:22%;width:2px;height:36%;background:currentColor;transform:rotate(45deg);border-radius:1px}
+@keyframes callSpin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.call-ring{animation:none!important}}
+.call-button{display:inline-flex;align-items:center;gap:6px}.call-button .call-ico{width:15px;height:15px}

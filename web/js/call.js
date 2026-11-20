@@ -55,6 +55,40 @@
     if (st.flash) { clearInterval(st.flash); st.flash = 0; document.title = st.title; }
   }
 
+
+  /* ---------- the orb: rings turn, and a ring of bars moves with Jarvis's voice (and yours) ---------- */
+  var viz = (function () {
+    var orb = screen.querySelector('.call-orb'), holder = screen.querySelector('.call-bars');
+    if (!orb || !holder) return { start: function () {}, bump: function () {} };
+    var N = 48, bars = [], lv = new Float32Array(N), raf = 0, syll = 0, nextSyll = 0, heard = 0, still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    for (var i = 0; i < N; i++) { var b = document.createElement('i'); b.style.setProperty('--a', (i * 360 / N) + 'deg'); holder.appendChild(b); bars.push(b); }
+    function frame(now) {
+      if (screen.classList.contains('hidden')) { raf = 0; return; }
+      var phase = screen.dataset.phase, sum = 0;
+      if (phase === 'speaking' && now > nextSyll) {                 // syllables: a new loudness every 70–200 ms, sometimes a short pause
+        syll = Math.random() < 0.16 ? 0.05 : 0.35 + Math.random() * 0.65;
+        nextSyll = now + 70 + Math.random() * 130;
+      }
+      heard *= 0.93;
+      for (var i = 0; i < N; i++) {
+        var t;
+        if (phase === 'speaking') t = 0.08 + syll * (0.3 + 0.7 * Math.abs(Math.sin(now / 150 + i * 0.83) * Math.sin(now / 237 + i * 0.41)));
+        else if (phase === 'listening') t = 0.08 + 0.04 * Math.sin(now / 520 + i * 0.52) + heard * (0.25 + 0.55 * Math.abs(Math.sin(now / 120 + i * 1.7)));
+        else if (phase === 'thinking') { var d = ((i - now / 35) % N + N) % N; t = 0.06 + (d > N - 7 ? (d - (N - 7)) / 7 * 0.55 : 0); }
+        else if (phase === 'ringing' || phase === 'connecting') t = 0.07 + 0.5 * Math.pow(Math.max(0, Math.sin(now / 280)), 6) * (0.6 + 0.4 * Math.sin(i * 0.9));
+        else t = 0.05;
+        if (still) t = Math.min(t, 0.3);
+        lv[i] += (t - lv[i]) * (t > lv[i] ? 0.5 : 0.16);
+        sum += lv[i];
+        bars[i].style.setProperty('--l', lv[i].toFixed(3));
+      }
+      orb.style.setProperty('--v', (sum / N).toFixed(3));
+      raf = requestAnimationFrame(frame);
+    }
+    return { start: function () { if (!raf) raf = requestAnimationFrame(frame); }, bump: function (x) { heard = Math.min(1, Math.max(heard, x)); } };
+  })();
+  new MutationObserver(function () { if (!screen.classList.contains('hidden')) viz.start(); }).observe(screen, { attributes: true, attributeFilter: ['class'] });
+
   /* ---------- starting and ending ---------- */
   function begin(call) {
     st.call = call; st.incoming = false; st.ended = false; st.messages = []; st.silent = 0; st.hangAfter = false;
@@ -161,6 +195,7 @@
       var interim = '';
       for (var i = e.resultIndex; i < e.results.length; i++) { if (e.results[i].isFinal) final += e.results[i][0].transcript; else interim += e.results[i][0].transcript; }
       $('call-you').textContent = (final + interim).trim();
+      viz.bump(0.9);
     };
     rec.onerror = function (e) {
       if (token !== st.token) return;
@@ -207,7 +242,7 @@
         an.getByteTimeDomainData(buf);
         var sum = 0; for (var i = 0; i < buf.length; i++) { var v = (buf[i] - 128) / 128; sum += v * v; }
         var loud = Math.sqrt(sum / buf.length) > 0.035, now = Date.now();
-        if (loud) { spoke = true; quietSince = 0; } else if (spoke && !quietSince) quietSince = now;
+        if (loud) { spoke = true; quietSince = 0; viz.bump(0.8); } else if (spoke && !quietSince) quietSince = now;
         if ((spoke && quietSince && now - quietSince > 1100) || (!spoke && now - started > 8000) || now - started > 30000) { clearInterval(loop); try { rec.stop(); } catch (e) {} }
       }, 80);
     }).catch(function () { remoteEnded('The microphone is blocked. Allow it for Jarvis, then call again.'); });
