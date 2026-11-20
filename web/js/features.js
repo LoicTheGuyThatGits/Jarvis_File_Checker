@@ -316,6 +316,26 @@
     $('voice-test').addEventListener('click', function () { stopSpeech(); speakChunk(sayHello('At your service, ' + (window.JARVIS_ADDRESS || 'sir') + '. All systems are online.')); });
   }
   syncVoiceUi();
+  /* for calls: say something whatever the Voice switch is, and know when it has been said */
+  window.JarvisVoice = {
+    say: function (text) {
+      stopSpeech();
+      var t = cleanForSpeech(text || '');
+      if (!canSpeak() || !t.trim()) return Promise.resolve(false);
+      feed(t, true); spokenText = '';
+      var started = Date.now(), limit = 6000 + t.length * 150;
+      return new Promise(function (resolve) {
+        (function poll() {
+          if (active === 0 && Date.now() - started > 200) return resolve(true);
+          if (Date.now() - started > limit) { stopSpeech(); return resolve(true); }
+          setTimeout(poll, 120);
+        })();
+      });
+    },
+    stop: stopSpeech,
+    speaking: function () { return active > 0; },
+    canSpeak: function () { return canSpeak(); }
+  };
   $('voice-engine').addEventListener('change', function () { voice.engine = $('voice-engine').value; saveVoice(); stopSpeech(); syncEngineUi(); });
   $('voice-cloud-voice').addEventListener('change', function () { voice.cloudVoice = $('voice-cloud-voice').value; saveVoice(); });
   $('voice-piper-model').addEventListener('change', function () { voice.piperModel = $('voice-piper-model').value; saveVoice(); });

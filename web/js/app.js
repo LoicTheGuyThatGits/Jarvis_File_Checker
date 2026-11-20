@@ -358,6 +358,8 @@ autopilotStop.addEventListener('click',async()=>{
 });
 renderConversation();
 renderChatList();
+/* calls save their conversation as a chat of its own */
+window.JarvisChats={saveCall(title,messages){const clean=(messages||[]).filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.content==='string'&&m.content.trim());if(!clean.length)return null;const chat=newChatRecord(title,clean.slice(-100));chats.push(chat);localStorage.setItem(chatsKey,JSON.stringify(chats));renderChatList();return chat.id},history(){return history.slice(-6)}};
 
 const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
 const mic=document.querySelector('#mic');

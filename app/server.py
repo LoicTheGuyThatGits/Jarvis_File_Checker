@@ -69,7 +69,7 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
     "/icons/jarvis.ico": ("icons/jarvis.ico", "image/x-icon"), "/favicon.ico": ("icons/jarvis.ico", "image/x-icon"),
 }
@@ -967,6 +967,7 @@ import overlay as overlay_module
 import french as french_module
 import exams as exams_module
 import countdowns as countdowns_module
+import calls as calls_module
 import timetable as timetable_module
 import bench as bench_module
 import grades as grades_module
@@ -4776,7 +4777,7 @@ def _save_reminders() -> None:
     tmp.replace(path)
 
 
-def reminder_add(kind: str, due: float, text: str = "", seconds: float | None = None) -> dict:
+def reminder_add(kind: str, due: float, text: str = "", seconds: float | None = None, call: bool = False) -> dict:
     if kind not in ("timer", "reminder"):
         raise ValueError("Unknown kind")
     now = time.time()
@@ -4788,6 +4789,8 @@ def reminder_add(kind: str, due: float, text: str = "", seconds: float | None = 
             raise ValueError(f"You already have {REMINDERS_MAX_ACTIVE} active timers and reminders.")
         item = {"id": secrets.token_hex(4), "kind": kind, "text": re.sub(r"\s+", " ", str(text)).strip()[:200], "due": float(due),
                 "created": now, "seconds": seconds, "fired": False, "acked": False}
+        if call:
+            item["call"] = True                          # Jarvis rings you instead of showing an alert
         items.append(item)
         _save_reminders()
         return dict(item)
@@ -4820,7 +4823,7 @@ def reminder_ack(item_id: str) -> None:
 
 def _event_for(item: dict, missed: bool = False) -> dict:
     return {"type": "reminder", "id": item["id"], "kind": item["kind"], "text": item.get("text", ""), "seconds": item.get("seconds"),
-            "due": item["due"], "missed": missed}
+            "due": item["due"], "missed": missed, "call": bool(item.get("call"))}
 
 
 def publish_event(event: dict) -> None:
@@ -4832,18 +4835,27 @@ def publish_event(event: dict) -> None:
 def check_due(now: float | None = None) -> list[dict]:
     """Fire everything that is due. Missed ones (the server was off) are flagged so the page can say so."""
     now = time.time() if now is None else now
-    fired = []
+    fired, calls = [], []
     with REMINDERS_LOCK:
         items = _reminders()
         for item in items:
             if not item.get("fired") and item["due"] <= now:
                 item["fired"] = True
                 item["fired_at"] = now
-                fired.append(_event_for(item, missed=now - item["due"] > 90))
+                if item.get("call") and now - item["due"] <= 300:
+                    item["acked"] = True                 # the call takes care of it
+                    calls.append(dict(item))
+                else:
+                    fired.append(_event_for(item, missed=now - item["due"] > 90))
         keep = [i for i in items if not (i.get("acked") or (i.get("fired") and now - i.get("fired_at", now) > 2 * 86400))]
         if fired or len(keep) != len(items):
             _REMINDERS["items"] = keep
             _save_reminders()
+    for item in calls:
+        try:
+            call_user(item.get("text") or "Reminder", calls_module.opening_for(item.get("text", ""), time.localtime(now), current_address()))
+        except calls_module.CallError:
+            fired.append(_event_for(item))              # calls are off: an ordinary alert instead
     for event in fired:
         publish_event(event)
         try:
@@ -4871,6 +4883,11 @@ def start_scheduler() -> None:
             time.sleep(1)
             try:
                 check_due()
+            except Exception:
+                pass
+            try:
+                if CALLS["obj"] is not None:
+                    CALLS["obj"].tick()
             except Exception:
                 pass
             counter += 1
@@ -4905,6 +4922,8 @@ def handle_reminder_command(text: str, now: float | None = None) -> str | None:
         lines = []
         for i in active[:10]:
             label = i["text"] or (f"{fmt_duration(i['seconds'])} timer" if i.get("seconds") else "Timer")
+            if i.get("call"):
+                label += " (I will call you)"
             lines.append(f"- {label}: in {fmt_duration(i['due'] - now)} ({fmt_when(i['due'], now)})")
         return f"You have {len(active)} active, sir:\n" + "\n".join(lines)
     # ---- cancel ----
@@ -4932,6 +4951,7 @@ def handle_reminder_command(text: str, now: float | None = None) -> str | None:
             due = now + duration_seconds(span.group(1)) if span else None
         if due is None:
             return "What time should the alarm be, sir? For example: “set an alarm for 7am”."
+        due = morning_fix(due, rest, now)
         item = reminder_add("reminder", due, "Alarm" if low.startswith(("set", "create", "make")) else "Wake up")
         return f"Alarm set for {fmt_when(due, now)}, sir."
     # ---- timers ----
@@ -5119,6 +5139,172 @@ def pc_command(text: str):
         percent = int(groups[1] or groups[3] or 10)
         return ("volume", direction.lower(), max(2, min(percent, 100)))
     return None
+
+
+# ---------------- calls: Jarvis rings you, you ring Jarvis ----------------
+# calls.py keeps the state (what rings, who answered); the page does the talking. A missed call goes to Telegram.
+CALLS: dict = {"path": None, "obj": None}
+
+
+def calls_obj() -> "calls_module.Calls":
+    path = data_path("calls.json")
+    if CALLS["path"] != path:
+        obj = calls_module.Calls(path)
+        obj.publish = publish_event
+        obj.on_missed = call_missed
+        CALLS["path"], CALLS["obj"] = path, obj
+    return CALLS["obj"]
+
+
+def call_missed(call: dict) -> None:
+    what = "declined" if call.get("state") == "declined" else "missed"
+    text = call.get("opening") or call.get("reason") or ""
+    phone_notify(f"📞 You {what} a call from Jarvis. {text}".strip())
+
+
+def open_app_window() -> bool:
+    """Bring up the Jarvis window on the PC so it can ring (Windows; Edge or Chrome as an app window)."""
+    if sys.platform != "win32":
+        return False
+    try:
+        import jarvis_window
+        hwnd = jarvis_window.find_window()
+        if hwnd:
+            jarvis_window.focus(hwnd)
+            return True
+        import jarvis_tray
+        browser = jarvis_tray.find_browser()
+        if browser:
+            subprocess.Popen(jarvis_tray.app_command(browser), close_fds=True)
+            return True
+    except Exception as exc:
+        print(f"[jarvis] could not open the Jarvis window for a call: {exc}")
+    return False
+
+
+def call_user(reason: str, opening: str) -> dict:
+    """Ring you. Raises calls_module.CallError when calls are off."""
+    call = calls_obj().ring(reason, opening)
+    audit(f"calling you: {reason[:80]}")
+    if call.get("state") == "ringing" and "pc" in call.get("targets", []):
+        with SUBSCRIBERS_LOCK:
+            page_open = bool(SUBSCRIBERS)
+        if not page_open:
+            open_app_window()                      # the page asks /api/call when it loads and rings then
+    return call
+
+
+def morning_fix(due: float, text: str, now: float) -> float:
+    """“Wake me up tomorrow at 6:45” means the morning, even though “tomorrow at 6” usually means the evening."""
+    if re.search(r"\b(?:p\.?m\.?|evening|tonight|afternoon)\b", text, re.I):
+        return due
+    hour = datetime.fromtimestamp(due).hour
+    if 13 <= hour <= 18 and due - 12 * 3600 > now + 1:
+        return due - 12 * 3600
+    return due
+
+
+CALL_LATER_PURPOSE = re.compile(r"\s*,?\s*(?:(?:and|to)\s+)?(?:(?P<wake>wake\s+me(?:\s+up)?|get\s+me\s+up)|(?:remind\s+me\s+)?(?:to|about|that|of|for)\s+(?P<what>.+?)|and\s+remind\s+me\s+(?:to|about|that|of)\s+(?P<what2>.+?))\s*$", re.I)
+BY_CALL = re.compile(r"\s*,?\s*(?:by\s+(?:calling|ringing|phoning)\s+me|with\s+a\s+(?:phone\s+)?call|by\s+(?:a\s+)?(?:phone\s+)?call|and\s+call\s+me)\b", re.I)
+
+
+def calls_command(text: str, source: str = "") -> str | None:
+    """“call me”, “call me at 6:45 to wake me up”, “call me in 20 minutes to check the oven”, “call me with the briefing”,
+    “remind me to … by calling me”, “cancel my wake-up call”, “when will you call me”."""
+    now = time.time()
+    t = re.sub(r"\s+", " ", text.strip())
+    t = re.sub(r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?)?", "", t, flags=re.I)
+    t = re.sub(r"\s*(?:,?\s*please)?\s*[.!?]*$", "", t, flags=re.I).strip()
+    low = t.lower()
+    address = current_address()
+    # ---- list and cancel ----
+    if re.fullmatch(r"(?:when\s+(?:will|are)\s+you\s+(?:going\s+to\s+)?call(?:ing)?\s+me|what\s+calls\s+(?:do\s+i\s+have|are\s+(?:planned|set|coming))|(?:show|list)(?:\s+me)?\s+(?:my\s+)?(?:planned\s+|wake[- ]?up\s+)?calls)", low):
+        planned = [i for i in reminders_active() if i.get("call")]
+        if not planned:
+            return f"I have no calls planned, {address}."
+        return f"I will call you, {address}:\n" + "\n".join(f"- {fmt_when(i['due'], now)}: {i['text']}" for i in planned[:10])
+    if re.fullmatch(r"(?:cancel|delete|remove|forget)\s+(?:all\s+)?(?:my\s+|the\s+|that\s+)?(?:wake[- ]?up\s+|planned\s+)?calls?|don'?t\s+call\s+me(?:\s+(?:later|tomorrow|after\s+all))?", low):
+        hit = [i for i in reminders_active() if i.get("call")]
+        for i in hit:
+            reminder_cancel(item_id=i["id"])
+        return f"Cancelled {len(hit)} planned call{'s' if len(hit) != 1 else ''}, {address}." if hit else f"I had no calls planned, {address}."
+    if re.fullmatch(r"(?:stop\s+(?:calling|ringing)(?:\s+me)?|hang\s+up|end\s+the\s+call)", low):
+        ended = [c for c in calls_obj().current()]
+        for c in ended:
+            try:
+                calls_obj().hangup(c["id"])
+            except calls_module.CallError:
+                pass
+        return f"Hung up, {address}." if ended else f"There is no call right now, {address}."
+    # ---- remind me … by calling me ----
+    if BY_CALL.search(t) and re.match(r"(?:remind\s+me|wake\s+me|set\s+(?:an?\s+)?(?:alarm|reminder))\b", low):
+        plain = BY_CALL.sub("", t).strip()
+        before = {i["id"] for i in reminders_active()}
+        reply = handle_reminder_command(plain, now)
+        new = [i for i in reminders_active() if i["id"] not in before]
+        if not new:
+            return reply
+        with REMINDERS_LOCK:
+            for item in _reminders():
+                if item["id"] in {n["id"] for n in new}:
+                    item["call"] = True
+            _save_reminders()
+        return re.sub(r"\bremind you\b", "call you", reply or "").replace("Alarm set for", "I will call you to wake you up") or f"Very good, {address}. I will call you."
+    m = re.fullmatch(r"wake\s+me(?:\s+up)?\s+(?:with|by)\s+(?:a\s+)?(?:phone\s+)?call(?:ing\s+me)?\s+(.+)|wake\s+me(?:\s+up)?\s+(.+?)\s+(?:with|by)\s+(?:a\s+)?(?:phone\s+)?call(?:ing\s+me)?", low)
+    if m:
+        t = "call me " + (m.group(1) or m.group(2)) + " to wake me up"
+        low = t.lower()
+    # ---- call me now ----
+    if re.fullmatch(r"(?:call|ring|phone)\s+me(?:\s+(?:now|right\s+now|back|up))?|give\s+me\s+a\s+(?:phone\s+)?(?:call|ring)(?:\s+now)?|(?:start|make)\s+a\s+(?:test\s+)?call(?:\s+to\s+me)?|test\s+(?:the\s+)?call(?:s|ing)?", low):
+        if source == "call":
+            return f"We are already on a call, {address}."
+        try:
+            call = call_user("You asked me to call you", f"Here I am, {address}. What can I do for you?")
+        except calls_module.CallError as exc:
+            return str(exc)
+        return f"Calling you now, {address}." if call.get("state") == "ringing" else f"We are already on a call, {address}."
+    m = re.fullmatch(r"(?:call|ring|phone)\s+me\s+(?:now\s+)?(?:with|and\s+(?:give|read)\s+me)\s+(?:the\s+|my\s+)?(?:morning\s+)?briefing|(?:call|ring|phone)\s+me\s+and\s+(?:say|tell\s+me)\s+(.+)", low)
+    if m:
+        if source == "call":
+            return None
+        opening = (re.search(r"\b(?:say|tell\s+me)\s+(.+)$", t, re.I).group(1).strip(" \"“”") if m.group(1) else
+                   build_briefing(weather=True, reminders=True, system=False).get("text") or f"Good day, {address}.")
+        try:
+            call = call_user("Your call", opening)
+        except calls_module.CallError as exc:
+            return str(exc)
+        return f"Calling you now, {address}." if call.get("state") == "ringing" else None
+    # ---- call me later ----
+    m = re.match(r"(?:call|ring|phone)\s+me\s+(?=(?:at|in|after|tomorrow|tonight|today|on|this|next|around|by|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d)\b)(.+)", t, re.I)
+    if not m:
+        return None
+    rest = m.group(1)
+    purpose = CALL_LATER_PURPOSE.search(rest)
+    message, wake = "", False
+    if purpose and purpose.start() > 0:
+        wake = bool(purpose.group("wake"))
+        message = "Wake up" if wake else (purpose.group("what") or purpose.group("what2") or "").strip(" .\"“”")
+        rest = rest[:purpose.start()]
+    due = None
+    rel = re.search(rf"\b(?:in|after|within)\s+({DURATION_RE.pattern})", rest, re.I)
+    if rel:
+        due = now + duration_seconds(rel.group(1))
+    else:
+        due, _spans = parse_clock_and_day(re.sub(r"\baround\b", "at", rest, flags=re.I), now)
+        if due is not None and (wake or re.search(r"\bmorning\b", rest, re.I)):
+            due = morning_fix(due, rest, now)
+    if due is None:
+        return f"When should I call you, {address}? For example: “call me at 6:45 to wake me up” or “call me in 20 minutes”."
+    if due <= now + 1:
+        return f"That time has already passed, {address}."
+    try:
+        reminder_add("reminder", due, message or "Call", call=True)
+    except ValueError as exc:
+        return str(exc)
+    when = f"in {fmt_duration(due - now)}" if rel else fmt_when(due, now)
+    if wake:
+        return f"Very good, {address}. I will call you {when} to wake you up."
+    return f"Very good, {address}. I will call you {when}" + (f": “{message}”." if message else ".")
 
 
 def explicit_assistant_command(text: str) -> str | None:
@@ -5451,6 +5637,22 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/debug":
             self.send_json(200, {"enabled": debug_enabled(), "traces": debugtrace.recent()})
             return
+        if path == "/api/call":
+            obj = calls_obj()
+            with SUBSCRIBERS_LOCK:
+                phone_listening = bool(PHONE_SUBSCRIBERS)
+            self.send_json(200, {"settings": obj.settings(), "calls": obj.current(), "recent": obj.recent(), "version": obj.version,
+                                 "phone_listening": phone_listening or obj.waiting > 0, "address": current_address()})
+            return
+        if path == "/api/call/wait":
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                since, timeout = int((query.get("since") or ["-1"])[0]), float((query.get("timeout") or ["50"])[0])
+            except ValueError:
+                self.send_json(400, {"error": "since and timeout must be numbers"})
+                return
+            self.send_json(200, calls_obj().wait(since, timeout))
+            return
         if path == "/api/status":
             active = ai_settings()
             self.send_json(200, {"configured": bool(active["key"]), "provider": active["provider"], "model": active["model"]})
@@ -5673,6 +5875,39 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.send_json(404, {"error": "Unknown endpoint"})
         except (ValueError, TypeError) as exc:
+            self.send_json(400, {"error": str(exc)})
+
+    def call_action(self, payload: dict) -> None:
+        """POST /api/call {"action": place | answer | decline | hangup | heartbeat | test | settings, "id": …}."""
+        obj, action = calls_obj(), str(payload.get("action") or "")
+        device = "phone" if self._from_phone else ("phone" if payload.get("device") == "phone" else "pc")
+        try:
+            if action == "place":
+                call = obj.place(device)
+                hour = datetime.now().hour
+                part = "morning" if 4 <= hour < 12 else "afternoon" if hour < 18 else "evening"
+                self.send_json(200, {"call": call, "greeting": f"Good {part}, {current_address()}. What can I do for you?"})
+            elif action == "answer":
+                self.send_json(200, {"call": obj.answer(str(payload.get("id", "")), device)})
+            elif action == "decline":
+                self.send_json(200, {"call": obj.decline(str(payload.get("id", "")), device)})
+            elif action == "hangup":
+                self.send_json(200, {"call": obj.hangup(str(payload.get("id", "")))})
+            elif action == "heartbeat":
+                self.send_json(200, {"call": obj.heartbeat(str(payload.get("id", "")))})
+            elif action == "test":
+                call = call_user("Test call", f"This is a test call, {current_address()}. Calls are working. Say goodbye to hang up, or ask me anything.")
+                self.send_json(200, {"call": call})
+            elif action == "settings":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Change the call settings at the PC."})
+                    return
+                self.send_json(200, {"settings": obj.update(payload.get("settings") or {})})
+            else:
+                self.send_json(400, {"error": "Unknown call action."})
+        except calls_module.CallError as exc:
+            self.send_json(409, {"error": str(exc)})
+        except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
 
     def stream_events(self) -> None:
@@ -6217,6 +6452,8 @@ class Handler(BaseHTTPRequestHandler):
                             self.send_json(200, {**cfg, "sight_now": autopilot_sight()})
                     except (ValueError, TypeError) as exc:
                         self.send_json(400, {"error": str(exc)})
+            elif path == "/api/call":
+                self.call_action(payload)
             elif path == "/api/debug":
                 if self._from_phone:
                     self.send_json(403, {"error": "Change this at the PC."})
@@ -7066,6 +7303,10 @@ class Handler(BaseHTTPRequestHandler):
         if routine:
             self.start_routine(routine)
             return
+        call_reply = calls_command(latest, payload.get("source") or "")
+        if call_reply:
+            self.send_json(200, {"reply": call_reply, "action": None})
+            return
         brief_reply = briefing_command(latest)
         if brief_reply:
             self.send_json(200, {"reply": brief_reply, "action": None})
@@ -7333,6 +7574,10 @@ class Handler(BaseHTTPRequestHandler):
             instructions += "\n\n" + memory_block
             debugtrace.step("memory", "Your long-term memory was added to the instructions", memory_block)
         instructions += language_instruction()
+        if payload.get("source") == "call":
+            instructions += ("\n\nYou are talking with the user on a live voice call: everything you write is read aloud. Answer in one to three short, "
+                             "natural spoken sentences. No lists, no headings, no markdown, no code, no links, no emoji. If something needs a long "
+                             "answer, give the gist and offer to put the details in the chat.")
         if doc_hits is not None:
             instructions += "\n\n" + docs_prompt(doc_hits)
         if web_result is not None:
@@ -8376,7 +8621,7 @@ def _debug_router_ask(fn):
 
 router_ask_model = _debug_router_ask(router_ask_model)
 for _name in ("language_command", "briefing_command", "mail_command", "grades_command", "timetable_command", "planner_command", "countdown_command", "exams_command",
-              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "pc_command",
+              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "pc_command",
               "explicit_assistant_command", "repeat_request", "jarvis_model_text"):
     if callable(globals().get(_name)) and not hasattr(globals()[_name], "__wrapped__"):
         globals()[_name] = debugtrace.traced(_name, globals()[_name])

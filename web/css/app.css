@@ -715,3 +715,40 @@ html[data-boot="play"] .boot{display:flex}
 .debug-recent summary{cursor:pointer;overflow-wrap:anywhere}
 .debug-reply{margin:4px 0 0}
 @media (max-width:640px){.debug-trace{margin-left:0;max-width:100%}.debug-line{flex-wrap:wrap;gap:2px 8px}.debug-time{flex-basis:auto;text-align:left}.debug-kind{flex-basis:auto}.debug-text{flex-basis:100%}.debug-detail{margin-left:0}}
+/* calls: the call screen over everything */
+.call-screen{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(6px)}
+.call-card{animation-duration:.25s;width:min(420px,100%);padding:28px 22px 24px;text-align:center;border:1px solid var(--a45);background:var(--fill-solid);box-shadow:var(--glow)}
+.call-title{margin:14px 0 4px;font:600 26px/1.1 var(--disp);letter-spacing:.18em;color:var(--ice)}
+.call-state{margin:0;color:var(--accent);font:500 15px/1.4 var(--hud);letter-spacing:.06em;text-transform:uppercase}
+.call-timer{margin:4px 0 10px;color:var(--muted);font:14px var(--mono);min-height:1.2em}
+.call-captions{min-height:96px;max-height:34vh;overflow:auto;margin:6px 0 16px;text-align:left;font:16px/1.45 var(--hud)}
+.call-captions p{margin:0 0 8px;overflow-wrap:anywhere}
+.call-you:not(:empty)::before{content:"YOU  ";color:var(--dim);font:12px var(--mono)}
+.call-jarvis:not(:empty)::before{content:"JARVIS  ";color:var(--accent);font:12px var(--mono)}
+.call-you{color:var(--muted)}.call-jarvis{color:var(--text)}
+.call-buttons{display:flex;justify-content:center;gap:22px}
+.call-round{width:68px;height:68px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:22px;line-height:1;
+  border:1px solid var(--a45);background:var(--a08);color:var(--text);cursor:pointer;padding:0}
+.call-round small{font:11px/1 var(--hud);letter-spacing:.06em;color:var(--muted)}
+.call-round:hover{background:var(--a20)}
+.call-round[aria-pressed="true"]{background:var(--a30);border-color:var(--accent)}
+.call-red{border-color:var(--red);background:color-mix(in srgb,var(--red) 22%,transparent)}
+.call-red:hover{background:color-mix(in srgb,var(--red) 40%,transparent)}
+.call-green{border-color:#3ddc84;background:color-mix(in srgb,#3ddc84 22%,transparent)}
+.call-green:hover{background:color-mix(in srgb,#3ddc84 40%,transparent)}
+.call-screen[data-phase="ringing"] .call-green{animation:callShake 1.3s ease-in-out infinite}
+@keyframes callShake{0%,60%,100%{transform:rotate(0)}10%,30%,50%{transform:rotate(-9deg)}20%,40%{transform:rotate(9deg)}}
+.call-orb{position:relative;width:92px;height:92px;margin:0 auto}
+.call-orb span{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:.75}
+.call-orb span:nth-child(1){inset:30px;background:var(--accent);box-shadow:0 0 22px var(--accent)}
+.call-orb span:nth-child(2){inset:16px;opacity:.5}
+.call-screen[data-phase="ringing"] .call-orb span:nth-child(3),.call-screen[data-phase="connecting"] .call-orb span:nth-child(3){animation:callWave 1.4s ease-out infinite}
+.call-screen[data-phase="speaking"] .call-orb span:nth-child(1){animation:speakPulse .38s ease-in-out infinite alternate}
+.call-screen[data-phase="listening"] .call-orb span:nth-child(2){animation:callWave 1.8s ease-out infinite}
+.call-screen[data-phase="thinking"] .call-orb span:nth-child(2){border-style:dashed;animation:callSpin 1.6s linear infinite}
+.call-screen[data-phase="muted"] .call-orb,.call-screen[data-phase="ended"] .call-orb{opacity:.35}
+@keyframes callWave{from{transform:scale(.7);opacity:.9}to{transform:scale(1.25);opacity:0}}
+@keyframes callSpin{to{transform:rotate(360deg)}}
+@media (max-width:640px){.call-button{padding-inline:8px}}
+@media (prefers-reduced-motion:reduce){.call-screen *{animation:none!important}}
+.orb-stage{overflow-x:clip}   /* the rings grow while Jarvis speaks: never make a phone scroll sideways */

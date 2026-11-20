@@ -71,16 +71,18 @@ orig=S.Handler.proxy_chat if hasattr(S.Handler,"proxy_chat") else None
 s,d=call("GET","/api/router"); assert d["enabled"] is False and len(d["tools"])==24 and all(t["risk"] in ("read","write") for t in d["tools"])
 names={t["name"] for t in d["tools"]}; assert not any(w in n for n in names for w in ("delete","mail","backup","restore","clean","update","file","command")), names
 # off: the model is never asked
-answer["v"]=J(("add_event",{"title":"physics test","when":"on the 20th"}))
-try: chat("I've got a physics test on the 20th, add it")
+import datetime as _dt
+_d=(_dt.date.today()+_dt.timedelta(days=3)).day; FUT=str(_d)+("th" if 10<=_d%100<=20 else {1:"st",2:"nd",3:"rd"}.get(_d%10,"th"))
+answer["v"]=J(("add_event",{"title":"physics test","when":"on the "+FUT}))
+try: chat("I've got a physics test on the "+FUT+", add it")
 except Exception: pass
 assert asked==[] and S.planner_obj().public()["events"]==[], "off by default"
 s,d=call("POST","/api/router",{"enabled":True}); assert d=={"enabled":True} and json.loads((tmp/"data"/"settings.json").read_text())["tool_router"] is True
 # built-in commands still win and do not ask the model
 d=chat("add buy milk to my to-do list"); assert "buy milk" in d["reply"] and asked==[] and "decided" not in d
 # a wording no command knows
-d=chat("ugh, I've got a physics test on the 20th"); assert d.get("decided")==["add_event"] and "physics test" in d["reply"] and "calendar" in d["reply"], d
-ev=S.planner_obj().public()["events"]; assert len(ev)==1 and ev[0]["title"].lower()=="physics test" and datetime.fromtimestamp(ev[0]["start"]).day==20
+d=chat("ugh, I've got a physics test on the "+FUT+""); assert d.get("decided")==["add_event"] and "physics test" in d["reply"] and "calendar" in d["reply"], d
+ev=S.planner_obj().public()["events"]; assert len(ev)==1 and ev[0]["title"].lower()=="physics test" and datetime.fromtimestamp(ev[0]["start"]).day==_d
 assert "Now:" in asked[-1][0] and asked[-1][1].startswith("ugh")
 assert chat("undo that")["reply"]=="Undone, sir." and S.planner_obj().public()["events"]==[]
 # no day given: asks instead of guessing

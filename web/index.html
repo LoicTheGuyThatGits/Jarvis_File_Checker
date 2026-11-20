@@ -38,6 +38,7 @@
         <div class="status"><span class="status-dot"></span><span id="connection">Local assistant</span></div>
         <button type="button" id="timer-chip" class="settings-button timer-chip hidden" title="Active timers and reminders">⏱ <span id="timer-chip-text">0:00</span></button>
         <button type="button" id="wake-chip" class="settings-button wake-chip hidden" title="Listening for “Hey Jarvis”. Click to turn off.">◉ <span id="wake-chip-text">LISTENING</span></button>
+        <button type="button" id="call-button" class="settings-button call-button" title="Call Jarvis: talk hands-free, like a phone call">☎ Call</button>
         <button type="button" id="voice-toggle" class="settings-button voice-toggle" aria-pressed="false" title="Speak answers aloud">♪ Voice off</button>
         <button type="button" id="open-settings" class="settings-button" aria-haspopup="dialog" aria-expanded="false" aria-controls="settings">◐ Settings</button>
       </div>
@@ -576,6 +577,17 @@
         </div>
         <p class="settings-note">While this is on, Jarvis listens on your local network and anyone on it who has the pairing code can control this PC, so only use it on a network you trust and keep the code private. The connection is not encrypted. Making a new code disconnects every paired phone.</p>
       </div>
+      <div class="settings-section" id="calls-section">
+        <h2 class="settings-heading">Calls</h2>
+        <p class="settings-note">Talk with Jarvis hands-free, like a phone call. Press <strong>☎ Call</strong> at the top to call Jarvis; say “goodbye” or press the red button to hang up. Jarvis can call you too: “call me at 6:45 to wake me up”, “call me in 20 minutes to check the oven”, “remind me to leave at 5pm by calling me”, “call me with the briefing” (also as a routine step). It rings this window (it opens it if needed) and the phone app; whichever answers first takes the call. If nobody answers, the message goes to Telegram. The conversation is saved as a chat afterwards.</p>
+        <label class="settings-check"><input type="checkbox" id="calls-on"> Jarvis may call me</label>
+        <label class="settings-check"><input type="checkbox" id="calls-ring-pc"> Ring on this PC</label>
+        <label class="settings-check"><input type="checkbox" id="calls-ring-phone"> Ring the phone app</label>
+        <label class="settings-check"><input type="checkbox" id="calls-telegram"> Send a missed or declined call to Telegram</label>
+        <div class="inline-form"><label for="calls-ring-seconds">Ring for</label><input type="number" id="calls-ring-seconds" min="15" max="90" step="5" style="width:5em"> <span>seconds</span><button type="button" id="calls-test">Test call</button></div>
+        <p class="settings-note" id="calls-status" role="status"></p>
+        <ul class="settings-list" id="calls-recent"></ul>
+      </div>
       <div class="settings-section" id="telegram-section">
         <h2 class="settings-heading">Telegram</h2>
         <p class="settings-note" id="tg-status">Not connected.</p>
@@ -736,6 +748,27 @@
     <div id="quick-result" class="quick-result hidden" aria-live="polite"></div>
     <div class="quick-buttons"><button type="button" id="quick-copy" class="hidden">Copy</button><button type="button" id="quick-replace" class="hidden">Replace selection</button></div>
   </section>
+  <div id="call-screen" class="call-screen hidden" role="dialog" aria-modal="true" aria-labelledby="call-title">
+    <div class="call-card hud-panel">
+      <div class="call-orb" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h2 id="call-title" class="call-title">Jarvis</h2>
+      <p id="call-state" class="call-state" role="status">Calling…</p>
+      <p id="call-timer" class="call-timer">0:00</p>
+      <div class="call-captions" aria-live="polite">
+        <p id="call-you" class="call-you"></p>
+        <p id="call-jarvis" class="call-jarvis"></p>
+      </div>
+      <div class="call-buttons call-incoming hidden" id="call-incoming">
+        <button type="button" id="call-decline" class="call-round call-red" title="Decline">✕<small>Decline</small></button>
+        <button type="button" id="call-accept" class="call-round call-green" title="Answer">☎<small>Answer</small></button>
+      </div>
+      <div class="call-buttons call-active" id="call-active">
+        <button type="button" id="call-mute" class="call-round" aria-pressed="false" title="Mute the microphone">🎙<small>Mute</small></button>
+        <button type="button" id="call-skip" class="call-round" title="Stop Jarvis talking and speak now">⏭<small>Interrupt</small></button>
+        <button type="button" id="call-hangup" class="call-round call-red" title="Hang up">✕<small>Hang up</small></button>
+      </div>
+    </div>
+  </div>
   <script>window.paneHas = function (pane, id) { var p = document.getElementById('pane-' + pane), el = document.getElementById(id); return !!(p && el && p.contains(el)); };</script>
   <script src="/js/wake.js"></script>
   <script src="/js/mail.js"></script>
@@ -752,5 +785,6 @@
   <script src="/js/docs.js"></script>
   <script src="/js/telegram.js"></script>
   <script src="/js/phone.js"></script>
+  <script src="/js/call.js"></script>
 </body>
 </html>

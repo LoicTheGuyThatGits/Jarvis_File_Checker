@@ -350,6 +350,17 @@ You get a new file ("essay (edited).docx") with **Download** and **Show in folde
 ## Self-check
 "Run a self-check" (or Settings > Look > **Self-check**) tries each part of Jarvis that depends on this PC: Python packages, the data folder, the AI model (and how fast it answers), whether the model can see pictures, taking a screenshot, reading the controls and the text on the screen, the list of windows, mouse and keyboard, the network and Wi-Fi readings, file search, document editing, the phone link and the offline voice. It only reads and measures. The report is shown with ✓, ⚠ and ✗, can be copied with one button, and is saved in `data\selftest.txt`.
 
+## Calls
+Talk with Jarvis hands-free, like a phone call. Press **☎ Call** at the top of the window: Jarvis greets you, listens, answers out loud and listens again until you say “goodbye” (or press the red button). Mute and Interrupt (stop Jarvis talking so you can speak) are on the call screen. Everything that works in chat works on a call; replies are kept short and spoken. The conversation is saved as a chat (“☎ Call · 08:41 (3:12)”) when you hang up.
+
+Jarvis can call you too. It rings the Jarvis window (opening it if it is closed) and the phone app; whichever answers first takes the call, and Jarvis speaks first:
+- “call me” (straight away), “call me at 6:45 to wake me up”, “wake me up with a call at 7”, “call me in 20 minutes to check the oven”, “remind me to leave at 5pm by calling me”
+- “call me with the briefing” reads the morning briefing; as a routine step it makes a wake-up routine
+- “when will you call me”, “cancel my calls”, “hang up”; in French “appelle-moi demain à 6h45 pour me réveiller”, “réveille-moi avec un appel à 7h”, “annule mon appel de réveil”, “raccroche”
+- a reminder that comes up while you are already on a call is said in that call
+
+If nobody answers within 40 seconds (or you decline), the message goes to Telegram. Settings > Phone & Telegram > **Calls**: let Jarvis call you or not, where it rings, the Telegram fallback, how long it rings, a test call and the recent calls. Listening uses the browser's speech recognition (Edge or Chrome); where that is missing, Jarvis records until you pause and transcribes it on the PC. Ringing the phone while the app is closed or the phone is locked needs the updated Android app (coming next); the phone can already wait for calls with `GET /api/call/wait`.
+
 ## Debug mode
 Settings > Jarvis & updates > **Debug mode** (or say “debug mode on” / “debug mode off” at the PC) shows what Jarvis did for each reply, folded under it as “Debug · time · answered by …”. Open it to see, with the time of each step: the message, a French rewrite, which built-in command caught it, what Smart commands asked the model and what it answered, every tool and connected (MCP) tool that ran with its arguments, result and time, the web pages, documents and memory put in the prompt, the model call (model, prompt size, the full instructions and messages sent, time to the first word, total time), **the model's thinking** and its raw answer, and any action it asked for. Autopilot steps are recorded too. The thinking appears for models that think, such as qwen3 or deepseek-r1 (their `<think>` part is never shown in the reply itself, with debug mode on or off). The last 50 traces stay in memory for Settings, where you can open, copy (JSON) or clear them; nothing is written to disk, they are gone on restart, and they are never sent to Telegram. Switching it off clears them. It can only be switched on or off at the PC.
 

@@ -256,6 +256,29 @@ def _alarm(m, now):
     return f"wake me up {date}" if date else None
 
 
+def _call(m, now):
+    rest = (m.group(1) or "").strip(" ,")
+    if not rest or re.fullmatch(r"(?:maintenant|tout\s+de\s+suite|vite)", rest, re.I):
+        return "call me"
+    if re.fullmatch(r"(?:avec|et\s+(?:lis|donne)[- ]moi)\s+(?:le|mon)\s+(?:briefing|point\s+du\s+matin)", rest, re.I):
+        return "call me with the briefing"
+    purpose = ""
+    p = re.search(r"\s*,?\s*pour\s+(?:me\s+)?(?:r[ée]veiller|lever)\b.*$", rest, re.I)
+    if p:
+        purpose, rest = " to wake me up", rest[:p.start()]
+    else:
+        p = re.search(r"\s*,?\s*pour\s+(?:me\s+rappeler\s+(?:de\s+|d['’]|que\s+)?)?(.+)$", rest, re.I)
+        if p:
+            purpose, rest = " to " + p.group(1).strip(), rest[:p.start()]
+    date = when(rest, now)
+    return f"call me {date}{purpose}" if date else None
+
+
+def _wake_call(m, now):
+    date = when(m.group(1) or m.group(2) or "", now)
+    return f"call me {date} to wake me up" if date else None
+
+
 def _focus(m, now):
     span = duration(m.group(1)) if m.group(1) else ""
     if m.group(1) and not span:
@@ -337,6 +360,11 @@ RULES: list[tuple[str, object]] = [
     (r"(?:rappelle[- ]moi|fais[- ]moi\s+penser|n['’]oublie\s+pas\s+de\s+me\s+rappeler|préviens[- ]moi|previens[- ]moi)\s+(.+)", _remind),
     (r"(?:mets?|lance[rz]?|démarre[rz]?|demarre[rz]?|règle[rz]?|regle[rz]?|programme[rz]?|crée[rz]?)\s+(?:un\s+|le\s+)?(?:minuteur|chrono(?:mètre)?|timer|compte\s+à\s+rebours|minuterie)\s+(?:de\s+|d['’]|pour\s+|sur\s+)(.+)", _timer),
     (r"(?:minuteur|minuterie|chrono|timer)\s+(?:de\s+|d['’]|pour\s+)?(.+)", _timer),
+    (r"(?:r[ée]veille)[- ]moi\s+(?:avec|par)\s+un\s+(?:coup\s+de\s+fil|appel)\s+(.+)|(?:r[ée]veille)[- ]moi\s+(.+?)\s+(?:avec|par)\s+un\s+(?:coup\s+de\s+fil|appel)", _wake_call),
+    (r"(?:appelle|téléphone|telephone)[- ]moi(?:\s+(.+))?", _call),
+    (r"(?:annule|supprime)\s+(?:mon|l['’]|mes|les)\s*appels?(?:\s+(?:de\s+r[ée]veil|prévus?))?|ne\s+m['’]appelle\s+pas", "cancel my calls"),
+    (r"quand\s+(?:vas-tu|est-ce\s+que\s+tu\s+vas|tu\s+vas)\s+m['’]appeler|(?:quels|mes)\s+appels\s+(?:prévus|de\s+r[ée]veil)", "when will you call me"),
+    (r"raccroche|arrête\s+de\s+(?:m['’]appeler|sonner)", "hang up"),
     (r"(?:réveille[- ]moi|reveille[- ]moi|mets?\s+(?:un\s+|une\s+|le\s+)?(?:réveil|reveil|alarme)\s+(?:pour\s+|à\s+)?)\s*(.+)", _alarm),
     (r"(?:quels?\s+(?:sont\s+)?(?:mes\s+)?(?:rappels|minuteurs)(?:\s+(?:en\s+cours|actifs))?|mes\s+rappels)", "what reminders do i have"),
     (r"(?:annule[rz]?|arrête[rz]?|arrete[rz]?|stoppe[rz]?|supprime[rz]?)\s+(?:le\s+|mon\s+|tous\s+les\s+|tous\s+mes\s+)?(minuteurs?|chronos?|timers?|rappels?|alarmes?|réveils?)", lambda m, now: "cancel all " + ("timers" if re.match(r"min|chr|tim", m.group(1), re.I) else "alarms" if re.match(r"al|r[ée]v", m.group(1), re.I) else "reminders")),
@@ -396,7 +424,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge|raccroche|appelle|appel|appels)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

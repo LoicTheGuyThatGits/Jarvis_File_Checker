@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "556a7262649c9489cffb7b9d02d21d67e29c3fe665c99e76b7bb5be55cecb57b",
-   "size": 76233
+   "sha256": "905493492abcfacf13dcaeab699c8a136463922fbdc144b08e203bda72d9d696",
+   "size": 78050
   },
   {
    "path": "app/backup.py",
@@ -21,6 +21,11 @@
    "path": "app/bench.py",
    "sha256": "854ae04f3ac2e27bdd34cd2ac72600f3cda892ab3d84723839cc73580e4595af",
    "size": 13112
+  },
+  {
+   "path": "app/calls.py",
+   "sha256": "f0aa38e03cf5c0fd38f0069eb8ac536615755fcd14444333258cc50c6065081c",
+   "size": 11745
   },
   {
    "path": "app/countdowns.py",
@@ -69,8 +74,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "22a97b5640d93b0a8fc28d9e087134427792b28c4cf82cfa0bbfe74a3335521a",
-   "size": 34466
+   "sha256": "49630984befa99d66b68eaaf3bec0903f80db160503d4c7d0f472de1d21db1cb",
+   "size": 36061
   },
   {
    "path": "app/gmail_reader.py",
@@ -169,8 +174,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "25354016ad40aead5d290f51f3232278b9a085ee3d6f8246acadf0afd18a86d3",
-   "size": 458177
+   "sha256": "06e83fe650a8240d66f932decc322e9fcbed35f90866ddc9f5949ac8bc3282d4",
+   "size": 471752
   },
   {
    "path": "app/set-address.py",
@@ -309,8 +314,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "8f4d997b83ed9446e54631392a9767439cac6c03da3d9b3c6d62e75f2735e719",
-   "size": 62272
+   "sha256": "2a5bc8fc0d106c8a4aaa1bcd0d3f86267636c22bbfd8f2099e112701845bcf90",
+   "size": 65828
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -324,13 +329,18 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "7deabba77813ff1ac91e7759cf20430d6b6a1fa7533cead8f5d019e0e5bac466",
-   "size": 78918
+   "sha256": "22f8ce8b6ed0711d0d5f188fbc094aadb4f947eb9caa22538bf76d9168dd8683",
+   "size": 82120
   },
   {
    "path": "web/js/app.js",
-   "sha256": "fa670f9844e4e932f708becae4baf6bcb843866b9fc3af3f0b681eeccc1aa423",
-   "size": 31582
+   "sha256": "fd24cfe7c80cd3a930ba8709e2cf44956a9980667234481e934b41fc354812be",
+   "size": 32030
+  },
+  {
+   "path": "web/js/call.js",
+   "sha256": "5af9d225917ee57ec790ede212a7cb0ada5a3613196c56b06fb50843cc3c952c",
+   "size": 18539
   },
   {
    "path": "web/js/code.js",
@@ -354,8 +364,8 @@
   },
   {
    "path": "web/js/features.js",
-   "sha256": "0874b8c6b44fee4b862af7c6c118d5f4a5c9e0d3630254e0e1553b34da9e4db8",
-   "size": 26245
+   "sha256": "1b2f0a8ef47292e241fa0187de61c2833cabd6d57592c35f933e44abb0216e04",
+   "size": 27048
   },
   {
    "path": "web/js/mail.js",
@@ -389,13 +399,13 @@
   },
   {
    "path": "web/js/tools.js",
-   "sha256": "0af09af4d1ea5a8e4b4fd461f1a759fe5537aed04059692f907fe043f5de5b0e",
-   "size": 42421
+   "sha256": "bcbe2f1ab3c7b89bc693490c1325b387ceb1e2b21f6f17ac699efd5208ab981a",
+   "size": 42520
   },
   {
    "path": "web/js/ui.js",
-   "sha256": "f4e77fb4a3c20994d580a7f5500d3d79d3317af2f3a1bd3728b065a2715507ad",
-   "size": 19646
+   "sha256": "7e4d8061e8fea2711742d8f8672799c2e57a4ebd84b995ff5adb33fb4c92af26",
+   "size": 19770
   },
   {
    "path": "web/js/wake.js",
