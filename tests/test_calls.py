@@ -52,6 +52,7 @@ assert c.waiting == 1
 t0 = time.time(); c.ring("Poll", "Hi."); th.join(3)
 assert time.time() - t0 < 1 and got["calls"][0]["reason"] == "Poll" and got["version"] > v and c.waiting == 0
 assert c.wait(c.version, 0.2)["version"] == c.version
+t0 = time.time(); assert c.wait(c.version + 50, 5)["boot"] == c.boot and time.time() - t0 < 1, "a since from before a restart returns at once"
 assert C.opening_for("Wake up", time.strptime("2026-11-21 06:45", "%Y-%m-%d %H:%M")) == "Good morning, sir. It is 06:45, time to wake up."
 assert C.opening_for("check the oven", time.localtime(), "boss") == "Hello, boss. You asked me to call you: check the oven."
 assert C.opening_for("Call", time.strptime("2026-11-21 16:05", "%Y-%m-%d %H:%M")).startswith("Hello, sir. You asked me to call you at 16:05.")

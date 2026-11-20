@@ -37,6 +37,7 @@ class Calls:
         self.calls: dict[str, dict] = {}
         self.history: list[dict] = []
         self.version = 0
+        self.boot = secrets.token_hex(4)       # changes when Jarvis restarts, so a phone knows its "since" is stale
         self.waiting = 0                       # phones waiting in wait() right now
         self.publish = lambda event: None     # set by the server: sends an event to open pages and the phone app
         self.on_missed = lambda call: None     # set by the server: the Telegram fallback
@@ -232,12 +233,12 @@ class Calls:
         with self.cond:
             self.waiting += 1
             try:
-                while self.version <= since:
+                while self.version == since:            # a "since" from before a restart (bigger or smaller) returns at once
                     left = deadline - time.time()
                     if left <= 0:
                         break
                     self.cond.wait(left)
-                return {"version": self.version, "calls": [self.public(c) for c in self.calls.values() if c["state"] in ("ringing", "active")]}
+                return {"version": self.version, "boot": self.boot, "ring_seconds": self.settings()["ring_seconds"], "calls": [self.public(c) for c in self.calls.values() if c["state"] in ("ringing", "active")]}
             finally:
                 self.waiting -= 1
 
