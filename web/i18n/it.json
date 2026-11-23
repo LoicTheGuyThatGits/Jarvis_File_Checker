@@ -812,6 +812,22 @@
 "Selected text": "Testo selezionato",
 "@patterns": [
 [
+"^1 month$",
+"1 mese"
+],
+[
+"^1 year$",
+"1 anno"
+],
+[
+"^(\\d+) months?$",
+"$1 mesi"
+],
+[
+"^(\\d+) years?$",
+"$1 anni"
+],
+[
 "^(\\d+)% in use$",
 "$1% in uso"
 ],
@@ -912,5 +928,24 @@
 "Your revision is planned again.": "Il ripasso è stato ripianificato.",
 "Choose photos of your notes, or paste the text.": "Scegli le foto dei tuoi appunti, oppure incolla il testo.",
 "Reading your notes… this can take a minute.": "Lettura degli appunti… può richiedere un minuto.",
-"✓ done": "✓ fatta"
+"✓ done": "✓ fatta",
+"Memory between chats": "Memoria tra le conversazioni",
+"Jarvis keeps a history of your chats on this PC (from the app, the phone, Telegram and calls) so a new chat can pick up where an old one left off: ask “what was that game Luca recommended?” or “when did I talk about the ski trip?”, or “search my chats for Outer Wilds”. It also picks up facts about you as you talk (people, likes, plans, recommendations) and lists them above, marked <strong>learned</strong>: correct or delete any of them. Passwords, codes, numbers, addresses, health and money are never kept. Learning happens when you are not waiting for an answer. In chat: “what have you learned about me?”, “forget what I said about Luca”, “stop learning from my chats”.": "Jarvis conserva una cronologia delle tue conversazioni su questo PC (dall'app, dal telefono, da Telegram e dalle chiamate) così una nuova conversazione riprende da dove si era fermata una vecchia: chiedi “what was that game Luca recommended?” o “when did I talk about the ski trip?”, oppure “search my chats for Outer Wilds”. Impara anche cose su di te mentre parlate (persone, gusti, progetti, consigli) e le elenca qui sopra, segnate come <strong>imparato</strong>: correggi o elimina quello che vuoi. Password, codici, numeri, indirizzi, salute e soldi non vengono mai conservati. L'apprendimento avviene quando non stai aspettando una risposta. Nella chat: “what have you learned about me?”, “forget what I said about Luca”, “stop learning from my chats”.",
+"Learn about me from our chats": "Imparare su di me dalle nostre conversazioni",
+"Keep a searchable history of our chats on this PC": "Conservare su questo PC una cronologia delle conversazioni in cui cercare",
+"Keep it for": "Conservarla per",
+"Keep the chat history for": "Conservare la cronologia per",
+"No chats in the history yet.": "Ancora nessuna conversazione nella cronologia.",
+"Search your chats and memories…": "Cerca nelle conversazioni e nei ricordi…",
+"Search your chats and memories": "Cerca nelle conversazioni e nei ricordi",
+"Search": "Cerca",
+"Delete the chat history": "Elimina la cronologia",
+"Correct this": "Correggi",
+"Correct this memory:": "Correggi questo ricordo:",
+"The chat history is off.": "La cronologia è disattivata.",
+"Nothing found.": "Nessun risultato.",
+"Click again to delete every chat": "Clicca di nuovo per eliminare tutto",
+"Messages in the history:": "Messaggi nella cronologia:",
+"since": "dal",
+"learned": "imparato"
 }

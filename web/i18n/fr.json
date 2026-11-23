@@ -803,6 +803,22 @@
 "Selected text": "Texte sélectionné",
 "@patterns": [
 [
+"^1 month$",
+"1 mois"
+],
+[
+"^1 year$",
+"1 an"
+],
+[
+"^(\\d+) months?$",
+"$1 mois"
+],
+[
+"^(\\d+) years?$",
+"$1 ans"
+],
+[
 "^(\\d+)% in use$",
 "$1 % utilisé"
 ],
@@ -903,5 +919,24 @@
 "Your revision is planned again.": "Vos révisions sont replanifiées.",
 "Choose photos of your notes, or paste the text.": "Choisissez des photos de vos notes, ou collez le texte.",
 "Reading your notes… this can take a minute.": "Lecture de vos notes… cela peut prendre une minute.",
-"✓ done": "✓ faite"
+"✓ done": "✓ faite",
+"Memory between chats": "Mémoire entre les conversations",
+"Jarvis keeps a history of your chats on this PC (from the app, the phone, Telegram and calls) so a new chat can pick up where an old one left off: ask “what was that game Luca recommended?” or “when did I talk about the ski trip?”, or “search my chats for Outer Wilds”. It also picks up facts about you as you talk (people, likes, plans, recommendations) and lists them above, marked <strong>learned</strong>: correct or delete any of them. Passwords, codes, numbers, addresses, health and money are never kept. Learning happens when you are not waiting for an answer. In chat: “what have you learned about me?”, “forget what I said about Luca”, “stop learning from my chats”.": "Jarvis garde un historique de vos conversations sur ce PC (depuis l'application, le téléphone, Telegram et les appels) pour qu'une nouvelle conversation reprenne là où une ancienne s'est arrêtée : demandez « c'était quoi le jeu que Luca m'a conseillé ? » ou « quand est-ce que j'ai parlé du camp de ski ? », ou « cherche dans mes conversations Outer Wilds ». Il retient aussi des choses sur vous au fil des conversations (personnes, goûts, projets, recommandations) et les liste ci-dessus, marquées <strong>appris</strong> : corrigez ou supprimez ce que vous voulez. Les mots de passe, codes, numéros, adresses, la santé et l'argent ne sont jamais gardés. L'apprentissage se fait quand vous n'attendez pas de réponse. Dans le chat : « qu'est-ce que tu as appris sur moi ? », « oublie ce que je t'ai dit sur Luca », « arrête d'apprendre de mes conversations ».",
+"Learn about me from our chats": "Apprendre sur moi à partir de nos conversations",
+"Keep a searchable history of our chats on this PC": "Garder sur ce PC un historique de nos conversations où chercher",
+"Keep it for": "La garder",
+"Keep the chat history for": "Durée de l'historique",
+"No chats in the history yet.": "Aucune conversation dans l'historique pour l'instant.",
+"Search your chats and memories…": "Chercher dans vos conversations et souvenirs…",
+"Search your chats and memories": "Chercher dans vos conversations et souvenirs",
+"Search": "Chercher",
+"Delete the chat history": "Supprimer l'historique des conversations",
+"Correct this": "Corriger",
+"Correct this memory:": "Corriger ce souvenir :",
+"The chat history is off.": "L'historique des conversations est désactivé.",
+"Nothing found.": "Rien trouvé.",
+"Click again to delete every chat": "Cliquez encore pour tout supprimer",
+"Messages in the history:": "Messages dans l'historique :",
+"since": "depuis le",
+"learned": "appris"
 }

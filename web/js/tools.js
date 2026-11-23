@@ -195,13 +195,61 @@
     clear(memList);
     if (!items.length) { memList.appendChild(el('li', 'tool-empty', 'Nothing remembered yet.')); return; }
     items.slice().reverse().forEach(function (item) {
-      var li = el('li', 'tool-item'), text = el('span', 'tool-text', item.text), del = el('button', 'tool-del', '×');
+      var li = el('li', 'tool-item' + (item.source === 'learned' ? ' mem-learned' : '')), text = el('span', 'tool-text', item.text), del = el('button', 'tool-del', '×'), edit = el('button', 'tool-act mem-edit', '✎');
+      text.setAttribute('data-no-i18n', '');
+      if (item.origin) text.title = 'From: “' + item.origin + '”';
+      edit.type = 'button'; edit.setAttribute('aria-label', 'Correct: ' + item.text); edit.title = 'Correct this';
+      edit.addEventListener('click', function () {
+        var now = prompt('Correct this memory:', item.text); if (now == null || !now.trim() || now.trim() === item.text) return;
+        api('/api/memory/edit', { id: item.id, text: now.trim() }).then(function (r) { renderMemory(r.items); }).catch(function (e) { memNote.textContent = e.message; });
+      });
       del.type = 'button'; del.setAttribute('aria-label', 'Forget: ' + item.text); del.title = 'Forget this';
       del.addEventListener('click', function () { api('/api/memory/delete', { id: item.id }).then(function (r) { renderMemory(r.items); }); });
-      li.append(text, del); memList.appendChild(li);
+      if (item.source === 'learned') li.append(el('span', 'mem-tag', 'learned'));
+      li.append(text, edit, del); memList.appendChild(li);
     });
   }
-  function refreshMemory() { api('/api/memory').then(function (r) { renderMemory(r.items); }).catch(function () {}); }
+  function renderRecall(r) {
+    if (!$('mem-learn') || !r.settings) return;
+    $('mem-learn').checked = !!r.settings.learn; $('mem-history').checked = !!r.settings.history; $('mem-keep').value = String(r.settings.keep_days);
+    var h = r.history || {}, box = $('mem-stats'); clear(box);
+    if (!r.settings.history) { box.textContent = 'The chat history is off.'; return; }
+    if (!h.count) { box.textContent = 'No chats in the history yet.'; return; }
+    var n = el('span', 'mem-n', String(h.count)), d = el('span', 'mem-d', new Date(h.oldest * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }));
+    n.setAttribute('data-no-i18n', ''); d.setAttribute('data-no-i18n', '');
+    box.append(el('span', 'mem-l', 'Messages in the history:'), ' ', n, ' ', el('span', 'mem-l', 'since'), ' ', d);
+  }
+  function refreshMemory() { api('/api/memory').then(function (r) { renderMemory(r.items); renderRecall(r); }).catch(function () {}); }
+  if ($('mem-learn')) {
+    var saveRecall = function () {
+      api('/api/memory/settings', { learn: $('mem-learn').checked, history: $('mem-history').checked, keep_days: +$('mem-keep').value })
+        .then(function (r) { renderRecall(r); }).catch(function (e) { $('mem-stats').textContent = e.message; });
+    };
+    ['mem-learn', 'mem-history', 'mem-keep'].forEach(function (id) { $(id).addEventListener('change', saveRecall); });
+    var searchMem = function () {
+      var q = $('mem-search').value.trim(), list = $('mem-results'); if (!q) return;
+      api('/api/memory/search?q=' + encodeURIComponent(q)).then(function (r) {
+        clear(list);
+        (r.memory || []).forEach(function (m) { list.appendChild(el('li', 'tool-item', '• ' + m.text)); });
+        (r.history || []).forEach(function (x) {
+          var li = el('li', 'tool-item mem-hit'), when = el('span', 'mem-when', new Date(x.at * 1000).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }));
+          li.append(when, el('span', 'tool-text', x.user + ' → ' + x.reply)); list.appendChild(li);
+        });
+        if (!list.children.length) list.appendChild(el('li', 'tool-empty', window.JarvisI18n ? window.JarvisI18n.t('Nothing found.') : 'Nothing found.'));
+      }).catch(function () {});
+    };
+    $('mem-search-go').addEventListener('click', searchMem);
+    $('mem-search').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); searchMem(); } });
+    var hb = $('mem-history-clear'), hbTimer = 0;
+    hb.addEventListener('click', function () {
+      if (!hb.dataset.armed) {
+        hb.dataset.armed = '1'; hb.textContent = 'Click again to delete every chat';
+        hbTimer = setTimeout(function () { delete hb.dataset.armed; hb.textContent = 'Delete the chat history'; }, 3500); return;
+      }
+      clearTimeout(hbTimer); delete hb.dataset.armed; hb.textContent = 'Delete the chat history';
+      api('/api/memory/history/clear', {}).then(function (r) { renderRecall(r); clear($('mem-results')); }).catch(function (e) { $('mem-stats').textContent = e.message; });
+    });
+  }
   function addMemory() {
     var text = memInput.value.trim(); if (!text) return;
     api('/api/memory', { text: text }).then(function (r) { memInput.value = ''; renderMemory(r.items); memNote.textContent = r.added ? memNoteDefault : 'I already had that one.'; })

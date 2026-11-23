@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "727eb0caa4ff2234be4f62bb46e1e9f4875c3aaa44c6ddcf3d25c31191b213c4",
-   "size": 83683
+   "sha256": "6cb54f2dbe66b84c19030901eda9671853a3e81db33bed6b436e779919c9bfc7",
+   "size": 85253
   },
   {
    "path": "app/backup.py",
@@ -84,8 +84,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "1d7ed7d7fb2b0618ffd4f2452bf753df5319fcf9389301048d31134cf0899bf4",
-   "size": 41005
+   "sha256": "090c2b6562f82162db1a5589b06c546e11a427a0bec882184216d784a7e34424",
+   "size": 42328
   },
   {
    "path": "app/gmail_reader.py",
@@ -168,6 +168,11 @@
    "size": 6268
   },
   {
+   "path": "app/recall.py",
+   "sha256": "61ef400007ac470d5f1bf31d7cd21e282eab04c50d137109965dbe86eb67f807",
+   "size": 13745
+  },
+  {
    "path": "app/recap.py",
    "sha256": "d0483de4b800267bd2b327eb02fbfda731ec7ab841f461bcfa086b7cb4d57bee",
    "size": 5759
@@ -189,8 +194,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "018fb3420677b7faff946dc2760f9ddb50cd3da7c1a3cd6b0df52a67e5048948",
-   "size": 495594
+   "sha256": "326cc8f3e1c4f629a8ab911d86ff068cfec0f90ea3574037a758a87ac3e3ec83",
+   "size": 510755
   },
   {
    "path": "app/set-address.py",
@@ -334,28 +339,28 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "5460185cb12df37f4725df511fff68edf4374c63ee2ff4156fc628175b242d3b",
-   "size": 68251
+   "sha256": "017bcf846c4f403181edcbcdd840dd356d9369e5cc8c16e5dd47ae32a096a49b",
+   "size": 68945
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "0cd4be27ab780effc48ac8b4844ac664801716ac5f4e56b274d30c505fada89c",
-   "size": 89053
+   "sha256": "8ef4da2045607e217a12a64ba505d68eb67aaef97cd2d3d3af700d1b0784a71f",
+   "size": 91683
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "37dea5624199ab25bbdc03373413bc97ed7dcb0c25dc6c227142e87ab71c03e1",
-   "size": 92545
+   "sha256": "156e8e7d5eb5cc02a454e9e7096259d40e5ae97add132de1292193e9f31bd3ed",
+   "size": 95329
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "480918eeb7cefded3e2312fd8edac06929ffc99ba615807ad54f2ad85d4d3c08",
-   "size": 88759
+   "sha256": "8ecfc23322079ea6e4e1969160eb58dbe686bfc53df39104faefc1dbcbf36b18",
+   "size": 91400
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "d37d64ec2982e2d3415c68e4017eab0526b89800408a9a36194cdf29dc060e4d",
-   "size": 42282
+   "sha256": "36fc286708698b483c22f94fffbc5e5935498e1c5771442239219a5ae15a0319",
+   "size": 43393
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -369,8 +374,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "153d0d1918bd901709f13062ee534b2f25070c46e5828a27be8d10b4dea138ca",
-   "size": 92838
+   "sha256": "06a045bb9182fc54f7c813e2e8d682b7a47e46526b9ac676de588fafafa6fb36",
+   "size": 94964
   },
   {
    "path": "web/js/app.js",
@@ -444,8 +449,8 @@
   },
   {
    "path": "web/js/tools.js",
-   "sha256": "bcbe2f1ab3c7b89bc693490c1325b387ceb1e2b21f6f17ac699efd5208ab981a",
-   "size": 42520
+   "sha256": "c10f461757852df8be5f8d4604c490e83fd68464beeb6104ac440b7be9113baf",
+   "size": 46286
   },
   {
    "path": "web/js/ui.js",

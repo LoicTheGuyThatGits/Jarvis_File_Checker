@@ -1020,6 +1020,7 @@ import countdowns as countdowns_module
 import calls as calls_module
 import homework as homework_module
 import coach as coach_module
+import recall as recall_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -4808,7 +4809,11 @@ def save_memory(items: list[dict]) -> None:
     tmp.replace(path)
 
 
-def memory_add(text: str) -> tuple[dict, bool]:
+LEARNED_MAX_ITEMS = 200
+
+
+def memory_add(text: str, source: str = "you", origin: str = "") -> tuple[dict, bool]:
+    """source "you": you asked Jarvis to remember it; "learned": picked up from a chat (origin: what you said)."""
     text = re.sub(r"\s+", " ", str(text)).strip()[:MEMORY_MAX_CHARS]
     if not text:
         raise ValueError("There is nothing to remember in that.")
@@ -4816,13 +4821,38 @@ def memory_add(text: str) -> tuple[dict, bool]:
         items = load_memory()
         for item in items:
             if item["text"].casefold() == text.casefold():
+                if source == "you" and item.get("source") == "learned":       # you said it yourself now: it is yours
+                    item["source"] = "you"
+                    save_memory(items)
                 return item, False
-        if len(items) >= MEMORY_MAX_ITEMS:
+        if source == "learned":
+            learned = [i for i in items if i.get("source") == "learned"]
+            if len(learned) >= LEARNED_MAX_ITEMS:                             # the oldest learned fact makes room
+                oldest = min(learned, key=lambda i: i.get("created", 0))
+                items = [i for i in items if i is not oldest]
+        elif len([i for i in items if i.get("source") != "learned"]) >= MEMORY_MAX_ITEMS:
             raise ValueError(f"My memory is full ({MEMORY_MAX_ITEMS} items). Remove some in Settings > Memory first.")
-        item = {"id": secrets.token_hex(4), "text": text, "created": time.time()}
+        item = {"id": secrets.token_hex(4), "text": text, "created": time.time(), "source": source}
+        if origin:
+            item["origin"] = re.sub(r"\s+", " ", origin).strip()[:200]
         items.append(item)
         save_memory(items)
         return item, True
+
+
+def memory_update(item_id: str, text: str) -> dict | None:
+    text = re.sub(r"\s+", " ", str(text)).strip()[:MEMORY_MAX_CHARS]
+    if not text:
+        raise ValueError("A memory needs some text.")
+    with MEMORY_LOCK:
+        items = load_memory()
+        for item in items:
+            if item["id"] == item_id:
+                item.update(text=text, source="you", created=time.time())   # once you corrected it, it is yours
+                item.pop("origin", None)
+                save_memory(items)
+                return item
+    return None
 
 
 def memory_remove(item_id: str) -> bool:
@@ -4851,18 +4881,240 @@ def memory_find(query: str) -> list[dict]:
     return [i for n, i in scored if n == best]
 
 
-def memory_prompt_block(is_local: bool) -> str:
+def memory_prompt_block(is_local: bool, query: str = "") -> str:
+    """What Jarvis knows about you, within a budget: what matters for this message first, then the newest."""
     items = load_memory()
     if not items:
         return ""
     budget, chosen = (1200 if is_local else 4000), []
-    for item in reversed(items):  # newest first until the budget is used
+    relevant = recall_module.rank(items, query, 8) if query else []
+    yours = [i for i in reversed(items) if i.get("source") != "learned"]
+    learned = [i for i in reversed(items) if i.get("source") == "learned"]
+    for item in relevant + yours + learned:
+        if item in chosen:
+            continue
         if budget - len(item["text"]) - 3 < 0:
+            if item in relevant:
+                continue
             break
-        chosen.append(item["text"])
+        chosen.append(item)
         budget -= len(item["text"]) + 3
-    lines = "\n".join("- " + t for t in reversed(chosen))
-    return ("Things the user has asked you to remember (in their own words, so 'I' and 'my' mean the user). Use them when relevant and do not recite them unprompted:\n" + lines)
+    order = {id(i): n for n, i in enumerate(items)}
+    mine = sorted((i for i in chosen if i.get("source") != "learned"), key=lambda i: order[id(i)])
+    picked = sorted((i for i in chosen if i.get("source") == "learned"), key=lambda i: order[id(i)])
+    parts = []
+    if mine:
+        parts.append("Things the user has asked you to remember (in their own words, so 'I' and 'my' mean the user). Use them when relevant and do not recite them unprompted:\n"
+                     + "\n".join("- " + i["text"] for i in mine))
+    if picked:
+        parts.append(("Things you" if not mine else "And things you") + " picked up about the user in earlier chats ('I' and 'my' mean the user; they may be out of date). "
+                     "Use them when relevant, do not recite them unprompted:\n" + "\n".join("- " + i["text"] for i in picked))
+    return "\n\n".join(parts)
+
+
+# ---------------- memory between chats: the chat history and learning from it ----------------
+MEMORY_SETTINGS_DEFAULT = {"learn": True, "history": True, "keep_days": 365}
+HISTORY_CACHE: dict = {"path": None, "obj": None}
+LEARN_QUEUE: list = []
+LEARN_STATE: dict = {"thread": None, "last_chat": 0.0, "learned": 0}
+LEARN_LOCK = threading.Condition()
+LEARN_IDLE = 12          # seconds without a chat before learning runs
+
+
+def memory_settings() -> dict:
+    try:
+        data = json.loads(data_path("memory_settings.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    return {**MEMORY_SETTINGS_DEFAULT, **{k: v for k, v in (data if isinstance(data, dict) else {}).items() if k in MEMORY_SETTINGS_DEFAULT}}
+
+
+def set_memory_settings(values: dict) -> dict:
+    cfg = memory_settings()
+    for k in ("learn", "history"):
+        if k in values:
+            cfg[k] = bool(values[k])
+    if "keep_days" in values:
+        try:
+            days = int(values["keep_days"])
+        except (TypeError, ValueError):
+            raise ValueError("Keep the history for a number of days.")
+        if not 7 <= days <= 3650:
+            raise ValueError("Keep the history between 7 days and 10 years.")
+        cfg["keep_days"] = days
+    path = data_path("memory_settings.json")
+    path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    if not cfg["history"]:
+        LEARN_QUEUE.clear()
+    return cfg
+
+
+def history_obj() -> "recall_module.History":
+    path = data_path("history")
+    if HISTORY_CACHE["path"] != path:
+        HISTORY_CACHE["path"], HISTORY_CACHE["obj"] = path, recall_module.History(path)
+    return HISTORY_CACHE["obj"]
+
+
+def remember_exchange(user: str, reply: str, source: str = "") -> None:
+    """Every answered message goes into the chat history; one that sounds like it is about your life is also learned from."""
+    cfg = memory_settings()
+    LEARN_STATE["last_chat"] = time.time()
+    if LEARN_STATE.get("pruned") != date.today().isoformat():           # once a day, months older than the limit go
+        LEARN_STATE["pruned"] = date.today().isoformat()
+        try:
+            history_obj().prune(cfg["keep_days"])
+        except Exception:
+            pass
+    if cfg["history"] and not is_memory_talk(user):
+        try:
+            history_obj().add(user, reply, source)
+        except OSError as exc:
+            print(f"[jarvis] chat history: {exc}")
+    if cfg["learn"] and recall_module.worth_learning(user) and not re.match(r"\s*(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:remember|forget|don'?t\s+forget)\b", user, re.I):
+        with LEARN_LOCK:
+            LEARN_QUEUE.append((user, reply, time.time()))
+            del LEARN_QUEUE[:-20]
+            LEARN_LOCK.notify()
+        if LEARN_STATE["thread"] is None or not LEARN_STATE["thread"].is_alive():
+            LEARN_STATE["thread"] = threading.Thread(target=learn_worker, daemon=True)
+            LEARN_STATE["thread"].start()
+
+
+def learn_now(user: str, reply: str) -> list[str]:
+    """Ask the model what is worth remembering in one exchange. Returns the facts that were added or updated."""
+    answer = llm_once(recall_module.LEARN_SYSTEM, f"User: {user[:1500]}\nAssistant (context only): {reply[:500]}", timeout=180)
+    kept = []
+    for fact in recall_module.parse_facts(answer or ""):
+        with MEMORY_LOCK:
+            items = load_memory()
+            best = max(items, key=lambda i: recall_module.similar(fact, i["text"]), default=None)
+            score = recall_module.similar(fact, best["text"]) if best else 0.0
+            if score >= 0.7:
+                continue                                  # already known
+            if best and score >= 0.45 and best.get("source") == "learned":
+                best.update(text=fact, created=time.time(), origin=re.sub(r"\s+", " ", user).strip()[:200])   # newer news about the same thing
+                save_memory(items)
+                kept.append(fact)
+                continue
+        try:
+            memory_add(fact, "learned", user)
+            kept.append(fact)
+        except ValueError:
+            pass
+    LEARN_STATE["learned"] += len(kept)
+    return kept
+
+
+def learn_worker() -> None:
+    """One exchange at a time, and only while you are not waiting for an answer, so learning never slows a reply down."""
+    while True:
+        with LEARN_LOCK:
+            while not LEARN_QUEUE:
+                if not LEARN_LOCK.wait(timeout=600):
+                    LEARN_STATE["thread"] = None
+                    return
+            user, reply, _ = LEARN_QUEUE[0]
+        while time.time() - LEARN_STATE["last_chat"] < LEARN_IDLE or ACTIVE_PROVIDER_REQUESTS:
+            time.sleep(2)
+        with LEARN_LOCK:
+            if LEARN_QUEUE and LEARN_QUEUE[0][0] == user:
+                LEARN_QUEUE.pop(0)
+        if not memory_settings()["learn"]:
+            continue
+        try:
+            facts = learn_now(user, reply)
+            if facts:
+                print(f"[jarvis] memory: learned {len(facts)} fact(s)")
+        except Exception as exc:
+            print(f"[jarvis] memory: could not learn from a chat ({exc})")
+        time.sleep(5)
+
+
+def recall_block(latest: str) -> str:
+    """For a question about an earlier chat: the matching excerpts of the history."""
+    if not memory_settings()["history"] or not recall_module.is_recall(latest):
+        return ""
+    rows = history_obj().search(latest, 4)
+    return recall_module.excerpt_block(rows) if rows else ""
+
+
+RECALL_SEARCH = re.compile(r"(?:search|look\s+through|look\s+in|check)\s+(?:my|our|the)\s+(?:chats?|conversations?|chat\s+history|history|messages)\s+for\s+(?P<a>.+)|"
+                           r"(?:find|look\s+for)\s+(?P<b>.+?)\s+in\s+(?:my|our|the)\s+(?:chats?|conversations?|chat\s+history|history)|"
+                           r"when\s+did\s+(?:i|we)\s+(?:last\s+)?(?:talk|speak|chat|tell\s+you|write)\s+about\s+(?P<c>.+)", re.I)
+RECALL_ABOUT = re.compile(r"what\s+do\s+you\s+(?:remember|know)\s+about\s+(?P<a>(?!me\b|myself\b).+)|what\s+did\s+i\s+(?:say|tell\s+you)\s+about\s+(?P<b>.+)", re.I)
+RECALL_FORGET = re.compile(r"forget\s+(?:everything\s+|all\s+)?(?:what\s+i\s+(?:said|told\s+you)|(?:what\s+)?we\s+(?:said|talked\s+about))\s+about\s+(?P<a>.+)", re.I)
+RECALL_LEARN = re.compile(r"(?P<off>stop|pause|don'?t\s+keep|do\s+not\s+keep)\s+learning(?:\s+(?:things\s+)?(?:from|about)\s+(?:my\s+chats?|me|our\s+chats?))?|(?P<on>start|resume|keep)\s+learning(?:\s+(?:things\s+)?(?:from|about)\s+(?:my\s+chats?|me|our\s+chats?))?", re.I)
+RECALL_LEARNED = re.compile(r"what\s+(?:have\s+you|did\s+you)\s+(?:learned|learnt|learn|picked\s+up)\s+about\s+me|what\s+have\s+you\s+picked\s+up\s+about\s+me", re.I)
+
+
+def _recall_clean(text: str) -> str:
+    t = re.sub(r"\s+", " ", (text or "").strip())
+    return re.sub(r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|would)\s+you\s+(?:please\s+)?)?", "", t, flags=re.I).rstrip(" ?.!")
+
+
+def is_memory_talk(text: str) -> bool:
+    """Questions about the memory itself (searching it, listing it, forgetting) are not kept in the history: they would only echo it."""
+    t = _recall_clean(text)
+    return bool(any(rx.fullmatch(t) for rx in (RECALL_SEARCH, RECALL_ABOUT, RECALL_FORGET, RECALL_LEARN, RECALL_LEARNED))
+                or re.match(r"(?:remember|forget|what\s+do\s+you\s+remember|what\s+have\s+i\s+told\s+you)\b", t, re.I))
+
+
+def recall_command(text: str) -> str | None:
+    t = _recall_clean(text)
+    if not t or len(t) > 200:
+        return None
+    m = RECALL_LEARN.fullmatch(t)
+    if m:
+        on = bool(m.group("on"))
+        set_memory_settings({"learn": on})
+        return ("I will pick up things about you from our chats again, sir. You can see and delete them in Settings > Memory." if on else
+                "I have stopped learning from our chats, sir. What I already learned stays until you delete it in Settings > Memory.")
+    if RECALL_LEARNED.fullmatch(t):
+        learned = [i for i in load_memory() if i.get("source") == "learned"]
+        if not learned:
+            return "I have not picked up anything from our chats yet, sir." + ("" if memory_settings()["learn"] else " Learning is paused (Settings > Memory).")
+        return f"From our chats I picked up {len(learned)} thing{'s' if len(learned) != 1 else ''}, sir:\n" + "\n".join("- " + i["text"] for i in learned[-25:]) + \
+            "\nSay “forget …” to drop one, or see them all in Settings > Memory."
+    m = RECALL_FORGET.fullmatch(t)
+    if m:
+        what = m.group("a").strip()
+        gone = history_obj().delete_matching(what)
+        found = [i for i in load_memory() if set(recall_module.words(what)) <= set(recall_module.words(i["text"]))]
+        for i in found:
+            memory_remove(i["id"])
+        if not gone and not found:
+            return f"I have nothing about “{what}”, sir."
+        return f"Forgotten, sir: {gone} message{'s' if gone != 1 else ''} from our chats and {len(found)} memor{'ies' if len(found) != 1 else 'y'} about “{what}”."
+    m = RECALL_SEARCH.fullmatch(t)
+    if m:
+        what = (m.group("a") or m.group("b") or m.group("c")).strip(" “”\"'")
+        if not memory_settings()["history"]:
+            return "The chat history is switched off, sir (Settings > Memory), so I cannot search our past chats."
+        rows = history_obj().search(what, 5)
+        if not rows:
+            return f"I found nothing about “{what}” in our chats, sir."
+        return f"In our chats about “{what}”, sir:\n" + "\n".join(
+            f"• {recall_module.say_when(r['at']).capitalize()} you said: “{r['user'][:160]}{'…' if len(r['user']) > 160 else ''}”" for r in rows)
+    m = RECALL_ABOUT.fullmatch(t)
+    if m:
+        what = (m.group("a") or m.group("b")).strip(" “”\"'")
+        facts = recall_module.rank(load_memory(), what, 6)
+        rows = history_obj().search(what, 3) if memory_settings()["history"] else []
+        if not facts and not rows:
+            return f"I do not remember anything about “{what}”, sir."
+        lines = [f"About “{what}”, sir:"] + ["- " + i["text"] for i in facts]
+        if rows:
+            lines.append("From our chats:")
+            lines += [f"• {recall_module.say_when(r['at']).capitalize()}: “{r['user'][:160]}{'…' if len(r['user']) > 160 else ''}”" for r in rows]
+        return "\n".join(lines)
+    return None
+
+
+def memory_public() -> dict:
+    hist = history_obj().stats()
+    return {"items": load_memory(), "max_items": MEMORY_MAX_ITEMS, "max_chars": MEMORY_MAX_CHARS, "settings": memory_settings(), "history": hist,
+            "learned": len([i for i in load_memory() if i.get("source") == "learned"])}
 
 
 def handle_memory_command(text: str) -> str | None:
@@ -5592,7 +5844,7 @@ def calls_command(text: str, source: str = "") -> str | None:
 
 
 def explicit_assistant_command(text: str) -> str | None:
-    for handler in (handle_memory_command, handle_reminder_command):
+    for handler in (recall_command, handle_memory_command, handle_reminder_command):
         reply = handler(text)
         if reply:
             return reply
@@ -5830,6 +6082,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._reply_lang = None
             if getattr(self, "_doc_sources", None) is not None and "sources" not in obj and not obj.get("cancelled"):
                 obj["sources"] = self._doc_sources
+            asked = getattr(self, "_chat_in", None)
+            if asked and status == 200 and not obj.get("cancelled") and obj["reply"].strip():
+                self._chat_in = None
+                try:
+                    remember_exchange(asked[0], obj["reply"], asked[1])
+                except Exception as exc:
+                    print(f"[jarvis] chat history: {exc}")
         if self._stream_started:
             # A streamed reply is already under way, so the last word goes out as a final/error event.
             if isinstance(obj, dict):
@@ -6095,7 +6354,12 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, system_snapshot())
             return
         if path == "/api/memory":
-            self.send_json(200, {"items": load_memory(), "max_items": MEMORY_MAX_ITEMS, "max_chars": MEMORY_MAX_CHARS})
+            self.send_json(200, memory_public())
+            return
+        if path == "/api/memory/search":
+            q = (parse_qs(urlparse(self.path).query).get("q") or [""])[0][:200]
+            rows = history_obj().search(q, 10) if memory_settings()["history"] else []
+            self.send_json(200, {"memory": recall_module.rank(load_memory(), q, 10), "history": [{"at": r["at"], "user": r["user"][:400], "reply": r["reply"][:400], "source": r.get("source", "")} for r in rows]})
             return
         if path == "/api/reminders":
             self.send_json(200, {"now": time.time(), "items": reminders_active()})
@@ -6145,6 +6409,20 @@ class Handler(BaseHTTPRequestHandler):
                 with MEMORY_LOCK:
                     save_memory([])
                 self.send_json(200, {"items": []})
+            elif path == "/api/memory/edit":
+                if not memory_update(str(payload.get("id", "")), str(payload.get("text", ""))):
+                    raise ValueError("That memory is gone.")
+                self.send_json(200, memory_public())
+            elif path in ("/api/memory/settings", "/api/memory/history/clear"):
+                if self._from_phone:
+                    self.send_json(403, {"error": "Change this at the PC, in Settings > Memory."})
+                    return
+                if path == "/api/memory/settings":
+                    set_memory_settings(payload)
+                    history_obj().prune(memory_settings()["keep_days"])
+                else:
+                    history_obj().clear()
+                self.send_json(200, memory_public())
             elif path == "/api/reminders":
                 kind = payload.get("kind", "timer")
                 seconds = float(payload.get("seconds", 0))
@@ -7693,6 +7971,7 @@ class Handler(BaseHTTPRequestHandler):
             if isinstance(item, dict) and item.get("role") in ("user", "assistant") and isinstance(item.get("content"), str):
                 safe_messages.append({"role": item["role"], "content": item["content"][:message_limit]})
         latest = next((item["content"] for item in reversed(safe_messages) if item["role"] == "user"), "")
+        self._chat_in = (latest, payload.get("source") or ("phone" if self._from_phone else "app")) if latest and payload.get("source") != "routine" else None
         self._debug_owner = self._debug_show = False
         if debug_enabled() and payload.get("source") != "routine":
             debugtrace.start(latest, payload.get("source") or ("phone app" if self._from_phone else "page"))
@@ -8019,10 +8298,14 @@ class Handler(BaseHTTPRequestHandler):
                 "You are Jarvis, a personal assistant on the user's Windows PC. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " "
                 "Answer in plain text; never reply with JSON."
             )
-        memory_block = memory_prompt_block(is_local_provider)
+        memory_block = memory_prompt_block(is_local_provider, latest)
         if memory_block:
             instructions += "\n\n" + memory_block
             debugtrace.step("memory", "Your long-term memory was added to the instructions", memory_block)
+        earlier_block = recall_block(latest)
+        if earlier_block:
+            instructions += "\n\n" + earlier_block
+            debugtrace.step("memory", "Matching excerpts of earlier chats were added", earlier_block)
         instructions += language_instruction()
         if payload.get("source") == "call":
             instructions += ("\n\nYou are talking with the user on a live voice call: everything you write is read aloud. Answer in one to three short, "
@@ -9071,7 +9354,7 @@ def _debug_router_ask(fn):
 
 router_ask_model = _debug_router_ask(router_ask_model)
 for _name in ("language_command", "briefing_command", "mail_command", "grades_command", "timetable_command", "planner_command", "countdown_command", "exams_command",
-              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "coach_command", "cards_command", "pc_command",
+              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "coach_command", "cards_command", "recall_command", "pc_command",
               "explicit_assistant_command", "repeat_request", "jarvis_model_text"):
     if callable(globals().get(_name)) and not hasattr(globals()[_name], "__wrapped__"):
         globals()[_name] = debugtrace.traced(_name, globals()[_name])

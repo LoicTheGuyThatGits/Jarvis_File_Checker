@@ -607,6 +607,7 @@ html[data-boot="play"] .boot{display:flex}
 .coach-list .coach-text{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
 .coach-list .coach-done{opacity:.6}
 .coach-list .coach-ok{color:var(--muted);font-size:.9em}
+.coach-list .settings-action,.hw-list .settings-action{display:inline-block;width:auto;flex:none;margin:0;height:28px;padding:0 10px}
 .cards-form{flex-wrap:wrap;gap:6px}
 .cards-form #cards-subject{flex:0 1 160px;min-width:0}
 .cards-form input[type=file]{flex:1 1 200px;min-width:0;max-width:100%}
@@ -789,3 +790,10 @@ html[data-boot="play"] .boot{display:flex}
 
 html.i18n-pending body{visibility:hidden}   /* a moment while the menus load in another language */
 @media (max-width:480px){.call-button span{display:none}.call-button{padding-inline:9px}}   /* phones: the call button is just the handset */
+.mem-tag{font-size:.75em;padding:1px 6px;border-radius:8px;border:1px solid var(--dim);color:var(--muted);margin-right:6px;white-space:nowrap}
+.mem-learned .tool-text{opacity:.9}
+.mem-edit{width:24px;font:14px/1 var(--hud)}.mem-edit:hover{color:var(--accent);border-color:var(--accent)}
+.mem-results .mem-hit{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.mem-results .mem-when{color:var(--muted);font-size:.85em;white-space:nowrap}
+.mem-results .tool-text{flex:1 1 200px;min-width:0;overflow-wrap:anywhere}
+#mem-search{flex:1 1 200px;min-width:0}

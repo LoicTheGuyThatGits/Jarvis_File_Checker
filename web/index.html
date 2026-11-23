@@ -526,6 +526,8 @@
         <div class="inline-form coach-form"><label class="settings-check"><input type="checkbox" id="coach-auto"> Plan revision by itself for tests in the next</label><input type="number" id="coach-horizon" min="3" max="60" aria-label="Days ahead"><span>days</span></div>
         <div class="inline-form coach-form">
           <span class="coach-label">School days</span><input type="time" id="coach-wd-from" aria-label="School days: from"><span>–</span><input type="time" id="coach-wd-to" aria-label="School days: until">
+        </div>
+        <div class="inline-form coach-form">
           <span class="coach-label">Weekends and holidays</span><input type="time" id="coach-we-from" aria-label="Weekends: from"><span>–</span><input type="time" id="coach-we-to" aria-label="Weekends: until">
         </div>
         <div class="inline-form coach-form">
@@ -725,6 +727,17 @@
         <ul id="memory-list" class="tool-list" aria-label="Remembered items"></ul>
         <button type="button" id="memory-clear" class="settings-action danger">Clear all memories</button>
         <p class="settings-note" id="memory-note">You can also say “remember that my printer is the HP in the office”, “what do you remember?” or “forget the printer”. Memories are kept in memory.json next to server.py and sent with every request, so keep them short.</p>
+      </div>
+      <div class="settings-section" id="recall-section">
+        <h2 class="settings-heading" id="recall-title">Memory between chats</h2>
+        <p class="settings-note">Jarvis keeps a history of your chats on this PC (from the app, the phone, Telegram and calls) so a new chat can pick up where an old one left off: ask “what was that game Luca recommended?” or “when did I talk about the ski trip?”, or “search my chats for Outer Wilds”. It also picks up facts about you as you talk (people, likes, plans, recommendations) and lists them above, marked <strong>learned</strong>: correct or delete any of them. Passwords, codes, numbers, addresses, health and money are never kept. Learning happens when you are not waiting for an answer. In chat: “what have you learned about me?”, “forget what I said about Luca”, “stop learning from my chats”.</p>
+        <label class="settings-check"><input type="checkbox" id="mem-learn"> Learn about me from our chats</label>
+        <label class="settings-check"><input type="checkbox" id="mem-history"> Keep a searchable history of our chats on this PC</label>
+        <div class="inline-form"><label class="cd-date">Keep it for <select id="mem-keep" aria-label="Keep the chat history for"><option value="30">1 month</option><option value="90">3 months</option><option value="180">6 months</option><option value="365">1 year</option><option value="730">2 years</option><option value="3650">10 years</option></select></label></div>
+        <p class="settings-note" id="mem-stats" role="status"></p>
+        <div class="inline-form"><input type="search" id="mem-search" maxlength="200" placeholder="Search your chats and memories…" aria-label="Search your chats and memories"><button type="button" id="mem-search-go" class="settings-action">Search</button></div>
+        <ul id="mem-results" class="tool-list mem-results" aria-label="Search results" data-no-i18n></ul>
+        <button type="button" id="mem-history-clear" class="settings-action danger">Delete the chat history</button>
       </div>
       <div class="settings-section" id="docs-section">
         <h2 class="settings-heading">Documents</h2>

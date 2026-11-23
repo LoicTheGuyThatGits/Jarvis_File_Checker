@@ -330,6 +330,15 @@ RULES: list[tuple[str, object]] = [
      lambda m, now: f"I did my {(m.group(1) or m.group(2) or '').strip() + ' ' if (m.group(1) or m.group(2)) else ''}homework"),
     (rf"(?:supprime[rz]?|efface[rz]?|enlève|enleve)\s+(?:mes|mon|le|les)\s+devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})", lambda m, now: f"remove my {m.group(1)} homework"),
     (r"(?:vérifie|verifie|regarde|synchronise)\s+(?:google\s+)?classroom|(?:quoi\s+de\s+neuf|du\s+nouveau|des\s+nouveaux\s+devoirs)\s+sur\s+(?:google\s+)?classroom", "check classroom"),
+    # --- memory between chats ---
+    (r"qu['’]est-ce\s+que\s+tu\s+as\s+appris\s+sur\s+moi|(?:qu['’]as-tu|tu\s+as\s+appris\s+quoi)\s+(?:appris\s+)?sur\s+moi", "what have you learned about me"),
+    (r"(?:cherche|recherche|regarde)\s+(?:dans\s+)?(?:mes|nos)\s+(?:conversations|discussions|chats|messages)\s+(?:pour\s+|si\s+on\s+a\s+parlé\s+de\s+)?(.+)",
+     lambda m, now: f"search my chats for {m.group(1)}"),
+    (r"quand\s+(?:est-ce\s+que\s+)?(?:j['’]ai|on\s+a|avons-nous|ai-je)\s+parlé\s+(?:de\s+|d['’]|du\s+|des\s+)(.+)", lambda m, now: f"when did I talk about {m.group(1)}"),
+    (r"oublie\s+(?:tout\s+)?ce\s+que\s+(?:je\s+t['’]ai\s+dit|j['’]ai\s+dit|on\s+a\s+dit)\s+(?:sur|à\s+propos\s+de|de|d['’])\s*(.+)", lambda m, now: f"forget what I said about {m.group(1)}"),
+    (r"(?:arrête|arrete)\s+d['’]apprendre(?:\s+(?:de|sur)\s+(?:mes\s+conversations|moi|nos\s+conversations))?", "stop learning from my chats"),
+    (r"(?:recommence|continue)\s+(?:à|a)\s+apprendre(?:\s+(?:de|sur)\s+(?:mes\s+conversations|moi|nos\s+conversations))?", "start learning from my chats"),
+    (r"qu['’]est-ce\s+que\s+tu\s+(?:sais|te\s+rappelles)\s+(?:sur|de|d['’]|à\s+propos\s+de)\s*(.+)", lambda m, now: "what do you know about " + ("me" if m.group(1).strip().lower() in ("moi", "moi-même") else m.group(1))),
     # --- the study coach ---
     (r"(?:commence[rz]?|démarre[rz]?|demarre[rz]?|lance[rz]?)\s+(?:ma\s+|la\s+|une\s+)?(?:séance\s+de\s+|seance\s+de\s+)?révision(?:\s+(?:de|d['’]|en)\s*(.+))?|on\s+révise(?:\s+(?:la|les|le|l['’])?\s*(.+))?|c['’]est\s+l['’]heure\s+de\s+réviser",
      lambda m, now: "start revision" + (f" on {m.group(1) or m.group(2)}" if (m.group(1) or m.group(2)) else "")),
