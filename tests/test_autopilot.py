@@ -96,17 +96,22 @@ os.environ.pop("OPENAI_VISION_MODEL", None)
 S.projects.save_config(S.control_config_path(), {"sight": "auto"})
 assert S.autopilot_ai()["model"] == "llama3.2:3b" and S.autopilot_sight() == "text"
 models.append("qwen3-vl:8b"); S.MODELS_SEEN["at"] = 0
-assert S.autopilot_ai()["model"] == "qwen3-vl:8b" and S.autopilot_sight() == "picture" and S.autopilot_coords() == "thousandths"
+assert S.autopilot_ai()["model"] == "qwen3-vl:8b" and S.slow_thinker("qwen3-vl:8b") and not S.slow_thinker("qwen3-vl:8b-instruct")
+models.append("qwen3-vl:8b-instruct"); S.MODELS_SEEN["at"] = 0
+assert S.autopilot_ai()["model"] == "qwen3-vl:8b-instruct", "the quick version before the thinking one"
+assert S.autopilot_sight() == "picture" and S.autopilot_coords() == "thousandths"
 assert S.ai_settings("chat")["model"] == "llama3.2:3b", "the chat model is not changed"
 h = S.Handler.__new__(S.Handler)
 plans.append('{"reply":"saving","done":false,"expect":"the document is saved","action":{"type":"click","x":333,"y":381}}')
 plan = h.computer_plan("save the document", make_screen(), [])
 url, body = sent[-1]
-assert url.endswith("/api/chat") and body["model"] == "qwen3-vl:8b" and body["options"]["num_ctx"] == S.AUTOPILOT_CTX and body["format"] == "json"
+assert url.endswith("/api/chat") and body["model"] == "qwen3-vl:8b-instruct" and body["options"]["num_ctx"] == S.AUTOPILOT_CTX and body["format"] == "json" and body["think"] is False
 system, user = body["messages"][0]["content"], body["messages"][1]
 assert "thousandths of the picture" in system and "Numbered coloured boxes" in system and "Family Link" in system and "web_click" in system
 picture = Image.open(io.BytesIO(base64.b64decode(user["images"][0])))
-assert any(picture.getpixel((x, round(412 * 0.75 - 9))) != (255, 255, 255) for x in range(450, 500)), "the Save button has its box"
+assert picture.width == 1280, "a smaller picture for a local model (positions are in thousandths)"
+f = 1280 / 1440
+assert any(picture.getpixel((x, round((412 * 0.75 - 9) * f))) != (255, 255, 255) for x in range(round(450 * f), round(500 * f))), "the Save button has its box"
 assert plan["expect"] == "the document is saved" and (plan["action"]["x"], plan["action"]["y"]) == (639, 411), plan
 # a closer look is taken at once, before the next real step
 regions = []
@@ -117,6 +122,27 @@ plans[:] = ['{"reply":"look","done":false,"action":{"type":"zoom","x":500,"y":50
 steps = []; p2, scr = h.plan_computer_step("x", make_screen(), steps)
 assert regions == [(480, 270, 960, 540)] and scr["zoom"] and p2["action"]["x"] == 480 and steps == ["looked closer at the screen"], (regions, p2, steps)
 assert "closer look at one part of the screen" in sent[-1][1]["messages"][1]["content"]
+plans[:] = ['{"reply":"look","done":false,"action":{"type":"zoom","x":500,"y":500}}'] * 4
+regions.clear(); p3, scr = h.plan_computer_step("x", make_screen(), [])
+assert len(regions) == 1 and p3["action"] is None and "clear enough look" in p3["reply"], "never a chain of zooms"
+# a slow model: the seconds are shown, Stop works while it thinks, and a model that does not fit in the graphics card is named
+slow = {"secs": 3}
+def slow_urlopen(req, timeout=0):
+    url = req.full_url if hasattr(req, "full_url") else str(req)
+    if url.endswith("/api/chat"): time.sleep(slow["secs"])
+    if url.endswith("/api/ps"): return Resp(json.dumps({"models": [{"name": "qwen3-vl:8b-instruct", "size": 8_000_000_000, "size_vram": 6_000_000_000}]}).encode())
+    return fake_urlopen(req, timeout)
+S.urllib.request.urlopen = slow_urlopen
+seen_status = []; stop = threading.Event()
+h._ap_stop, h._ap_status, h._ap_gpu_checked, h._ap_note = stop, seen_status.append, False, ""
+plans[:] = ['{"reply":"ok","done":true,"action":null}']
+h.computer_plan("x", make_screen(), [])
+assert any(t.startswith("qwen3-vl:8b-instruct is looking at the screen · 2 s") for t in seen_status), seen_status
+assert h._ap_note.startswith("Only 75 % of qwen3-vl:8b-instruct fits in the graphics card's memory"), h._ap_note
+slow["secs"] = 20; threading.Timer(1.5, stop.set).start(); t0 = time.time()
+try: h.computer_plan("x", make_screen(), []); raise SystemExit("not stopped")
+except S.AutopilotStopped: assert time.time() - t0 < 5, "Stop does not wait for the model"
+h._ap_stop = h._ap_status = None; S.urllib.request.urlopen = fake_urlopen
 # an Autopilot run on a website, through the Jarvis browser
 out = {}
 class Fake(S.Handler):
@@ -152,11 +178,11 @@ app = ThreadingHTTPServer(("127.0.0.1", 0), S.Handler); threading.Thread(target=
 def call(m, path, body=None):
     cc = http.client.HTTPConnection("127.0.0.1", port, timeout=30); cc.request(m, path, json.dumps(body) if body is not None else None, {"Content-Type": "application/json"}); r = cc.getresponse(); return r.status, json.loads(r.read())
 st, d = call("GET", "/api/control")
-assert d["model_now"] == "qwen3-vl:8b" and d["has_recommended"] and d["coords_now"] == "thousandths" and d["browser_ready"] and d["learned"][0]["task"] == "search the shop for red socks", d
-models.remove("qwen3-vl:8b"); S.MODELS_SEEN["at"] = 0
-st, d = call("GET", "/api/control"); assert not d["has_recommended"] and d["recommended"] == "qwen3-vl:8b"
-st, d = call("POST", "/api/control", {"pull": "qwen3-vl:8b"}); time.sleep(0.5)
-st, d = call("GET", "/api/control"); assert pulls == ["qwen3-vl:8b"] and d["pull"]["status"] == "success" and d["has_recommended"], d
+assert d["model_now"] == "qwen3-vl:8b-instruct" and d["has_recommended"] and not d["slow_model"] and d["coords_now"] == "thousandths" and d["browser_ready"] and d["learned"][0]["task"] == "search the shop for red socks", d
+models.remove("qwen3-vl:8b-instruct"); S.MODELS_SEEN["at"] = 0
+st, d = call("GET", "/api/control"); assert not d["has_recommended"] and d["recommended"] == "qwen3-vl:8b-instruct" and d["slow_model"] and d["model_now"] == "qwen3-vl:8b"
+st, d = call("POST", "/api/control", {"pull": "qwen3-vl:8b-instruct"}); time.sleep(0.5)
+st, d = call("GET", "/api/control"); assert pulls == ["qwen3-vl:8b-instruct"] and d["pull"]["status"] == "success" and d["has_recommended"], d
 st, d = call("POST", "/api/control", {"model": "rm -rf"}); assert st == 400
 st, d = call("POST", "/api/control", {"model": "llama3.2:3b", "coords": "pixels", "marks": False, "screens": "all"}); assert d["model_now"] == "llama3.2:3b" and d["marks"] is False and d["screens"] == "all"
 call("POST", "/api/control", {"model": "", "coords": "auto", "marks": True, "screens": "main"})
@@ -165,7 +191,7 @@ with sync_playwright() as pw:
     b = pw.chromium.launch(); pg = b.new_context(viewport={"width": 1280, "height": 900}).new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(500)
-    pg.evaluate("window.JarvisUI.openPane('control')"); pg.wait_for_function("document.querySelector('#ctl-model-now').textContent.includes('qwen3-vl:8b')")
+    pg.evaluate("window.JarvisUI.openPane('control')"); pg.wait_for_function("document.querySelector('#ctl-model-now').textContent.includes('qwen3-vl:8b-instruct')")
     assert "positions in thousandths" in pg.text_content("#ctl-model-now") and not pg.is_visible("#ctl-pull") and pg.is_checked("#ctl-marks") and pg.is_checked("#ctl-browser")
     assert "qwen3-vl:8b" in pg.evaluate("[...document.querySelectorAll('#ctl-model option')].map(o=>o.value).join(',')")
     assert "search the shop for red socks" in pg.text_content("#ctl-learned") and pg.text_content("#ctl-browser-status") == "Browser control is ready."

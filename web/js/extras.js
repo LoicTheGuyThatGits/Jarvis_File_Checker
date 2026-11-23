@@ -661,7 +661,8 @@
       $('ctl-pull').classList.toggle('hidden', !!d.has_recommended || !d.local);
       $('ctl-pull').disabled = !!p.running;
       $('ctl-pull-status').textContent = p.running ? (window.JarvisI18n ? window.JarvisI18n.t('Downloading…') : 'Downloading…') + ' ' + (p.total ? Math.round(100 * p.done / p.total) + ' %' : (p.status || ''))
-        : p.error ? p.error : (p.status === 'success' ? (window.JarvisI18n ? window.JarvisI18n.t('Downloaded. Autopilot uses it now.') : 'Downloaded. Autopilot uses it now.') : (d.has_recommended ? (window.JarvisI18n ? window.JarvisI18n.t('qwen3-vl is installed.') : 'qwen3-vl is installed.') : ''));
+        : p.error ? p.error : (p.status === 'success' ? (window.JarvisI18n ? window.JarvisI18n.t('Downloaded. Autopilot uses it now.') : 'Downloaded. Autopilot uses it now.') : (d.has_recommended ? (window.JarvisI18n ? window.JarvisI18n.t('qwen3-vl is installed.') : 'qwen3-vl is installed.')
+          : d.slow_model ? (window.JarvisI18n ? window.JarvisI18n.t('The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.') : 'The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.') : ''));
       var inst = d.install || {};
       $('ctl-install').classList.toggle('hidden', !!d.browser_ready || !!inst.running);
       $('ctl-browser-status').textContent = d.browser_ready ? 'Browser control is ready.' : inst.running ? 'Installing browser control… (a minute or two)' : inst.error ? inst.error : 'Browser control needs a small extra package (Playwright).';
@@ -696,7 +697,7 @@
     $('ctl-browser').addEventListener('change', function () { ctlSave({ browser: $('ctl-browser').checked }); });
     $('ctl-learn').addEventListener('change', function () { ctlSave({ learn: $('ctl-learn').checked }); });
     $('ctl-model').addEventListener('change', function () { ctlSave({ model: $('ctl-model').value }); });
-    $('ctl-pull').addEventListener('click', function () { api('/api/control', { pull: ctlState.recommended || 'qwen3-vl:8b' }).then(ctlShow).catch(function (e) { $('ctl-pull-status').textContent = e.message; }); });
+    $('ctl-pull').addEventListener('click', function () { api('/api/control', { pull: ctlState.recommended || 'qwen3-vl:8b-instruct' }).then(ctlShow).catch(function (e) { $('ctl-pull-status').textContent = e.message; }); });
     $('ctl-install').addEventListener('click', function () { api('/api/control', { install_browser: true }).then(ctlShow).catch(function (e) { $('ctl-browser-status').textContent = e.message; }); });
     $('ctl-close-browser').addEventListener('click', function () { api('/api/control', { close_browser: true }).then(function (d) { ctlShow(d); $('ctl-status').textContent = 'The Jarvis browser is closed.'; }).catch(function () {}); });
     $('ctl-folder-add').addEventListener('click', function () {

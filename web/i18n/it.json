@@ -983,8 +983,6 @@
 "The main screen": "Lo schermo principale",
 "All screens": "Tutti gli schermi",
 "Autopilot's model": "Il modello dell'Autopilot",
-"Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. When it is installed, Autopilot uses it by itself; your chat model stays as it is.": "L'Autopilot funziona meglio con un modello addestrato a guardare gli schermi. Su questo PC il modello giusto è <strong>qwen3-vl:8b</strong>: gira su una scheda grafica da 8 GB (come una RTX 4060), legge bene i testi piccoli e indica le cose con precisione. Il download è di 6,2 GB e richiede Ollama 0.12.7 o più recente. Una volta installato, l'Autopilot lo usa da solo; il tuo modello di chat resta lo stesso.",
-"Download qwen3-vl:8b": "Scarica qwen3-vl:8b",
 "Model for Autopilot": "Modello per l'Autopilot",
 "Automatic (the best installed model that can see)": "Automatico (il miglior modello installato che vede le immagini)",
 "The Jarvis browser": "Il browser di Jarvis",
@@ -1005,5 +1003,8 @@
 "Autopilot uses:": "L'Autopilot usa:",
 "(sees the screen, positions in thousandths)": "(vede lo schermo, posizioni in millesimi)",
 "(sees the screen)": "(vede lo schermo)",
-"(text only: this model cannot see pictures)": "(solo testo: questo modello non vede le immagini)"
+"(text only: this model cannot see pictures)": "(solo testo: questo modello non vede le immagini)",
+"Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b-instruct</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. Not the plain qwen3-vl:8b: that is the “thinking” version, which thinks for minutes before every step. When it is installed, Autopilot uses it by itself; your chat model stays as it is.": "L'Autopilot funziona meglio con un modello addestrato a guardare gli schermi. Su questo PC il modello giusto è <strong>qwen3-vl:8b-instruct</strong>: gira su una scheda grafica da 8 GB (come una RTX 4060), legge bene i testi piccoli e indica le cose con precisione. Il download è di 6,2 GB e richiede Ollama 0.12.7 o più recente. Non il semplice qwen3-vl:8b: è la versione «thinking», che riflette per minuti prima di ogni passaggio. Una volta installato, l'Autopilot lo usa da solo; il tuo modello di chat resta lo stesso.",
+"Download qwen3-vl:8b-instruct": "Scarica qwen3-vl:8b-instruct",
+"The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.": "Il modello che l'Autopilot usa ora riflette a lungo prima di ogni passaggio. Scarica la versione instruct per passaggi veloci."
 }

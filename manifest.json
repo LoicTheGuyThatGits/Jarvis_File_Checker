@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "08d94ac6d733522452d251075e5ad528d3b46af698b4454022739ffa5ad8d847",
-   "size": 89554
+   "sha256": "1a861b0f7c04d0ace4439a60df2cc926cc418c0eab325e08e4ac7a8a18ac87c2",
+   "size": 89983
   },
   {
    "path": "app/backup.py",
@@ -204,8 +204,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "6ad0e3e027e4a2a1b46eedb34b16b92606a8426ef758b461c8a7ccb1f8372897",
-   "size": 538239
+   "sha256": "94134cf6e9876293c67fb9e44196c375a70f9887e3f5a6f98c153e9916dd968d",
+   "size": 543634
   },
   {
    "path": "app/set-address.py",
@@ -369,23 +369,23 @@
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "cd4265a08320748aa9a10fbed6f89a5717fbbc59d57e1da1a2fda8f954707996",
-   "size": 98069
+   "sha256": "aa8e9c6c3ca6e1c6f74e36107abb93c2bb0d7e19bdc17b72ce16ecf91026cef6",
+   "size": 98590
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "9299bbe5da3beecd5a3ea33646eb2ce019471d3c0b54553cfa17abc6537b1f9f",
-   "size": 101776
+   "sha256": "3f7c9e8cf43d96d21829d5b278fba251c4dc80435ad45499377adb30eaabf5ff",
+   "size": 102302
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "310faf33c0829959873c41efa4ae07b53bde369001b67e2e3745f15af1e74e4a",
-   "size": 97569
+   "sha256": "4324f98e1ee121b12f5117b16d2a7cc83d00bd8b84fada9e082463b5f0194e7d",
+   "size": 98069
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "8edde2e44c901df440a4cb0f73c8ce343196056022e8951c61623ce12a9b4ecf",
-   "size": 46166
+   "sha256": "7a5b22d9b90ae5aca4b9953cb3802a8737a0a82696f780ef3526f7284c9b67a9",
+   "size": 46412
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -399,8 +399,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "546112028b19c07c8f448a9d4a6c22b8f13166e641909eb9356f8a538e8daa98",
-   "size": 100107
+   "sha256": "387172ad651f7319bddd2c1a513c83b13e3900887553cb5cd1d734df7ef6d706",
+   "size": 100232
   },
   {
    "path": "web/js/app.js",
@@ -429,8 +429,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "a11e0319e3291a5a0b2fd6c2fc08210dbdf557ee2779fd3a54997650918682bd",
-   "size": 62876
+   "sha256": "1512fd38506a993c39230be3a7ced896870639204ce8cc413084d09be36d7cfc",
+   "size": 63195
   },
   {
    "path": "web/js/features.js",

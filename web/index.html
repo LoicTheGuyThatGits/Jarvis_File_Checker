@@ -407,9 +407,9 @@
           <select id="ctl-steps"><option value="20">20</option><option value="40">40</option><option value="80">80</option><option value="150">150</option></select>
         </label>
         <h3 class="settings-subheading">Autopilot's model</h3>
-        <p class="settings-note">Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. When it is installed, Autopilot uses it by itself; your chat model stays as it is.</p>
+        <p class="settings-note">Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b-instruct</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. Not the plain qwen3-vl:8b: that is the “thinking” version, which thinks for minutes before every step. When it is installed, Autopilot uses it by itself; your chat model stays as it is.</p>
         <p class="settings-note" id="ctl-model-now"></p>
-        <div class="inline-form"><button type="button" id="ctl-pull">Download qwen3-vl:8b</button></div>
+        <div class="inline-form"><button type="button" id="ctl-pull">Download qwen3-vl:8b-instruct</button></div>
         <p class="settings-note" id="ctl-pull-status" role="status"></p>
         <label class="settings-field">Model for Autopilot
           <select id="ctl-model"><option value="">Automatic (the best installed model that can see)</option></select>

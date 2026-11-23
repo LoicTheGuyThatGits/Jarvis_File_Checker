@@ -2779,7 +2779,17 @@ VISION_NAMES = re.compile(r"llava|moondream|vision|-vl|vl:|qwen2\.5vl|qwen2-vl|m
 
 
 AUTOPILOT_PREFS = ("qwen3-vl", "ui-tars", "qwen2.5vl", "qwen2.5-vl", "gemma3", "llama3.2-vision", "llama4", "minicpm-v", "mistral-small3", "llava", "moondream")
-AUTOPILOT_MODEL = "qwen3-vl:8b"          # the one to download for Autopilot on an 8 GB graphics card
+AUTOPILOT_MODEL = "qwen3-vl:8b-instruct"  # the one to download for Autopilot on an 8 GB graphics card (plain qwen3-vl:8b is the slow "thinking" one)
+
+
+def slow_thinker(model: str) -> bool:
+    """A model that thinks at length before every answer: qwen3-vl:8b (= 8b-thinking) takes minutes per Autopilot step."""
+    m = (model or "").lower()
+    return "thinking" in m or bool(re.fullmatch(r"qwen3-vl(?::\d+b)?(?::latest)?", m))
+
+
+class AutopilotStopped(Exception):
+    pass
 MODELS_SEEN: dict = {"at": 0.0, "base": "", "ids": []}
 
 
@@ -2808,9 +2818,9 @@ def autopilot_ai() -> dict:
     if ai["is_local"] and not os.environ.get("OPENAI_VISION_MODEL"):
         ids = installed_models(ai)
         for pref in AUTOPILOT_PREFS:
-            for name in sorted(ids):
-                if pref in name.lower():
-                    return {**ai, "model": name}
+            hits = sorted((n for n in ids if pref in n.lower()), key=lambda n: (slow_thinker(n), "instruct" not in n.lower(), n))
+            if hits:                                              # the quick “instruct” version before a thinking one
+                return {**ai, "model": hits[0]}
     return ai
 
 
@@ -2826,25 +2836,63 @@ def autopilot_sight() -> str:
 AUTOPILOT_CTX = 8192          # Ollama's working memory for Autopilot: a picture, the lists and the instructions fit; an 8 GB card holds it
 
 
-def ollama_autopilot_chat(base: str, model: str, system: str, user_text: str, picture: str | None) -> str:
+def ollama_autopilot_chat(base: str, model: str, system: str, user_text: str, picture: str | None, think: bool | None = False) -> str:
     """Ollama's own chat API, so the working memory (num_ctx) can be set: through the OpenAI-style API it stays at Ollama's
-    default, and long screen lists were cut off without a word."""
+    default, and long screen lists were cut off without a word. Thinking is switched off: one step must not take minutes."""
     root = re.sub(r"/v1/?$", "", base)
     user = {"role": "user", "content": user_text}
     if picture:
         user["images"] = [picture]
-    body = json.dumps({"model": model, "messages": [{"role": "system", "content": system}, user], "stream": False, "format": "json",
-                       "options": {"num_ctx": AUTOPILOT_CTX, "temperature": 0.2}, "keep_alive": "15m"}).encode()
-    req = urllib.request.Request(root + "/api/chat", data=body, headers={"Content-Type": "application/json"}, method="POST")
+    payload = {"model": model, "messages": [{"role": "system", "content": system}, user], "stream": False, "format": "json",
+               "options": {"num_ctx": AUTOPILOT_CTX, "temperature": 0.2}, "keep_alive": "15m"}
+    if think is not None and re.search(r"qwen3|deepseek-r1|gpt-oss|magistral", model, re.I):
+        payload["think"] = think
+    req = urllib.request.Request(root + "/api/chat", data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=240) as r:
+        with urllib.request.urlopen(req, timeout=AUTOPILOT_TIMEOUT) as r:
             data = json.loads(r.read())
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:500]
         if exc.code == 404 and "not found" in detail.lower():
             raise RuntimeError(f"The model {model} is not installed. Download it in Settings > Computer control.") from exc
+        if "think" in detail.lower() and "think" in payload:      # a model that cannot be told about thinking: ask again without it
+            return ollama_autopilot_chat(base, model, system, user_text, picture, None)
         raise RuntimeError(f"Ollama answered {exc.code}: {detail}") from exc
+    except (TimeoutError, OSError) as exc:
+        if "timed out" in str(exc).lower() or isinstance(exc, TimeoutError):
+            raise RuntimeError(f"{model} gave no answer within {AUTOPILOT_TIMEOUT // 60} minutes. It probably does not fit in the graphics card's memory "
+                               "and runs on the processor: close games and other AI models, then try again.") from exc
+        raise
     return str((data.get("message") or {}).get("content") or "")
+
+
+AUTOPILOT_TIMEOUT = 240
+
+
+def shrink_b64(data: str, width: int) -> str:
+    try:
+        from PIL import Image
+        img = Image.open(BytesIO(base64.b64decode(data)))
+        img.thumbnail((width, width), reducing_gap=2.0)
+        buf = BytesIO()
+        img.convert("RGB").save(buf, format="JPEG", quality=80)
+        return base64.b64encode(buf.getvalue()).decode("ascii")
+    except Exception:
+        return data
+
+
+def gpu_share(base: str, model: str) -> float | None:
+    """How much of the loaded model sits in the graphics card's memory (1.0 = all of it), from Ollama's /api/ps."""
+    root = re.sub(r"/v1/?$", "", base)
+    try:
+        with urllib.request.urlopen(root + "/api/ps", timeout=5) as r:
+            for m in json.loads(r.read()).get("models", []):
+                if m.get("name") == model or m.get("model") == model:
+                    size, vram = float(m.get("size") or 0), float(m.get("size_vram") or 0)
+                    return vram / size if size else None
+    except Exception:
+        return None
+    return None
 
 
 def autopilot_coords(model: str | None = None) -> str:
@@ -2932,7 +2980,7 @@ def control_public() -> dict:
         watching = WATCH["condition"]
     have = installed_models(ai_settings("vision")) if ai["is_local"] else []
     return {**cfg, "sight_now": autopilot_sight(), "watching": watching, "model_now": ai["model"], "local": ai["is_local"], "coords_now": autopilot_coords(ai["model"]),
-            "recommended": AUTOPILOT_MODEL, "has_recommended": any(m.split(":")[0] == AUTOPILOT_MODEL.split(":")[0] for m in have),
+            "recommended": AUTOPILOT_MODEL, "has_recommended": AUTOPILOT_MODEL in have, "slow_model": slow_thinker(ai["model"]),
             "vision_models": [m for m in have if VISION_NAMES.search(m)], "browser_ready": webpilot.available(), "pull": dict(PULL), "install": dict(INSTALL),
             "learned": [{"id": i["id"], "task": i["task"], "steps": len(i["steps"]), "at": i.get("at"), "uses": i.get("uses", 0)} for i in reversed(procedures.load(learned_path()))]}
 
@@ -9182,7 +9230,11 @@ class Handler(BaseHTTPRequestHandler):
         repair_note = ""
         for attempt in range(3):
             if ai["is_local"]:
-                content = ollama_autopilot_chat(base, model, system + language_instruction(), user_text + repair_note, picture if sight == "picture" else None)
+                small = picture
+                if sight == "picture" and thousandths and screen.get("_shown") is not None and screen["shown_width"] > 1280:
+                    small = shrink_b64(picture, 1280)              # fewer picture tokens for a local model; positions are in thousandths anyway
+                content = self.wait_for_model(lambda: ollama_autopilot_chat(base, model, system + language_instruction(), user_text + repair_note, small if sight == "picture" else None), model)
+                self.check_gpu(base, model)
             else:
                 request_body = json_bytes({
                     "model": model,
@@ -9230,6 +9282,46 @@ class Handler(BaseHTTPRequestHandler):
                     "If no safe valid action is possible, return action null and explain why."
                 )
 
+    def wait_for_model(self, call, model: str):
+        """Runs the model call aside, so Stop works at once and the overlay shows the seconds going by."""
+        stop = getattr(self, "_ap_stop", None)
+        status = getattr(self, "_ap_status", None)
+        if stop is None and status is None:
+            return call()
+        box: dict = {}
+        done = threading.Event()
+
+        def run():
+            try:
+                box["value"] = call()
+            except BaseException as exc:                                  # noqa: BLE001 — handed back below
+                box["error"] = exc
+            finally:
+                done.set()
+        threading.Thread(target=run, daemon=True).start()
+        started = time.time()
+        while not done.wait(1.0):
+            if stop is not None and stop.is_set():
+                raise AutopilotStopped()
+            if status:
+                took = int(time.time() - started)
+                status(f"{model} is looking at the screen · {took} s" + (" (the first step loads the model)" if took >= 15 and not getattr(self, "_ap_warm", False) else ""))
+        self._ap_warm = True
+        if "error" in box:
+            raise box["error"]
+        return box["value"]
+
+    def check_gpu(self, base: str, model: str) -> None:
+        """Once per run: when the model does not fit in the graphics card, say so (that is why steps are slow)."""
+        if getattr(self, "_ap_gpu_checked", True):
+            return
+        self._ap_gpu_checked = True
+        share = gpu_share(base, model)
+        if share is not None and share < 0.95:
+            self._ap_note = (f"Only {round(share * 100)} % of {model} fits in the graphics card's memory, so part of it runs on the processor and each step is slow. "
+                             "Close games and other AI models (or anything else using the graphics card) and Autopilot gets much quicker.")
+            print(f"[jarvis] autopilot: {self._ap_note}")
+
     def plan_computer_step(self, task: str, screen: dict, completed_steps: list[str], conversation_context: list[dict[str, str]] | None = None) -> tuple[dict, dict]:
         """Wait actions are bounded and run automatically; interactive actions still need approval."""
         automatic_waits = zooms = 0
@@ -9237,12 +9329,11 @@ class Handler(BaseHTTPRequestHandler):
             plan = self.computer_plan(task, screen, completed_steps, conversation_context)
             action = plan["action"]
             if action and action["type"] == "zoom":                  # looking closer is not an action on the PC: done at once
-                if zooms >= 2 or screen.get("zoom"):
-                    completed_steps.append("You already looked closer: act on what this picture shows, or work from the element numbers.")
-                    screen = self.capture_screen()
-                    zooms += 1
-                    if zooms > 3:
+                if zooms >= 1 or screen.get("zoom"):                # one closer look per step, never a chain of them
+                    if zooms >= 2:
                         return {"reply": "I could not get a clear enough look at the screen.", "action": None, "done": False}, screen
+                    completed_steps.append("You already looked closer once for this step: now act (click by element number or position), do not zoom again.")
+                    zooms += 1
                     continue
                 area = (screen.get("origin") or [0, 0])[0], (screen.get("origin") or [0, 0])[1], screen["width"], screen["height"]
                 completed_steps.append(f"looked closer at {action.get('target', 'part of the screen')}")
@@ -9327,8 +9418,15 @@ class Handler(BaseHTTPRequestHandler):
         if ov:
             ov.begin(f"Autopilot · {short} · looking at the screen…", stop_event.set)
 
+        at = {"step": 1}
+        self._ap_stop, self._ap_gpu_checked, self._ap_note, self._ap_warm = stop_event, False, "", False
+        self._ap_status = (lambda text: ov.status(f"Autopilot · step {at['step']} of {limit} · {text}")) if ov else None
+
+        def noted(reply: str) -> str:
+            return reply + ("\n\n" + self._ap_note if self._ap_note else "")
+
         def stopped(reply: str) -> None:
-            self.send_json(200, {"ok": True, "stopped": True, "reply": reply, "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+            self.send_json(200, {"ok": True, "stopped": True, "reply": noted(reply), "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
         did: list[str] = []                                            # the steps that ran, to remember the way when it works
         try:
             plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
@@ -9336,6 +9434,7 @@ class Handler(BaseHTTPRequestHandler):
             repeat_retries = 0
             last_key, same_in_row = None, 0
             for step in range(1, limit + 1):
+                at["step"] = step
                 if stop_event.is_set():
                     stopped("Stopped. No further computer actions will run.")
                     return
@@ -9348,7 +9447,7 @@ class Handler(BaseHTTPRequestHandler):
                                 PROC_HINTS.pop(task, None)
                             except OSError:
                                 pass
-                        self.send_json(200, {"ok": True, "done": True, "reply": plan["reply"] or "Task complete.", "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+                        self.send_json(200, {"ok": True, "done": True, "reply": noted(plan["reply"] or "Task complete."), "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
                         return
                     if no_action_retries < 2:
                         no_action_retries += 1
@@ -9405,9 +9504,12 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
             stopped(f"Paused after {limit} actions for safety. Review the screen and start another task if you want to continue.")
+        except AutopilotStopped:
+            stopped("Stopped. No further computer actions will run.")
         except Exception as exc:
-            self.send_json(502, {"error": f"Autopilot stopped: {exc}"})
+            self.send_json(502, {"error": noted(f"Autopilot stopped: {exc}")})
         finally:
+            self._ap_stop = self._ap_status = None
             if ov:
                 ov.end()
 
