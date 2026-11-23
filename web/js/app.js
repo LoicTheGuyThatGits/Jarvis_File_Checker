@@ -17,22 +17,11 @@ let latestScreenAt = 0;
 let activePromptController = null;
 let activePromptId = null;
 const sendButton = document.querySelector('#composer .send-button');
-// A game for the wait: the button shows only while Jarvis is working on an answer (not in computer mode, where a second
-// window would get in Autopilot's way); the game window is told when the answer is there.
-const playButton=document.querySelector('#play-game');
-let busyChannel=null;
-try{busyChannel=new BroadcastChannel('jarvis-busy');busyChannel.onmessage=e=>{if(e.data&&e.data.ask)busyChannel.postMessage({busy:!!activePromptController})}}catch{}
-if(playButton)playButton.addEventListener('click',()=>{
-  const w=window.open('/game.html','jarvis-2048','popup,width=440,height=640');
-  if(w){try{w.focus()}catch{}}else{playButton.textContent='Allow pop-ups to play'}
-});
 // Easter egg: click the “AI model” tab of the settings 7 times in a row to play any time.
 {const aiTab=document.querySelector('#tab-ai');let taps=0,lastTap=0;
  if(aiTab)aiTab.addEventListener('click',()=>{const now=Date.now();taps=now-lastTap<1500?taps+1:1;lastTap=now;
-   if(taps>=7){taps=0;const w=window.open('/game.html?free=1','jarvis-2048','popup,width=440,height=640');if(w){try{w.focus()}catch{}}}});}
+   if(taps>=7){taps=0;const w=window.open('/game.html','jarvis-2048','popup,width=440,height=640');if(w){try{w.focus()}catch{}}}});}
 function setPromptRunning(running) {
-  if(playButton)playButton.classList.toggle('hidden',!running||computerMode);
-  if(busyChannel){try{busyChannel.postMessage({busy:!!running})}catch{}}
   sendButton.textContent=running?'Stop':'↑';
   sendButton.setAttribute('aria-label',running?'Stop current prompt':'Send message');
   sendButton.title=running?'Stop current prompt':'Send message';

@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "70db5caa607c993a20c0eaacd8d085f157260f8ea854b40337d854463d91d7cd",
-   "size": 90466
+   "sha256": "1a861b0f7c04d0ace4439a60df2cc926cc418c0eab325e08e4ac7a8a18ac87c2",
+   "size": 89983
   },
   {
    "path": "app/backup.py",
@@ -364,13 +364,13 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "7f745bbadb2b7bcdfed42b4a97c3250daf02a16935ce18d6ac7c6efea1b4f4ea",
-   "size": 69509
+   "sha256": "bc61611cbc7e486fb3a57850e5787b55a112903d33274ad687d9d2696d7c9c2c",
+   "size": 69125
   },
   {
    "path": "web/game.html",
-   "sha256": "6b37104c4e01e58d1bc0cf94ebaa75cc00327f81ac2d75f8d0a56ad04f94d94d",
-   "size": 10828
+   "sha256": "4efb702e66789168cd0f4307b1b7218de3f317b34efd7da86f2041b590d3ecef",
+   "size": 9735
   },
   {
    "path": "web/i18n/de.json",
@@ -404,13 +404,13 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "340707e83ca4f1b7e65b2adc1c6a7dbbe9c584bbbd308b830d47ad89744c09f5",
-   "size": 100407
+   "sha256": "387172ad651f7319bddd2c1a513c83b13e3900887553cb5cd1d734df7ef6d706",
+   "size": 100232
   },
   {
    "path": "web/js/app.js",
-   "sha256": "1563d8940101341782824aa3aeba3dfcabdf416ca1090cc6bc49d399b3a5b0f5",
-   "size": 33398
+   "sha256": "09e922e01f3df410f1861746472a700dea15a1b3bdf8b0c083356fe5ef0f199a",
+   "size": 32562
   },
   {
    "path": "web/js/call.js",

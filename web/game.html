@@ -18,8 +18,8 @@
   .row{width:100%;max-width:400px;display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px;color:var(--muted)}
   button{font:600 14px var(--hud);color:var(--bg);background:var(--accent);border:0;border-radius:6px;padding:7px 14px;cursor:pointer}
   button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-  .board{position:relative;width:min(400px,calc(100vw - 32px));aspect-ratio:1;background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:10px;padding:2.5%;display:grid;grid-template-columns:repeat(4,1fr);gap:2.5%;touch-action:none}
-  .cell{border-radius:6px;background:color-mix(in srgb,var(--text) 6%,transparent);display:flex;align-items:center;justify-content:center;font:700 clamp(16px,7vw,34px) var(--disp);transition:background .1s}
+  .board{position:relative;width:min(400px,calc(100vw - 32px));aspect-ratio:1;grid-template-rows:repeat(4,1fr);background:var(--panel);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);border-radius:10px;padding:2.5%;display:grid;grid-template-columns:repeat(4,1fr);gap:2.5%;touch-action:none}
+  .cell{min-width:0;min-height:0;overflow:hidden;border-radius:6px;background:color-mix(in srgb,var(--text) 6%,transparent);display:flex;align-items:center;justify-content:center;font:700 clamp(16px,7vw,34px) var(--disp);transition:background .1s}
   .cell.new{animation:pop .16s ease-out}
   .cell.merged{animation:bump .16s ease-out}
   @keyframes pop{from{transform:scale(.3);opacity:.2}to{transform:scale(1);opacity:1}}
@@ -48,10 +48,9 @@
     <div class="box"><small>Score</small><b id="score">0</b></div>
     <div class="box"><small>Best</small><b id="best">0</b></div>
   </header>
-  <div class="row"><span id="status" role="status">Jarvis is thinking…</span><button type="button" id="new" class="ghost">New game</button></div>
+  <div class="row"><span id="status" role="status">You found the secret game.</span><button type="button" id="new" class="ghost">New game</button></div>
   <div class="board" id="board" aria-label="2048 board">
     <div class="veil hidden" id="over"><p id="over-title">Game over</p><div><button type="button" id="again">New game</button><button type="button" id="keep" class="ghost hidden">Keep going</button></div></div>
-    <div class="veil hidden" id="done"><p>Jarvis has answered</p><span>Your game is saved for next time.</span><div><button type="button" id="back">Back to Jarvis</button><button type="button" id="finish" class="ghost">Finish this game</button></div></div>
   </div>
   <p class="hint">Arrow keys or WASD, or swipe. Join equal tiles to reach 2048.</p>
 <script>
@@ -60,11 +59,15 @@
   // Jarvis's colours, when it opened this window
   try {
     var src = window.opener && window.opener.document && getComputedStyle(window.opener.document.documentElement);
-    if (src) ['--bg', '--panel', '--text', '--muted', '--accent', '--hud', '--disp'].forEach(function (k) { var v = src.getPropertyValue(k); if (v && v.trim()) document.documentElement.style.setProperty(k, v.trim()); });
+    if (src) {
+      ['--bg', '--panel', '--text', '--muted', '--hud', '--disp'].forEach(function (k) { var v = src.getPropertyValue(k); if (v && v.trim()) document.documentElement.style.setProperty(k, v.trim()); });
+      var accent = (src.getPropertyValue('--t-accent') || src.getPropertyValue('--accent')).trim();       // the theme's own colour
+      if (accent) document.documentElement.style.setProperty('--accent', accent);
+    }
   } catch (e) {}
   var t = function (s) { return window.JarvisI18n ? window.JarvisI18n.t(s) : s; };
   var KEY = 'jarvis-2048', BEST = 'jarvis-2048-best';
-  var board = $('board'), cells = [], grid, score, won, keepGoing, paused = false, busy = true;
+  var board = $('board'), cells = [], grid, score, won, keepGoing;
   function $(id) { return document.getElementById(id); }
   for (var i = 0; i < 16; i++) { var c = document.createElement('div'); c.className = 'cell'; board.insertBefore(c, $('over')); cells.push(c); }
   function load() {
@@ -109,7 +112,7 @@
     return false;
   }
   function move(dir) {
-    if (paused || !$('over').classList.contains('hidden')) return;
+    if (!$('over').classList.contains('hidden')) return;
     var moved = false, merged = [];
     ORDERS[dir].forEach(function (idx) {
       var r = slide(line(idx));
@@ -135,21 +138,7 @@
     if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
   });
-  // Jarvis tells this window when it starts and stops thinking: the game is for the wait
-  var free = /[?&]free=1\b/.test(location.search);              // opened from the easter egg: play as long as you like
-  if (free) $('status').textContent = t('You found the secret game.');
-  function setBusy(on) {
-    if (free) return;
-    busy = on;
-    $('status').textContent = on ? t('Jarvis is thinking…') : t('Jarvis has answered.');
-    if (on) { paused = false; $('done').classList.add('hidden'); }
-    else if (!paused) { paused = true; $('done').classList.remove('hidden'); }
-  }
-  var channel = null;
-  try { channel = new BroadcastChannel('jarvis-busy'); channel.onmessage = function (e) { if (e.data && typeof e.data.busy === 'boolean') setBusy(e.data.busy); }; channel.postMessage({ ask: true }); } catch (e) {}
-  $('back').addEventListener('click', function () { try { if (window.opener) window.opener.focus(); } catch (e) {} window.close(); });
-  $('finish').addEventListener('click', function () { paused = false; $('done').classList.add('hidden'); });
-  window.JarvisGame = { move: move, state: function () { return { grid: grid.slice(), score: score, paused: paused, busy: busy }; }, set: function (g) { grid = g.slice(); save(); draw(); } };
+  window.JarvisGame = { move: move, state: function () { return { grid: grid.slice(), score: score }; }, set: function (g) { grid = g.slice(); save(); draw(); } };
   load(); draw();
 })();
 </script>

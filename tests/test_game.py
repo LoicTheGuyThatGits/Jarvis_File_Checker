@@ -1,41 +1,32 @@
-import json, os, sys, tempfile, threading, time, importlib.util
+import json, os, sys, tempfile, threading, importlib.util
 from pathlib import Path
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 tmp = Path(tempfile.mkdtemp())
 from testlib import stage; stage(tmp)
 sys.path.insert(0, "app")
-
-# a slow pretend AI model, so there is a wait to play in
-release = threading.Event()
-class Fake(BaseHTTPRequestHandler):
-    def log_message(self, *a): pass
-    def do_POST(self):
-        body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-        release.wait(30)
-        if not body.get("stream"):
-            raw = json.dumps({"choices": [{"message": {"content": "ok"}}]}).encode()
-            self.send_response(200); self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(raw))); self.end_headers(); self.wfile.write(raw); return
-        self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
-        self.wfile.write(("data: " + json.dumps({"choices": [{"delta": {"content": "Here is your answer, sir."}}]}) + "\n\n").encode()); self.wfile.write(b"data: [DONE]\n\n"); self.wfile.flush()
-fake = ThreadingHTTPServer(("127.0.0.1", 0), Fake); threading.Thread(target=fake.serve_forever, daemon=True).start()
-os.environ["OPENAI_BASE_URL"] = f"http://127.0.0.1:{fake.server_address[1]}/v1"; os.environ["OPENAI_API_KEY"] = "ollama"
 spec = importlib.util.spec_from_file_location("srv", "app/server.py"); S = importlib.util.module_from_spec(spec); spec.loader.exec_module(S); S.ROOT = tmp
-S.ensure_ollama = lambda base, wait=25.0: True
 app = ThreadingHTTPServer(("127.0.0.1", 0), S.Handler); threading.Thread(target=app.serve_forever, daemon=True).start(); port = app.server_address[1]
 
 from playwright.sync_api import sync_playwright
 with sync_playwright() as pw:
     b = pw.chromium.launch(); ctx = b.new_context(viewport={"width": 1280, "height": 900}); pg = ctx.new_page(); errs = []
     pg.on("pageerror", lambda e: errs.append(str(e)))
-    pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off')"); pg.reload(); pg.wait_for_timeout(600)
-    assert not pg.is_visible("#play-game"), "only while Jarvis is working on an answer"
-    pg.fill("#message", "tell me something interesting about owls"); pg.keyboard.press("Enter")
-    pg.wait_for_selector("#play-game:not(.hidden)")
+    pg.goto(f"http://127.0.0.1:{port}/"); pg.evaluate("localStorage.setItem('jarvis-boot-mode','never');localStorage.setItem('jarvis-brief-mode','off');localStorage.setItem('jarvis-theme-v1','stark')"); pg.reload(); pg.wait_for_timeout(600)
+    assert pg.locator("#play-game").count() == 0, "no button: it is a secret"
+    # the easter egg: the “AI model” tab clicked 7 times in a row
+    pg.evaluate("window.JarvisUI.openPane('ai')"); pg.wait_for_timeout(200)
+    for _ in range(6): pg.click("#tab-ai")
+    assert len(ctx.pages) == 1, "not after 6"
     with pg.expect_popup() as pop:
-        pg.click("#play-game")
-    game = pop.value; game.on("pageerror", lambda e: errs.append("game: " + str(e))); game.wait_for_load_state()
-    game.wait_for_function("window.JarvisGame && document.querySelector('#status').textContent === 'Jarvis is thinking…'")
-    assert game.locator(".cell:not(:empty)").count() == 2, "a new game starts with two tiles"
+        pg.click("#tab-ai")
+    game = pop.value; game.on("pageerror", lambda e: errs.append("game: " + str(e))); game.wait_for_function("window.JarvisGame")
+    assert game.text_content("#status") == "You found the secret game." and game.locator(".cell:not(:empty)").count() == 2
+    accent = pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--t-accent').trim()")
+    assert game.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()") == accent, "the theme's colour"
+    # every square the same size, numbers or not (the screenshot: rows with numbers were taller)
+    game.evaluate("window.JarvisGame.set([8,0,0,0, 4,0,0,0, 0,0,0,0, 0,2,0,0])"); game.wait_for_timeout(300)
+    sizes = game.evaluate("[...document.querySelectorAll('.cell')].map(c => { const r = c.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; })")
+    assert len({tuple(x) for x in sizes}) == 1, sizes
     # the rules
     game.evaluate("window.JarvisGame.set([2,2,4,4, 0,0,0,0, 2,0,2,0, 0,0,0,0])")
     game.keyboard.press("ArrowLeft"); st = game.evaluate("window.JarvisGame.state()")
@@ -43,27 +34,8 @@ with sync_playwright() as pw:
     game.evaluate("Math.random = () => 0.1; window.JarvisGame.set([2,4,2,4, 4,2,4,2, 2,4,2,4, 4,2,8,8])"); game.keyboard.press("ArrowLeft")
     game.wait_for_selector("#over:not(.hidden)"); assert game.text_content("#over-title") == "Game over" and game.evaluate("window.JarvisGame.state().grid.slice(12)") == [4, 2, 16, 2]
     game.click("#again"); assert game.evaluate("window.JarvisGame.state().score") == 0
-    game.keyboard.press("ArrowUp"); game.keyboard.press("ArrowLeft"); saved = game.evaluate("window.JarvisGame.state().grid")
-    # the answer arrives: the game says so and pauses
-    release.set()
-    pg.wait_for_function("document.querySelector('#conversation').textContent.includes('Here is your answer')")
-    game.wait_for_selector("#done:not(.hidden)"); assert game.text_content("#status") == "Jarvis has answered."
-    assert not pg.is_visible("#play-game"), "the button goes when the answer is there"
-    before = game.evaluate("window.JarvisGame.state().grid"); game.keyboard.press("ArrowDown"); assert game.evaluate("window.JarvisGame.state().grid") == before, "paused"
-    game.click("#finish"); assert not game.is_visible("#done")
-    # it remembers the game
-    game.reload(); game.wait_for_function("window.JarvisGame")
-    assert game.evaluate("window.JarvisGame.state().grid") == before
-    game.click("#back") if game.is_visible("#back") else game.close()
-    # the easter egg: the “AI model” tab clicked 7 times in a row, any time, and no pause
-    pg.evaluate("window.JarvisUI.openPane('ai')"); pg.wait_for_timeout(200)
-    for _ in range(6): pg.click("#tab-ai")
-    assert len(ctx.pages) == 1 or all(not p.url.endswith("free=1") for p in ctx.pages), "not after 6"
-    with pg.expect_popup() as pop2:
-        pg.click("#tab-ai")
-    egg = pop2.value; egg.wait_for_function("window.JarvisGame")
-    assert egg.url.endswith("/game.html?free=1") and egg.text_content("#status") == "You found the secret game."
-    egg.wait_for_timeout(500); assert not egg.is_visible("#done") and not egg.evaluate("window.JarvisGame.state().paused"), "free play is never paused"
+    game.keyboard.press("ArrowUp"); game.keyboard.press("ArrowLeft"); kept = game.evaluate("window.JarvisGame.state().grid")
+    game.reload(); game.wait_for_function("window.JarvisGame"); assert game.evaluate("window.JarvisGame.state().grid") == kept, "the game is kept"
     assert not errs, errs
     b.close()
 print("game ok"); os._exit(0)
