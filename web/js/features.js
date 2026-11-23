@@ -67,18 +67,33 @@
     if (typeof loadVoices === 'function') { loadVoices(); }
     if (typeof syncEngineUi === 'function') syncEngineUi();
   }
+  /* the language of the menus (js/i18n.js does the translating) */
+  function applyUi(d) {
+    var sel = $('ui-lang-select');
+    if (sel && d.ui_languages) {
+      clearChildren(sel);
+      var auto = document.createElement('option'); auto.value = 'auto'; auto.textContent = 'Same as Jarvis'; auto.setAttribute('data-no-i18n', ''); sel.appendChild(auto);
+      d.ui_languages.forEach(function (l) { var o = document.createElement('option'); o.value = l.code; o.textContent = l.native; o.setAttribute('data-no-i18n', ''); sel.appendChild(o); });
+      sel.value = d.ui_setting || 'auto';
+      var named = (d.ui_languages.filter(function (l) { return l.code === d.ui_language; })[0] || {}).native || 'English';
+      auto.textContent = (window.JarvisI18n ? window.JarvisI18n.t('Same as Jarvis') : 'Same as Jarvis') + ' (' + named + ')';
+    }
+    if (d.ui_language && window.JarvisI18n && d.ui_language !== window.JarvisI18n.code()) window.JarvisI18n.set(d.ui_language).then(function () { applyUi({ ui_languages: d.ui_languages, ui_setting: d.ui_setting, ui_language: d.ui_language }); });
+  }
   function loadLanguage() {
     fetch('/api/language').then(function (r) { return r.json(); }).then(function (d) {
       lang.list = d.languages || []; var sel = $('lang-select'); clearChildren(sel);
-      lang.list.forEach(function (l) { var o = document.createElement('option'); o.value = l.code; o.textContent = l.name === l.native ? l.name : l.name + ' – ' + l.native; sel.appendChild(o); });
-      applyLanguage(d.language);
+      lang.list.forEach(function (l) { var o = document.createElement('option'); o.value = l.code; o.textContent = l.name === l.native ? l.name : l.name + ' – ' + l.native; o.setAttribute('data-no-i18n', ''); sel.appendChild(o); });
+      applyLanguage(d.language); applyUi(d);
     }).catch(function () {});
   }
-  $('lang-select').addEventListener('change', function () {
-    var code = $('lang-select').value;
-    fetch('/api/language', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: code }) })
-      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.language) applyLanguage(d.language); }).catch(function () {});
-  });
+  function postLanguage(body) {
+    return fetch('/api/language', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); }).then(function (d) { if (d && d.language) { applyLanguage(d.language); applyUi(d); } return d; });
+  }
+  $('lang-select').addEventListener('change', function () { postLanguage({ language: $('lang-select').value }).catch(function () {}); });
+  if ($('ui-lang-select')) $('ui-lang-select').addEventListener('change', function () { postLanguage({ ui: $('ui-lang-select').value }).catch(function () {}); });
+  window.addEventListener('jarvis:ui-language', function () { var sel = $('ui-lang-select'); if (sel && sel.options[0]) { /* keep the “Same as Jarvis (…)” label in the new language */ fetch('/api/language').then(function (r) { return r.json(); }).then(applyUi).catch(function () {}); } });
   window.addEventListener('jarvis:reply', function (e) { var c = e.detail && e.detail.language; if (c && c !== lang.code) applyLanguage(c); });
   function sayHello(english) { return lang.code === 'en' || !lang.sample ? english : lang.sample; }
 

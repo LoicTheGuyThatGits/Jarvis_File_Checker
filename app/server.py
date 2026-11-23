@@ -69,7 +69,7 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
     "/icons/jarvis.ico": ("icons/jarvis.ico", "image/x-icon"), "/favicon.ico": ("icons/jarvis.ico", "image/x-icon"),
 }
@@ -628,10 +628,35 @@ def current_language() -> str:
     return code
 
 
+def ui_languages() -> list[str]:
+    """Languages the menus can be shown in: English, plus every web/i18n/<code>.json."""
+    found = ["en"]
+    try:
+        found += sorted(p.stem for p in web_path("i18n").glob("*.json") if re.fullmatch(r"[a-z]{2}", p.stem) and p.stem in LANGUAGE_BY_CODE)
+    except OSError:
+        pass
+    return found
+
+
+def ui_language_setting() -> str:
+    saved = load_settings().get("ui_language")
+    return saved if isinstance(saved, str) and (saved == "auto" or saved in LANGUAGE_BY_CODE) else "auto"
+
+
+def ui_language() -> str:
+    """The language of the menus: chosen in Settings, or (“auto”) the language Jarvis speaks when the menus exist in it."""
+    choice, available = ui_language_setting(), ui_languages()
+    if choice == "auto":
+        choice = current_language()
+    return choice if choice in available else "en"
+
+
 def language_overview() -> dict:
     return {
         "language": current_language(),
         "languages": [{"code": c, "name": e, "native": n, "tag": t, "sample": smp} for c, e, n, t, smp in LANGUAGES],
+        "ui_setting": ui_language_setting(), "ui_language": ui_language(),
+        "ui_languages": [{"code": c, "name": LANGUAGE_BY_CODE[c][1], "native": LANGUAGE_BY_CODE[c][2]} for c in ui_languages()],
     }
 
 
@@ -670,6 +695,31 @@ def set_language(code: str) -> None:
     with SETTINGS_LOCK:
         SETTINGS["language"] = code
     save_settings()
+
+
+def set_ui_language(choice: str) -> None:
+    with SETTINGS_LOCK:
+        SETTINGS["ui_language"] = choice
+    save_settings()
+
+
+UI_WORDS = r"(?:the\s+)?(?:menus?|interface|ui|buttons|settings|screens?|app|display)(?:\s+language)?"
+UI_LANGUAGE_RE = re.compile(rf"(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+(?:please\s+)?)?(?:switch|change|set|put|translate|show)\s+{UI_WORDS}\s+(?:back\s+)?(?:to|into|in)\s+{_LANG_NAME}(?:\s+please)?", re.I)
+
+
+def ui_language_command(text: str) -> str | None:
+    """“switch the menus to German”, “change the interface language to French”."""
+    match = UI_LANGUAGE_RE.fullmatch((text or "").strip().rstrip(".!? "))
+    if not match:
+        return None
+    code = language_lookup(match.group("lang"))
+    if not code:
+        return None
+    if code not in ui_languages():
+        names = ", ".join(LANGUAGE_BY_CODE[c][1] for c in ui_languages())
+        return f"The menus are not translated into {LANGUAGE_BY_CODE[code][1]} yet, {current_address()}. They exist in {names}."
+    set_ui_language(code)
+    return f"Done, {current_address()}: the menus are now in {LANGUAGE_BY_CODE[code][1]}."
 
 
 # ---------------- location, weather and the startup briefing ----------------
@@ -5835,6 +5885,10 @@ class Handler(BaseHTTPRequestHandler):
             relative, content_type = STATIC_FILES[path]
             self.serve_file(web_path(relative), content_type)
             return
+        match = re.fullmatch(r"/i18n/([a-z]{2})\.json", path)
+        if match and match.group(1) in ui_languages():
+            self.serve_file(web_path(f"i18n/{match.group(1)}.json"), "application/json; charset=utf-8")
+            return
         self.send_json(404, {"error": "Not found"})
 
     def tools_post(self, path: str, payload: dict) -> None:
@@ -6672,6 +6726,14 @@ class Handler(BaseHTTPRequestHandler):
                     WEATHER_CACHE["data"] = None
                 self.send_json(200, {"location": place})
             elif path == "/api/language":
+                if "ui" in payload:
+                    choice = str(payload.get("ui") or "").lower()
+                    if choice != "auto" and choice not in ui_languages():
+                        self.send_json(400, {"error": "The menus are not available in that language."})
+                        return
+                    set_ui_language(choice)
+                    self.send_json(200, language_overview())
+                    return
                 code = str(payload.get("language") or "").lower()
                 if code not in LANGUAGE_BY_CODE:
                     self.send_json(400, {"error": "That language is not available."})
@@ -7378,10 +7440,14 @@ class Handler(BaseHTTPRequestHandler):
         if mail_reply:
             self.send_json(200, {"reply": mail_reply, "action": None})
             return
+        ui_switch = ui_language_command(latest)
+        if ui_switch:
+            self.send_json(200, {"reply": ui_switch, "action": None, "ui_language": ui_language()})
+            return
         language_switch = language_command(latest)
         if language_switch:
             set_language(language_switch[1])
-            self.send_json(200, {"reply": language_switch[0], "action": None, "language": language_switch[1]})
+            self.send_json(200, {"reply": language_switch[0], "action": None, "language": language_switch[1], "ui_language": ui_language()})
             return
         want_shot = payload.get("want_screenshot") is True
         watch_reply = watch_command(latest, self._remote)

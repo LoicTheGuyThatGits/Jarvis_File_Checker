@@ -27,6 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
+  <script>try{if((localStorage.getItem('jarvis-ui-lang')||'en')!=='en')document.documentElement.classList.add('i18n-pending')}catch(e){}</script>
 </head>
 <body>
   <div class="hud-bg" aria-hidden="true"><i></i><i></i></div>
@@ -204,7 +205,9 @@
       <div class="settings-section">
         <h2 class="settings-heading">Language</h2>
         <div class="settings-field"><label for="lang-select">Jarvis speaks and listens in</label><select id="lang-select"></select></div>
-        <p class="settings-note" id="lang-note">Replies, voice input and spoken replies follow this language. You can also just say “switch to French”. Menus and built-in messages such as timer alerts stay in English.</p>
+        <p class="settings-note" id="lang-note">Replies, voice input and spoken replies follow this language. You can also just say “switch to French”.</p>
+        <div class="settings-field"><label for="ui-lang-select">Menus and buttons in</label><select id="ui-lang-select"></select></div>
+        <p class="settings-note" id="ui-lang-note">Settings, menus, buttons and messages on screen. “Same as Jarvis” follows the language above when the menus exist in it. You can also say “switch the menus to German”. Some messages that Jarvis writes itself, such as timer alerts, stay in English.</p>
       </div>
       <div class="settings-section" id="wake-section">
         <h2 class="settings-heading">Wake word</h2>
@@ -776,6 +779,7 @@
     </div>
   </div>
   <script>window.paneHas = function (pane, id) { var p = document.getElementById('pane-' + pane), el = document.getElementById(id); return !!(p && el && p.contains(el)); };</script>
+  <script src="/js/i18n.js"></script>
   <script src="/js/wake.js"></script>
   <script src="/js/mail.js"></script>
   <script src="/js/shortcuts.js"></script>

@@ -765,3 +765,6 @@ html[data-boot="play"] .boot{display:flex}
 @keyframes callSpin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.call-ring{animation:none!important}}
 .call-button{display:inline-flex;align-items:center;gap:6px}.call-button .call-ico{width:15px;height:15px}
+
+html.i18n-pending body{visibility:hidden}   /* a moment while the menus load in another language */
+@media (max-width:480px){.call-button span{display:none}.call-button{padding-inline:9px}}   /* phones: the call button is just the handset */

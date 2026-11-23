@@ -350,6 +350,9 @@ You get a new file ("essay (edited).docx") with **Download** and **Show in folde
 ## Self-check
 "Run a self-check" (or Settings > Look > **Self-check**) tries each part of Jarvis that depends on this PC: Python packages, the data folder, the AI model (and how fast it answers), whether the model can see pictures, taking a screenshot, reading the controls and the text on the screen, the list of windows, mouse and keyboard, the network and Wi-Fi readings, file search, document editing, the phone link and the offline voice. It only reads and measures. The report is shown with ✓, ⚠ and ✗, can be copied with one button, and is saved in `data\selftest.txt`.
 
+## Menus in other languages
+Settings > Voice & language > **Menus and buttons in**: English, Français, Deutsch or Italiano, or “Same as Jarvis”, which follows the language Jarvis speaks when the menus exist in it. You can also say “switch the menus to German”. Settings, menus, buttons, hints, status lines and dialogs change at once, dates follow too, and your choice is remembered. Chats are never translated, and some messages Jarvis writes itself (timer alerts, built-in command replies) stay in English. The translations live in `web/i18n/<code>.json` (English text → translation); `python tools/i18n_strings.py` lists every text on the page and what is still missing in each language, so another language is one more file.
+
 ## Calls
 Talk with Jarvis hands-free, like a phone call. Press **☎ Call** at the top of the window: Jarvis greets you, listens, answers out loud and listens again until you say “goodbye” (or press the red button). Mute and Interrupt (stop Jarvis talking so you can speak) are on the call screen. Everything that works in chat works on a call; replies are kept short and spoken. The conversation is saved as a chat (“☎ Call · 08:41 (3:12)”) when you hang up.
 
