@@ -302,6 +302,74 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'bench-models')) benchLoad(); });
   }
+  if ($('coach-save')) {
+    var coachPost = function (body) {
+      return fetch('/api/coach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); if (d.settings) coachDraw(d); return d; }); });
+    };
+    var coachStatus = function (t) { $('coach-status').textContent = t || ''; };
+    var coachDraw = function (d) {
+      var c = d.settings || {}, wd = (c.weekday || '17:00-20:00').split('-'), we = (c.weekend || '10:00-17:00').split('-');
+      if (document.activeElement && document.activeElement.closest && document.activeElement.closest('.coach-form')) { /* do not overwrite what is being typed */ } else {
+        $('coach-auto').checked = !!c.auto; $('coach-horizon').value = c.horizon; $('coach-wd-from').value = wd[0]; $('coach-wd-to').value = wd[1];
+        $('coach-we-from').value = we[0]; $('coach-we-to').value = we[1]; $('coach-minutes').value = String(c.minutes); $('coach-per-day').value = String(c.per_day);
+        $('coach-break').value = String(c.after_school); $('coach-weekly').checked = !!c.weekly; $('coach-weekly-day').value = String(c.weekly_day); $('coach-weekly-time').value = c.weekly_time;
+      }
+      var list = $('coach-list'); list.textContent = '';
+      (d.sessions || []).forEach(function (x) {
+        var li = document.createElement('li'), text = document.createElement('span'), when = document.createElement('span');
+        li.className = 'coach-item' + (x.done ? ' coach-done' : '');
+        when.className = 'coach-when'; when.setAttribute('data-no-i18n', '');
+        when.textContent = new Date(x.due * 1000).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+        text.className = 'coach-text'; text.setAttribute('data-no-i18n', ''); text.textContent = x.subject + ' · ' + x.minutes + ' min · ' + x.exam;
+        li.append(when, text);
+        if (x.done) { var ok = document.createElement('span'); ok.className = 'coach-ok'; ok.textContent = '✓ done'; li.append(ok); }
+        else {
+          var done = document.createElement('button'), skip = document.createElement('button');
+          done.type = skip.type = 'button'; done.className = skip.className = 'settings-action';
+          done.textContent = 'Done'; skip.textContent = 'Skip';
+          done.addEventListener('click', function () { coachPost({ done: x.id }).catch(function (e) { coachStatus(e.message); }); });
+          skip.addEventListener('click', function () { coachPost({ skip: x.id }).then(function (r) { coachStatus(r.text); }).catch(function (e) { coachStatus(e.message); }); });
+          li.append(done, skip);
+        }
+        list.append(li);
+      });
+      if (!(d.sessions || []).length) { var li = document.createElement('li'); li.textContent = 'No revision planned. Add a test above, or say “my physics test is on Friday at 8am”.'; list.append(li); }
+    };
+    var coachLoad = function () { fetch('/api/coach').then(function (r) { return r.json(); }).then(coachDraw).catch(function () {}); };
+    var coachSettings = function () {
+      return { auto: $('coach-auto').checked, horizon: +$('coach-horizon').value, weekday: $('coach-wd-from').value + '-' + $('coach-wd-to').value,
+        weekend: $('coach-we-from').value + '-' + $('coach-we-to').value, minutes: +$('coach-minutes').value, per_day: +$('coach-per-day').value,
+        after_school: +$('coach-break').value, weekly: $('coach-weekly').checked, weekly_day: +$('coach-weekly-day').value, weekly_time: $('coach-weekly-time').value };
+    };
+    $('coach-save').addEventListener('click', function () {
+      coachPost({ settings: coachSettings(), replan_after: true }).then(function () { coachStatus('Saved. Your revision is planned again with these times.'); }).catch(function (e) { coachStatus(e.message); });
+    });
+    $('coach-replan').addEventListener('click', function () {
+      coachPost({ replan: true }).then(function () { coachStatus('Your revision is planned again.'); }).catch(function (e) { coachStatus(e.message); });
+    });
+    ['coach-auto', 'coach-weekly'].forEach(function (id) {
+      $(id).addEventListener('change', function () { coachPost({ settings: coachSettings() }).then(function () { coachStatus('Saved.'); }).catch(function (e) { coachStatus(e.message); }); });
+    });
+    var readFile = function (f) {
+      return new Promise(function (ok, bad) { var r = new FileReader(); r.onload = function () { ok(String(r.result).replace(/^data:[^,]*,/, '')); }; r.onerror = bad; r.readAsDataURL(f); });
+    };
+    $('cards-make').addEventListener('click', function () {
+      var files = Array.prototype.slice.call($('cards-files').files || [], 0, 4), text = $('cards-text').value.trim();
+      if (!files.length && !text) { $('cards-status').textContent = 'Choose photos of your notes, or paste the text.'; return; }
+      $('cards-status').textContent = 'Reading your notes… this can take a minute.'; $('cards-make').disabled = true;
+      Promise.all(files.map(readFile)).then(function (images) {
+        return coachPost({ cards: { subject: $('cards-subject').value, text: text, images: images } });
+      }).then(function (d) {
+        var list = $('cards-result'); list.textContent = '';
+        (d.cards || []).forEach(function (c) { var li = document.createElement('li'); li.setAttribute('data-no-i18n', ''); li.textContent = c.q + ' → ' + c.a; list.append(li); });
+        $('cards-status').textContent = (d.cards || []).length + ' flashcards added to your deck.';
+        $('cards-files').value = ''; $('cards-text').value = '';
+      }).catch(function (e) { $('cards-status').textContent = e.message; }).then(function () { $('cards-make').disabled = false; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'coach-list')) coachLoad(); });
+    window.addEventListener('jarvis:reply', function (e) { if (e.detail && /revis|test|exam/i.test(e.detail.text || '')) coachLoad(); });
+  }
   if ($('hw-add')) {
     var hwStatus = function (t) { $('hw-status').textContent = t || ''; };
     var hwPost = function (body) {

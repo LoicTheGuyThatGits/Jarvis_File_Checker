@@ -76,12 +76,12 @@ def call(m,path,body=None):
     c=http.client.HTTPConnection("127.0.0.1",port); c.request(m,path,json.dumps(body) if body is not None else None,{"Content-Type":"application/json"}); r=c.getresponse(); return r.status,json.loads(r.read())
 chat=lambda text: call("POST","/api/chat",{"messages":[{"role":"user","content":text}],"stream":False})[1]
 soon=(datetime.now()+timedelta(days=6)); day=soon.strftime("%A").lower()
-d=chat(f"my biology exam is on {soon.day} {soon.strftime('%B')} at 10am"); assert "Added “Biology exam”" in d["reply"] and "Revision sessions added" in d["reply"], d
-d=chat("exam countdown"); assert "Biology exam: in 6 days" in d["reply"] and "0 of 4 revision sessions done" in d["reply"], d
+d=chat(f"my biology exam is on {soon.day} {soon.strftime('%B')} at 10am"); assert "Added “Biology exam”" in d["reply"] and "Revision sessions planned in your free time" in d["reply"], d      # the study coach plans them (test_coach.py)
+d=chat("exam countdown"); assert "Biology exam: in 6 days" in d["reply"] and "0 of 3 revision sessions done" in d["reply"], d
 d=chat("schedule geography test tomorrow at 2pm"); d=chat("when are my exams"); assert "Geography test" in d["reply"] and "no revision planned yet" in d["reply"], d      # added the ordinary way, still counted
 d=chat("plan my revision"); assert "Geography test" in d["reply"] and "already planned" in d["reply"], d
-s,d=call("GET","/api/exams"); assert [e["subject"] for e in d["exams"]]==["geography","Biology"] and d["exams"][1]["planned"]==4, d
-s,d=call("POST","/api/exams",{"subject":"Latin","date":(datetime.now()+timedelta(days=10)).strftime("%Y-%m-%d"),"time":"08:30"}); assert s==200 and any(e["title"]=="Latin exam" and e["planned"]>=5 for e in d["exams"]), d
+s,d=call("GET","/api/exams"); assert [e["subject"] for e in d["exams"]]==["geography","Biology"] and d["exams"][1]["planned"]==3, d
+s,d=call("POST","/api/exams",{"subject":"Latin","date":(datetime.now()+timedelta(days=10)).strftime("%Y-%m-%d"),"time":"08:30"}); assert s==200 and any(e["title"]=="Latin exam" and e["planned"]>=3 for e in d["exams"]), d
 s,d=call("POST","/api/exams",{"subject":"Latin","date":"nonsense"}); assert s==400
 assert any("Geography test tomorrow" in l for l in S.exams_module.nudges(S.planner_obj().load(),None,None,datetime.now()))
 assert "Exam: Geography test tomorrow" in S.recap_text() and "Geography test tomorrow" in S.build_briefing(weather=False,system=False)["text"]

@@ -143,20 +143,27 @@ def nudges(planner_data: dict, study_data: dict | None, focus_log: list | None, 
     return out[:4]
 
 
-def plan_all(planner, now: datetime, only: str = "") -> str:
+def _when(x) -> str:
+    """A day, or (from the study coach) a day and a time."""
+    text = f"{x.strftime('%a')} {x.day} {x.strftime('%b')}"
+    return text + (f" {x.strftime('%H:%M')}" if isinstance(x, datetime) else "")
+
+
+def plan_all(planner, now: datetime, only: str = "", plan_fn=None) -> str:
     exams = [e for e in upcoming(planner.load(), now) if not only or _same(only, e["subject"]) or _same(only, e["title"])]
     if not exams:
         return (f"I found no exam about “{only}” in your calendar, sir." if only
                 else "You have no exams or tests in your calendar, sir. Tell me one first, for example “my chemistry exam is on 3 December at 9am”.")
     lines, any_added = [], False
     for e in exams:
-        days = plan(planner, e, now)
+        days = (plan_fn or plan)(planner, e, now)
         if days:
             any_added = True
-            lines.append(f"• {e['title']} ({_in_days(e['days'])}): revision on " + ", ".join(f"{d.strftime('%a')} {d.day} {d.strftime('%b')}" for d in days) + ".")
+            lines.append(f"• {e['title']} ({_in_days(e['days'])}): revision on " + ", ".join(_when(d) for d in days) + ".")
         else:
             lines.append(f"• {e['title']} ({_in_days(e['days'])}): already planned.")
-    head = "Revision planned, sir. The sessions are on your to-do list at 18:00:" if any_added else "Your revision is already planned, sir:"
+    head = (("Revision planned, sir, in your free time:" if plan_fn else "Revision planned, sir. The sessions are on your to-do list at 18:00:")
+            if any_added else "Your revision is already planned, sir:")
     return head + "\n" + "\n".join(lines) + ("\nSay “quiz me on …” or “focus for 25 minutes on …” when you sit down to revise." if any_added else "")
 
 
@@ -164,7 +171,8 @@ CLEAN_START = r"^(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:(?:can|could|wo
 WORD = r"(?:exams?|tests?|finals?|mid-?terms?|mocks?|quiz(?:zes)?)"
 
 
-def command(text: str, planner, study_data: dict | None = None, focus_log: list | None = None, now: datetime | None = None, parse_when=None, resolve=None) -> str | None:
+def command(text: str, planner, study_data: dict | None = None, focus_log: list | None = None, now: datetime | None = None, parse_when=None, resolve=None,
+            plan_fn=None) -> str | None:
     now = now or datetime.now()
     t = re.sub(r"\s+", " ", (text or "").strip())
     t = re.sub(CLEAN_START, "", t, flags=re.I)
@@ -182,7 +190,7 @@ def command(text: str, planner, study_data: dict | None = None, focus_log: list 
                      rf"(?:\s+for\s+(?:all\s+)?(?:my|the)\s+(?:(.+?)\s+)?{WORD})?|help\s+me\s+(?:plan|prepare|revise|study)\s+for\s+(?:all\s+)?my\s+{WORD}"
                      rf"|plan\s+(?:for\s+)?(?:all\s+)?my\s+{WORD}", low)
     if m:
-        return plan_all(planner, now, (m.group(1) or "").strip() if m.lastindex else "")
+        return plan_all(planner, now, (m.group(1) or "").strip() if m.lastindex else "", plan_fn)
     m = re.fullmatch(rf"(?:my|the|our)\s+(.+?)\s+({WORD})\s+(?:is|will\s+be|takes\s+place|happens|got\s+moved\s+to)\s+(.+)", t, re.I)
     if m and parse_when and resolve:
         subject, word = m.group(1).strip(), m.group(2).lower().rstrip("s") or "exam"
@@ -200,10 +208,11 @@ def command(text: str, planner, study_data: dict | None = None, focus_log: list 
             planner.delete("event", existing[0]["id"])            # the date changed: keep one entry
         event = planner.add_event(title, stamp)
         exam = {"id": event["id"], "title": title, "subject": subject_of(title), "start": stamp, "days": (datetime.fromtimestamp(stamp).date() - now.date()).days}
-        days = plan(planner, exam, now)
+        days = (plan_fn or plan)(planner, exam, now)
         when = datetime.fromtimestamp(stamp)
         reply = f"{'Moved' if existing else 'Added'} “{title}” {'to' if existing else 'on'} {when.strftime('%A')} {when.day} {when.strftime('%B')} at {when.strftime('%H:%M')}, sir: {_in_days(exam['days'])}."
         if days:
-            reply += "\nRevision sessions added to your to-do list for " + ", ".join(f"{d.strftime('%a')} {d.day} {d.strftime('%b')}" for d in days) + " at 18:00."
+            reply += ("\nRevision sessions planned in your free time: " + ", ".join(_when(d) for d in days) + "." if plan_fn else
+                      "\nRevision sessions added to your to-do list for " + ", ".join(_when(d) for d in days) + " at 18:00.")
         return reply
     return None

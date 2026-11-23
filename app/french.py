@@ -330,6 +330,21 @@ RULES: list[tuple[str, object]] = [
      lambda m, now: f"I did my {(m.group(1) or m.group(2) or '').strip() + ' ' if (m.group(1) or m.group(2)) else ''}homework"),
     (rf"(?:supprime[rz]?|efface[rz]?|enlève|enleve)\s+(?:mes|mon|le|les)\s+devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})", lambda m, now: f"remove my {m.group(1)} homework"),
     (r"(?:vérifie|verifie|regarde|synchronise)\s+(?:google\s+)?classroom|(?:quoi\s+de\s+neuf|du\s+nouveau|des\s+nouveaux\s+devoirs)\s+sur\s+(?:google\s+)?classroom", "check classroom"),
+    # --- the study coach ---
+    (r"(?:commence[rz]?|démarre[rz]?|demarre[rz]?|lance[rz]?)\s+(?:ma\s+|la\s+|une\s+)?(?:séance\s+de\s+|seance\s+de\s+)?révision(?:\s+(?:de|d['’]|en)\s*(.+))?|on\s+révise(?:\s+(?:la|les|le|l['’])?\s*(.+))?|c['’]est\s+l['’]heure\s+de\s+réviser",
+     lambda m, now: "start revision" + (f" on {m.group(1) or m.group(2)}" if (m.group(1) or m.group(2)) else "")),
+    (r"j['’]ai\s+(?:fini|terminé|termine)\s+(?:de\s+réviser|ma\s+révision|la\s+révision|ma\s+séance)|(?:arrête[rz]?|arrete[rz]?|termine[rz]?)\s+(?:la|ma)\s+révision", "done revising"),
+    (r"c['’](?:était|etait)\s+(?:très\s+|trop\s+|plutôt\s+|assez\s+|vraiment\s+|super\s+)?(facile|simple|dur|difficile|compliqué|ok|bien|correct|moyen)|(?:ça|ca)\s+(?:allait|a\s+été|s['’]est\s+bien\s+passé)",
+     lambda m, now: "it was " + {"facile": "easy", "simple": "easy", "dur": "hard", "difficile": "hard", "compliqué": "hard"}.get((m.group(1) or "").lower(), "ok")),
+    (r"(?:montre(?:-moi)?\s+|affiche\s+)?(?:mon|le)\s+(?:planning|plan|programme)\s+de\s+révisions?|quand\s+(?:est-ce\s+que\s+je\s+révise|dois-je\s+réviser|je\s+révise)|(?:mes|les)\s+(?:prochaines\s+)?(?:séances\s+de\s+)?révisions\s+prévues", "show my revision plan"),
+    (r"je\s+(?:ne\s+)?(?:peux|pourrai)\s+pas\s+réviser\s+(?:aujourd['’]hui|ce\s+soir)|(?:saute|annule|déplace|deplace|repousse)\s+(?:la\s+)?révision\s+(?:d['’]aujourd['’]hui|de\s+ce\s+soir)", "I can't revise today"),
+    (r"(?:re-?planifie[rz]?|refais|recalcule)\s+(?:mes|les|mon\s+planning\s+de)\s+révisions?", "replan my revision"),
+    (r"(?:mon\s+|le\s+)?(?:résumé|resume|aperçu|apercu|bilan|programme)\s+de\s+(?:la|ma)\s+semaine|(?:comment\s+se\s+présente|à\s+quoi\s+ressemble)\s+ma\s+semaine|ma\s+semaine",
+     "weekly overview"),
+    (r"(?:fais|fait|crée|cree|transforme)(?:[- ]moi)?\s+(?:des\s+)?(?:fiches|flashcards|cartes)\s+(?:avec|à\s+partir\s+de|a\s+partir\s+de|de)\s+(?:cette\s+photo|ces\s+photos|ceci|ça|ca|cette\s+page|ces\s+notes)",
+     "make flashcards from this"),
+    (r"(?:fais|fait|crée|cree)(?:[- ]moi)?\s+(?:des\s+)?(?:fiches|flashcards|cartes)\s+(?:avec|à\s+partir\s+de|a\s+partir\s+de|de)\s+mes\s+notes\s+(?:de|d['’]|sur|en)\s*(.+)|transforme\s+mes\s+notes\s+(?:de|d['’]|sur)\s*(.+?)\s+en\s+(?:fiches|flashcards|cartes)",
+     lambda m, now: f"make flashcards from my notes on {m.group(1) or m.group(2)}"),
     # --- files of a type on this PC (before the other searches) ---
     (r"(?:cherche[rz]?|trouve[rz]?|liste[rz]?|montre)(?:[- ]moi)?\s+(?:tous\s+|toutes\s+)?(?:les|des|mes)\s+fichiers\s+(\.?[a-z0-9]{1,10}(?:\s*(?:,|et|ou)\s*\.?[a-z0-9]{1,10})*)"
      r"(?:\s+(?:dans|sur|de)\s+(?:le\s+dossier\s+|mon\s+dossier\s+|le\s+|la\s+|les\s+|mon\s+|ma\s+|mes\s+|l['’])?(.+?))?",

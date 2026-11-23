@@ -147,16 +147,19 @@ class Study:
         nxt = f" The next ones are due on {datetime.strptime(st['next'], '%Y-%m-%d').strftime('%A %d %B')}." if not st["due"] and st["next"] else ""
         return f"{head}, sir: {st['total']} card{'s' if st['total'] != 1 else ''} in your deck, {st['learned']} well learned.{nxt}" + (" Say “review my cards” to start." if st["due"] else "")
 
-    def start_review(self, count: int | None = None) -> str:
-        due = self.deck_due()
+    def start_review(self, count: int | None = None, cards: list[dict] | None = None, topic: str = "your review") -> str:
+        """The cards due today, or the given cards (the study coach's warm-up for one subject)."""
+        due = self.deck_due() if cards is None else cards
         if not due:
             return self.deck_text()
-        s = {"mode": "flash", "topic": "your review", "total": min(len(due), count or MAX_REVIEW), "asked": 0, "correct": 0, "partly": 0, "missed": [],
+        s = {"mode": "flash", "topic": topic, "total": min(len(due), count or MAX_REVIEW), "asked": 0, "correct": 0, "partly": 0, "missed": [],
              "current": None, "revealed": False, "asked_qs": [], "queue": [(c["q"], c["a"]) for c in due][: count or MAX_REVIEW], "passages": [], "at": time.time(),
              "redo": False, "review": True, "seen": []}
         self.session = s
         first = self.present(s)
         more = f" ({len(due) - s['total']} more after this)" if len(due) > s["total"] else ""
+        if cards is not None:
+            return (f"{s['total']} flashcard{'s' if s['total'] != 1 else ''} on {topic}. Say “show answer” to flip, “got it” or “again” to score yourself, “stop” to end.\n\n{first}")
         return (f"Review: {s['total']} card{'s' if s['total'] != 1 else ''} due{more}. Say “show answer” to flip, “got it” or “again” to score yourself, "
                 f"“delete this card” to drop one, “stop” to end; what you have done is saved as you go.\n\n{first}")
 

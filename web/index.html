@@ -514,11 +514,40 @@
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Exams and revision</h2>
-        <p class="settings-note">Any calendar event called an exam or test counts. Jarvis shows the days left and spreads “Revise …” tasks over them (closer together as the exam approaches, at 18:00). Ask “exam countdown” or “plan my revision” in chat.</p>
+        <p class="settings-note">Any calendar event called an exam or test counts. Jarvis shows the days left and plans “Revise …” sessions in your free time before it (see Study coach below). Ask “exam countdown” or “plan my revision” in chat.</p>
         <div class="inline-form"><input type="text" id="exam-subject" placeholder="Subject, e.g. Chemistry" aria-label="Exam subject"><input type="date" id="exam-date" aria-label="Exam date"><input type="time" id="exam-time" value="09:00" aria-label="Exam time"><button type="button" id="exam-add">Add and plan</button></div>
         <div class="inline-form"><button type="button" id="exam-plan">Plan revision for all exams</button></div>
         <ul class="settings-list" id="exam-list"></ul>
         <p class="settings-note" id="exam-status" role="status"></p>
+      </div>
+      <div class="settings-section" id="coach-section">
+        <h2 class="settings-heading" id="coach-title">Study coach</h2>
+        <p class="settings-note">For every test in your calendar, Jarvis plans revision sessions in your free time: after school (from your timetable), around your other plans, closer together as the test gets near, and more of them for subjects where your average is low. When a session starts, say “start revision”: a focus timer runs and Jarvis warms you up with your flashcards for that subject. Afterwards, say how it went: “easy” drops a later session, “hard” adds one. A session you skip moves to your next free time. Also: “show my revision plan”, “skip today's revision”, “replan my revision”, “weekly overview”.</p>
+        <div class="inline-form coach-form"><label class="settings-check"><input type="checkbox" id="coach-auto"> Plan revision by itself for tests in the next</label><input type="number" id="coach-horizon" min="3" max="60" aria-label="Days ahead"><span>days</span></div>
+        <div class="inline-form coach-form">
+          <span class="coach-label">School days</span><input type="time" id="coach-wd-from" aria-label="School days: from"><span>–</span><input type="time" id="coach-wd-to" aria-label="School days: until">
+          <span class="coach-label">Weekends and holidays</span><input type="time" id="coach-we-from" aria-label="Weekends: from"><span>–</span><input type="time" id="coach-we-to" aria-label="Weekends: until">
+        </div>
+        <div class="inline-form coach-form">
+          <label class="cd-date">Session <select id="coach-minutes" aria-label="Session length"><option value="20">20 min</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="90">90 min</option></select></label>
+          <label class="cd-date">At most <select id="coach-per-day" aria-label="Sessions a day"><option value="1">1 a day</option><option value="2">2 a day</option><option value="3">3 a day</option></select></label>
+          <label class="cd-date">Break after school <select id="coach-break" aria-label="Break after school"><option value="0">none</option><option value="30">30 min</option><option value="45">45 min</option><option value="60">1 hour</option><option value="90">1 h 30</option></select></label>
+        </div>
+        <div class="inline-form coach-form"><label class="settings-check"><input type="checkbox" id="coach-weekly"> Send an overview of the week ahead every</label>
+          <select id="coach-weekly-day" aria-label="Day of the overview"><option value="6">Sunday</option><option value="0">Monday</option><option value="4">Friday</option><option value="5">Saturday</option></select><input type="time" id="coach-weekly-time" aria-label="Time of the overview"></div>
+        <div class="inline-form"><button type="button" id="coach-save">Save and replan</button><button type="button" id="coach-replan" class="settings-action">Replan now</button></div>
+        <ul class="settings-list coach-list" id="coach-list"></ul>
+        <p class="settings-note" id="coach-status" role="status"></p>
+        <h3 class="settings-subheading">Notes into flashcards</h3>
+        <p class="settings-note">Take photos of your notes (or paste the text) and Jarvis writes flashcards from them into your deck, under the subject you give, so they come up in that subject's revision warm-ups. Photos need an AI model that can see pictures. In chat: send a photo with “make flashcards from this”, or say “make flashcards from my notes on photosynthesis”.</p>
+        <div class="inline-form cards-form">
+          <input type="text" id="cards-subject" list="hw-subjects" placeholder="Subject" maxlength="60" aria-label="Subject">
+          <input type="file" id="cards-files" accept="image/*" multiple aria-label="Photos of your notes">
+        </div>
+        <textarea id="cards-text" rows="3" maxlength="20000" placeholder="…or paste the text of your notes" aria-label="Text of your notes"></textarea>
+        <div class="inline-form"><button type="button" id="cards-make">Make flashcards</button></div>
+        <ul class="settings-list cards-result" id="cards-result"></ul>
+        <p class="settings-note" id="cards-status" role="status"></p>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Study mode</h2>

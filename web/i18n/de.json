@@ -828,6 +828,22 @@
 [
 "^(\\d+) new from Classroom\\.$",
 "$1 neu auf Classroom."
+],
+[
+"^(\\d+) a day$",
+"$1 pro Tag"
+],
+[
+"^(\\d+) hour$",
+"$1 Stunde"
+],
+[
+"^(\\d+) flashcards added to your deck\\.$",
+"$1 Lernkarten zu deinem Stapel hinzugefügt."
+],
+[
+"^Moved to (.+)\\.$",
+"Verschoben auf $1."
 ]
 ],
 "Homework": "Hausaufgaben",
@@ -856,5 +872,39 @@
 "Last checked:": "Zuletzt geprüft:",
 "late": "überfällig",
 "no date": "ohne Datum",
-"saved (leave empty to keep it)": "gespeichert (leer lassen, um es zu behalten)"
+"saved (leave empty to keep it)": "gespeichert (leer lassen, um es zu behalten)",
+"Any calendar event called an exam or test counts. Jarvis shows the days left and plans “Revise …” sessions in your free time before it (see Study coach below). Ask “exam countdown” or “plan my revision” in chat.": "Jeder Kalendereintrag, der Prüfung oder Test heisst, zählt. Jarvis zeigt die verbleibenden Tage und plant „Revise …“-Lerneinheiten in deiner freien Zeit davor (siehe Lern-Coach unten). Frag im Chat „exam countdown“ oder „plan my revision“.",
+"Study coach": "Lern-Coach",
+"For every test in your calendar, Jarvis plans revision sessions in your free time: after school (from your timetable), around your other plans, closer together as the test gets near, and more of them for subjects where your average is low. When a session starts, say “start revision”: a focus timer runs and Jarvis warms you up with your flashcards for that subject. Afterwards, say how it went: “easy” drops a later session, “hard” adds one. A session you skip moves to your next free time. Also: “show my revision plan”, “skip today's revision”, “replan my revision”, “weekly overview”.": "Für jeden Test in deinem Kalender plant Jarvis Lerneinheiten in deiner freien Zeit: nach der Schule (laut Stundenplan), um deine anderen Termine herum, dichter, je näher der Test rückt, und mehr davon in Fächern mit tiefem Durchschnitt. Wenn eine Einheit beginnt, sag “start revision”: Ein Fokus-Timer läuft, und Jarvis wärmt dich mit deinen Lernkarten zu diesem Fach auf. Danach sag, wie es lief: “easy” streicht eine spätere Einheit, “hard” fügt eine hinzu. Eine ausgelassene Einheit wird auf deine nächste freie Zeit verschoben. Ausserdem: “show my revision plan”, “skip today's revision”, “replan my revision”, “weekly overview”.",
+"Plan revision by itself for tests in the next": "Lernen selbst planen für Tests in den nächsten",
+"Days ahead": "Tage im Voraus",
+"days": "Tagen",
+"School days": "Schultage",
+"School days: from": "Schultage: von",
+"School days: until": "Schultage: bis",
+"Weekends and holidays": "Wochenenden und Ferien",
+"Weekends: from": "Wochenenden: von",
+"Weekends: until": "Wochenenden: bis",
+"Session": "Einheit",
+"Session length": "Länge der Einheit",
+"Sessions a day": "Einheiten pro Tag",
+"Break after school": "Pause nach der Schule",
+"none": "keine",
+"Send an overview of the week ahead every": "Eine Übersicht über die kommende Woche schicken, jeden",
+"Day of the overview": "Tag der Übersicht",
+"Time of the overview": "Uhrzeit der Übersicht",
+"Save and replan": "Speichern und neu planen",
+"Replan now": "Jetzt neu planen",
+"Notes into flashcards": "Notizen zu Lernkarten",
+"Take photos of your notes (or paste the text) and Jarvis writes flashcards from them into your deck, under the subject you give, so they come up in that subject's revision warm-ups. Photos need an AI model that can see pictures. In chat: send a photo with “make flashcards from this”, or say “make flashcards from my notes on photosynthesis”.": "Fotografiere deine Notizen (oder füge den Text ein), und Jarvis macht daraus Lernkarten in deinem Stapel, unter dem angegebenen Fach, damit sie beim Aufwärmen für dieses Fach drankommen. Fotos brauchen ein KI-Modell, das Bilder sehen kann. Im Chat: Schick ein Foto mit “make flashcards from this”, oder sag “make flashcards from my notes on photosynthesis”.",
+"Photos of your notes": "Fotos deiner Notizen",
+"…or paste the text of your notes": "…oder füge den Text deiner Notizen ein",
+"Text of your notes": "Text deiner Notizen",
+"Make flashcards": "Lernkarten erstellen",
+"No revision planned. Add a test above, or say “my physics test is on Friday at 8am”.": "Kein Lernen geplant. Füge oben einen Test hinzu oder sag „my physics test is on Friday at 8am“.",
+"Saved. Your revision is planned again with these times.": "Gespeichert. Dein Lernen ist mit diesen Zeiten neu geplant.",
+"Your revision is planned again.": "Dein Lernen ist neu geplant.",
+"Choose photos of your notes, or paste the text.": "Wähle Fotos deiner Notizen oder füge den Text ein.",
+"Reading your notes… this can take a minute.": "Deine Notizen werden gelesen… das kann eine Minute dauern.",
+"✓ done": "✓ erledigt"
 }
