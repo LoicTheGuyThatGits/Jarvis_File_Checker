@@ -330,6 +330,16 @@ RULES: list[tuple[str, object]] = [
      lambda m, now: f"I did my {(m.group(1) or m.group(2) or '').strip() + ' ' if (m.group(1) or m.group(2)) else ''}homework"),
     (rf"(?:supprime[rz]?|efface[rz]?|enlève|enleve)\s+(?:mes|mon|le|les)\s+devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})", lambda m, now: f"remove my {m.group(1)} homework"),
     (r"(?:vérifie|verifie|regarde|synchronise)\s+(?:google\s+)?classroom|(?:quoi\s+de\s+neuf|du\s+nouveau|des\s+nouveaux\s+devoirs)\s+sur\s+(?:google\s+)?classroom", "check classroom"),
+    # --- public transport ---
+    (r"(?:c['’]est\s+quand\s+le\s+|quand\s+(?:est|part)\s+le\s+|le\s+)?prochain\s+(train|bus|tram)\s+(?:pour|vers|à|a|jusqu['’]à)\s+(.+?)(?:\s+depuis\s+(.+))?",
+     lambda m, now: f"next {m.group(1)} to {m.group(2)}" + (f" from {m.group(3)}" if m.group(3) else "")),
+    (r"comment\s+(?:aller|je\s+vais|est-ce\s+que\s+je\s+vais|me\s+rendre)\s+(?:à|a|au|en|jusqu['’]à)\s+(.+?)(?:\s+depuis\s+(.+?))?(?:\s+(?:pour|avant)\s+(\d{1,2})\s*h\s*(\d{2})?)?",
+     lambda m, now: f"how do I get to {m.group(1)}" + (f" from {m.group(2)}" if m.group(2) else "") + (f" by {int(m.group(3))}:{m.group(4) or '00'}" if m.group(3) else "")),
+    (r"(?:les\s+)?prochains\s+départs(?:\s+(?:de|depuis|à)\s+(.+))?|(?:qu['’]est-ce\s+qui\s+part|quels\s+sont\s+les\s+départs)\s+(?:de|depuis|à)\s+(.+)",
+     lambda m, now: "departures" + (f" from {m.group(1) or m.group(2)}" if (m.group(1) or m.group(2)) else "")),
+    (r"(?:à\s+quelle\s+heure|quand)\s+(?:est-ce\s+que\s+)?(?:dois-je|je\s+dois|faut-il|il\s+faut\s+que\s+je)\s+partir(?:\s+pour\s+l['’]école)?(?:\s+(?:demain|ce\s+matin))?|je\s+pars\s+quand(?:\s+pour\s+l['’]école)?",
+     lambda m, now: "when should I leave for school" + (" tomorrow" if "demain" in m.group(0) else "")),
+    (r"(?:est-ce\s+que\s+)?mon\s+(?:bus|train|tram)\s+(?:est|a\s+du)\s+(?:en\s+)?retard", "is my bus late"),
     # --- the date and the time ---
     (r"(?:quelle\s+heure\s+(?:est-il|il\s+est|est\s+il)|il\s+est\s+quelle\s+heure|tu\s+as\s+l['’]heure|c['’]est\s+quelle\s+heure|l['’]heure)(?:\s+(?:maintenant|actuellement|là))?", "what time is it"),
     (r"(?:quelle\s+est\s+la\s+date|c['’]est\s+quoi\s+la\s+date|quelle\s+date\s+(?:sommes-nous|on\s+est|est-on)|on\s+est\s+(?:le\s+combien|quel\s+jour|quelle\s+date)|"

@@ -853,6 +853,9 @@ def build_briefing(weather: bool = True, reminders: bool = True, system: bool = 
                 school = timetable_module.brief_line(timetable_obj(), now, day_off)
                 if school:
                     parts.append(school)
+                trip = transport_module.brief_line(transport_obj(), now)
+                if trip:
+                    parts.append(trip)
             except Exception:
                 pass
             plan_line = planner_obj().brief_line(now)
@@ -1022,6 +1025,7 @@ import homework as homework_module
 import coach as coach_module
 import recall as recall_module
 import clock as clock_module
+import transport as transport_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -3107,6 +3111,10 @@ def alerts_tick(now: float | None = None, notify=None) -> None:
         coach_tick(now, notify)
     except Exception as exc:
         print(f"[jarvis] study coach: {exc}")
+    try:
+        transport_tick(now, notify)
+    except Exception as exc:
+        print(f"[jarvis] transport: {exc}")
     due = planner_obj().due_notifications(now, cfg["lead_minutes"] * 60)
     if proactive_obj().config()["enabled"]:        # Proactive Jarvis decides what to say, when, and where
         proactive_tick(now, due)
@@ -5844,6 +5852,52 @@ def calls_command(text: str, source: str = "") -> str | None:
     return f"Very good, {address}. I will call you {when}" + (f": “{message}”." if message else ".")
 
 
+# ---------------- Swiss public transport ----------------
+TRANSPORT_CACHE: dict = {"path": None, "obj": None, "stations": {}}
+
+
+def transport_obj() -> "transport_module.Transport":
+    path = data_path("transport.json")
+    if TRANSPORT_CACHE["path"] != path:
+        TRANSPORT_CACHE["path"], TRANSPORT_CACHE["obj"] = path, transport_module.Transport(path)
+    return TRANSPORT_CACHE["obj"]
+
+
+def transport_station(name: str) -> dict | None:
+    key = name.strip().lower()
+    if key not in TRANSPORT_CACHE["stations"]:
+        TRANSPORT_CACHE["stations"][key] = transport_module.station(name)
+    return TRANSPORT_CACHE["stations"][key]
+
+
+def transport_ctx() -> dict:
+    return {"lessons": lambda day: timetable_module.lessons_on(timetable_obj(), day, day_off), "parse_when": planner_module.parse_when, "lookup": transport_station}
+
+
+def transport_command(text: str) -> str | None:
+    return transport_module.command(text, transport_obj(), datetime.now(), transport_ctx())
+
+
+def transport_tick(now: float, notify) -> None:
+    store = transport_obj()
+    for msg in transport_module.tick(store, datetime.fromtimestamp(now), transport_ctx()):
+        publish_event({"type": "proactive", "id": "transport-" + secrets.token_hex(4), "text": msg["text"], "chat": True, "speak": msg["urgent"]})
+        try:
+            notify("🚌 " + msg["text"])
+        except Exception:
+            pass
+        if msg["urgent"] and store.settings()["call"]:
+            try:
+                call_user("Your connection to school changed", msg["text"])
+            except Exception as exc:
+                print(f"[jarvis] transport call: {exc}")
+
+
+def transport_public() -> dict:
+    data = transport_obj().load()
+    return {"settings": data["settings"], "trip": data["trip"] if data["trip"].get("date") == date.today().isoformat() else None}
+
+
 def clock_command(text: str) -> str | None:
     return clock_module.command(text, datetime.now(), planner_module.parse_when)
 
@@ -6191,6 +6245,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/coach":
             self.send_json(200, coach_public())
             return
+        if path == "/api/transport":
+            self.send_json(200, transport_public())
+            return
         if path == "/api/call":
             obj = calls_obj()
             with SUBSCRIBERS_LOCK:
@@ -6455,6 +6512,31 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.send_json(404, {"error": "Unknown endpoint"})
         except (ValueError, TypeError) as exc:
+            self.send_json(400, {"error": str(exc)})
+
+    def transport_post(self, payload: dict) -> None:
+        """POST /api/transport: {"settings": {...}} | {"test": true} (the next connections from home to school)."""
+        store = transport_obj()
+        try:
+            if isinstance(payload.get("settings"), dict):
+                try:
+                    store.set_settings(payload["settings"], transport_station)
+                except transport_module.TransportError:
+                    store.set_settings(payload["settings"])          # offline: keep what was typed
+                self.send_json(200, transport_public())
+                return
+            if payload.get("test"):
+                cfg = store.settings()
+                if not (cfg["home"] and cfg["school"]):
+                    raise ValueError("Set your home stop and your school stop first.")
+                conns = transport_module.connections(cfg["home"], cfg["school"], None, False, 4)
+                lines = [transport_module.describe(c) for c in conns]
+                self.send_json(200, {**transport_public(), "lines": lines})
+                return
+            self.send_json(200, transport_public())
+        except transport_module.TransportError as exc:
+            self.send_json(502, {"error": str(exc)})
+        except ValueError as exc:
             self.send_json(400, {"error": str(exc)})
 
     def coach_post(self, payload: dict) -> None:
@@ -7171,6 +7253,8 @@ class Handler(BaseHTTPRequestHandler):
                 self.homework_post(payload)
             elif path == "/api/coach":
                 self.coach_post(payload)
+            elif path == "/api/transport":
+                self.transport_post(payload)
             elif path == "/api/debug":
                 if self._from_phone:
                     self.send_json(403, {"error": "Change this at the PC."})
@@ -8069,7 +8153,7 @@ class Handler(BaseHTTPRequestHandler):
         if countdown_reply:
             self.send_json(200, {"reply": countdown_reply, "action": None})
             return
-        timetable_reply = timetable_command(latest) or homework_command(latest)
+        timetable_reply = timetable_command(latest) or homework_command(latest) or transport_command(latest)
         if timetable_reply:
             self.send_json(200, {"reply": timetable_reply, "action": None})
             return
@@ -9364,7 +9448,7 @@ def _debug_router_ask(fn):
 
 router_ask_model = _debug_router_ask(router_ask_model)
 for _name in ("language_command", "briefing_command", "mail_command", "grades_command", "timetable_command", "planner_command", "countdown_command", "exams_command",
-              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "coach_command", "cards_command", "recall_command", "clock_command", "pc_command",
+              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "coach_command", "cards_command", "recall_command", "clock_command", "transport_command", "pc_command",
               "explicit_assistant_command", "repeat_request", "jarvis_model_text"):
     if callable(globals().get(_name)) and not hasattr(globals()[_name], "__wrapped__"):
         globals()[_name] = debugtrace.traced(_name, globals()[_name])

@@ -423,6 +423,27 @@
         <p class="settings-note" id="plan-status"></p>
         <p class="settings-note">You can also just say it: “add buy milk to my to-do list”, “schedule a dentist appointment on Friday at 3pm”, “what's on my calendar tomorrow”, “mark buy milk as done”. The morning briefing includes today's events and tasks.</p>
       </div>
+      <div class="settings-section" id="transport-section">
+        <h2 class="settings-heading" id="transport-title">Public transport</h2>
+        <p class="settings-note">Swiss trains, trams, buses and boats with live delays, from the official timetable (transport.opendata.ch, free). Ask “when's my next train to Geneva?”, “next bus to Bernex”, “how do I get to Lausanne by 5pm?”, “departures from Bern” or “next departures” (from your home stop). With a home stop and a school stop, Jarvis works out each school morning which connection gets you there in time for your first lesson, tells you when to leave, looks again for delays before you go, and warns you when you must leave earlier. Also “when should I leave for school?” and “is my bus late?”.</p>
+        <div class="inline-form tr-form">
+          <label class="cd-date">Home stop <input type="text" id="tr-home" maxlength="80" placeholder="e.g. Laconnex, village" aria-label="Home stop"></label>
+          <label class="cd-date">walk <input type="number" id="tr-walk-home" min="0" max="60" aria-label="Minutes from home to the stop"> min</label>
+        </div>
+        <div class="inline-form tr-form">
+          <label class="cd-date">School stop <input type="text" id="tr-school" maxlength="80" placeholder="e.g. Genève, Bel-Air" aria-label="School stop"></label>
+          <label class="cd-date">walk <input type="number" id="tr-walk-school" min="0" max="60" aria-label="Minutes from the stop to your classroom"> min</label>
+        </div>
+        <div class="inline-form tr-form">
+          <label class="cd-date">Be there <input type="number" id="tr-margin" min="0" max="60" aria-label="Minutes early"> min early</label>
+          <label class="cd-date">Tell me <input type="number" id="tr-notice" min="0" max="120" aria-label="Minutes before leaving"> min before I leave</label>
+        </div>
+        <label class="settings-check"><input type="checkbox" id="tr-morning"> On school mornings, tell me when to leave and warn me about delays</label>
+        <label class="settings-check"><input type="checkbox" id="tr-call"> Call me when I have to leave earlier than planned (Calls must be on)</label>
+        <div class="inline-form"><button type="button" id="tr-save">Save</button><button type="button" id="tr-test" class="settings-action">Show my next connections</button></div>
+        <ul class="settings-list tr-list" id="tr-list" data-no-i18n></ul>
+        <p class="settings-note" id="tr-status" role="status"></p>
+      </div>
       <div class="settings-section">
         <h2 class="settings-heading">Import a calendar</h2>
         <p class="settings-note">Bring in your school timetable or any calendar. Paste an iCal link (it ends in .ics, or starts with webcal://) or choose an .ics file. Lessons then appear in your calendar, the morning briefing and “what's on my calendar tomorrow”. Jarvis only reads it and never changes the original. Links are read again every few hours.</p>

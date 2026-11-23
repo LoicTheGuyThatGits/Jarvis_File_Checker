@@ -302,6 +302,33 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'bench-models')) benchLoad(); });
   }
+  if ($('tr-save')) {
+    var trPost = function (body) {
+      return fetch('/api/transport', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); });
+    };
+    var trDraw = function (d) {
+      var c = d.settings || {};
+      $('tr-home').value = c.home || ''; $('tr-school').value = c.school || ''; $('tr-walk-home').value = c.walk_home; $('tr-walk-school').value = c.walk_school;
+      $('tr-margin').value = c.margin; $('tr-notice').value = c.notice; $('tr-morning').checked = !!c.morning; $('tr-call').checked = !!c.call;
+    };
+    var trLoad = function () { fetch('/api/transport').then(function (r) { return r.json(); }).then(trDraw).catch(function () {}); };
+    $('tr-save').addEventListener('click', function () {
+      $('tr-status').textContent = 'Looking up the stops…';
+      trPost({ settings: { home: $('tr-home').value, school: $('tr-school').value, walk_home: +$('tr-walk-home').value, walk_school: +$('tr-walk-school').value,
+        margin: +$('tr-margin').value, notice: +$('tr-notice').value, morning: $('tr-morning').checked, call: $('tr-call').checked } })
+        .then(function (d) { trDraw(d); $('tr-status').textContent = 'Saved.'; }).catch(function (e) { $('tr-status').textContent = e.message; });
+    });
+    $('tr-test').addEventListener('click', function () {
+      $('tr-status').textContent = 'Asking the timetable…';
+      trPost({ test: true }).then(function (d) {
+        var list = $('tr-list'); list.textContent = '';
+        (d.lines || []).forEach(function (t) { var li = document.createElement('li'); li.textContent = t; list.append(li); });
+        $('tr-status').textContent = (d.lines || []).length ? '' : 'No connections found.';
+      }).catch(function (e) { $('tr-status').textContent = e.message; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'tr-home')) trLoad(); });
+  }
   if ($('coach-save')) {
     var coachPost = function (body) {
       return fetch('/api/coach', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
