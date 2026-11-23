@@ -369,23 +369,23 @@
   },
   {
    "path": "web/game.html",
-   "sha256": "32d6d5b56229b6d1b25828c42a7146c86ae4df12fbaff0edcab7fa1113826f58",
-   "size": 10615
+   "sha256": "6b37104c4e01e58d1bc0cf94ebaa75cc00327f81ac2d75f8d0a56ad04f94d94d",
+   "size": 10828
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "48e220615db032731336e1f96e756b64e4d5e0b7f30d2b06d7e840c70d05e0ec",
-   "size": 99531
+   "sha256": "c77b2c0d7a847c8cfa02e8ba213a3d75e435c9f169a26b4cff849152699c47a1",
+   "size": 99600
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "1e1158dfc49132af7665f6320435aacc9c1b5055c221b5399cb27c9e6dfbca1e",
-   "size": 103225
+   "sha256": "60907f8d720c2081c58289403ff24395ad2d899dc3ea3be498c9cd8d56c2fbc2",
+   "size": 103291
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "39301506db8067132dde98bdf32551c628b1648d36ec4a9bdba1df1a0d2894bb",
-   "size": 98954
+   "sha256": "d05f21d2e39ffbbc27f4c1e198042724db1856d599380f29b8ea7cf7add6c5c8",
+   "size": 99017
   },
   {
    "path": "web/i18n/source.json",
@@ -409,8 +409,8 @@
   },
   {
    "path": "web/js/app.js",
-   "sha256": "5c1cf9e798dfa29e17fee6b6dd880f54685bbf522390ecd66026d7c508cb71d6",
-   "size": 32983
+   "sha256": "1563d8940101341782824aa3aeba3dfcabdf416ca1090cc6bc49d399b3a5b0f5",
+   "size": 33398
   },
   {
    "path": "web/js/call.js",

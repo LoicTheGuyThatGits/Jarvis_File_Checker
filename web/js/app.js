@@ -26,6 +26,10 @@ if(playButton)playButton.addEventListener('click',()=>{
   const w=window.open('/game.html','jarvis-2048','popup,width=440,height=640');
   if(w){try{w.focus()}catch{}}else{playButton.textContent='Allow pop-ups to play'}
 });
+// Easter egg: click the “AI model” tab of the settings 7 times in a row to play any time.
+{const aiTab=document.querySelector('#tab-ai');let taps=0,lastTap=0;
+ if(aiTab)aiTab.addEventListener('click',()=>{const now=Date.now();taps=now-lastTap<1500?taps+1:1;lastTap=now;
+   if(taps>=7){taps=0;const w=window.open('/game.html?free=1','jarvis-2048','popup,width=440,height=640');if(w){try{w.focus()}catch{}}}});}
 function setPromptRunning(running) {
   if(playButton)playButton.classList.toggle('hidden',!running||computerMode);
   if(busyChannel){try{busyChannel.postMessage({busy:!!running})}catch{}}

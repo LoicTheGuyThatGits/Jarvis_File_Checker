@@ -55,6 +55,15 @@ with sync_playwright() as pw:
     game.reload(); game.wait_for_function("window.JarvisGame")
     assert game.evaluate("window.JarvisGame.state().grid") == before
     game.click("#back") if game.is_visible("#back") else game.close()
+    # the easter egg: the “AI model” tab clicked 7 times in a row, any time, and no pause
+    pg.evaluate("window.JarvisUI.openPane('ai')"); pg.wait_for_timeout(200)
+    for _ in range(6): pg.click("#tab-ai")
+    assert len(ctx.pages) == 1 or all(not p.url.endswith("free=1") for p in ctx.pages), "not after 6"
+    with pg.expect_popup() as pop2:
+        pg.click("#tab-ai")
+    egg = pop2.value; egg.wait_for_function("window.JarvisGame")
+    assert egg.url.endswith("/game.html?free=1") and egg.text_content("#status") == "You found the secret game."
+    egg.wait_for_timeout(500); assert not egg.is_visible("#done") and not egg.evaluate("window.JarvisGame.state().paused"), "free play is never paused"
     assert not errs, errs
     b.close()
 print("game ok"); os._exit(0)

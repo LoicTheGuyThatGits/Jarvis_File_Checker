@@ -136,7 +136,10 @@
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
   });
   // Jarvis tells this window when it starts and stops thinking: the game is for the wait
+  var free = /[?&]free=1\b/.test(location.search);              // opened from the easter egg: play as long as you like
+  if (free) $('status').textContent = t('You found the secret game.');
   function setBusy(on) {
+    if (free) return;
     busy = on;
     $('status').textContent = on ? t('Jarvis is thinking…') : t('Jarvis has answered.');
     if (on) { paused = false; $('done').classList.add('hidden'); }
