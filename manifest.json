@@ -299,8 +299,8 @@
   },
   {
    "path": "filecheck.py",
-   "sha256": "c1bcf08b03789ad5d19ca9c75d0c7a7cacc01d8607ee1b8bddb9939cae54b400",
-   "size": 19424
+   "sha256": "3c411e5448605210b22a4269cb05c189880949c725aebc7475bf8a3ce57a2c51",
+   "size": 20686
   },
   {
    "path": "install-jarvis.bat",

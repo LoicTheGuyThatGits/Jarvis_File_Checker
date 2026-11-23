@@ -80,8 +80,34 @@ def http_get(url: str) -> bytes:
     return data
 
 
+API_BASE = "https://api.github.com"
+RESOLVED: dict = {}
+
+
+def resolve(ref: str, repo: str | None = None) -> str:
+    """A branch name → the commit it points at now. GitHub's raw files are cached for about five minutes per branch name,
+    so right after a change an update could still see the old list; by commit, the files are always the latest ones."""
+    if re.fullmatch(r"[0-9a-f]{40}", ref or "") or RAW_BASE != "https://raw.githubusercontent.com":
+        return ref
+    key = (repo or REPO, ref)
+    hit = RESOLVED.get(key)
+    if hit and time.time() - hit[1] < 60:
+        return hit[0]
+    try:
+        req = urllib.request.Request(f"{API_BASE}/repos/{repo or REPO}/commits/{urllib.parse.quote(ref, safe='')}",
+                                     headers={"User-Agent": "Jarvis-file-checker", "Accept": "application/vnd.github.sha"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            sha = r.read(100).decode("ascii", "replace").strip()
+        if re.fullmatch(r"[0-9a-f]{40}", sha):
+            RESOLVED[key] = (sha, time.time())
+            return sha
+    except Exception:
+        pass
+    return ref                                            # GitHub's API unreachable or busy: the branch name still works
+
+
 def raw_url(rel: str, ref: str, repo: str | None = None) -> str:
-    return f"{RAW_BASE}/{repo or REPO}/{urllib.parse.quote(ref, safe='')}/{urllib.parse.quote(rel)}"
+    return f"{RAW_BASE}/{repo or REPO}/{urllib.parse.quote(resolve(ref, repo), safe='')}/{urllib.parse.quote(rel)}"
 
 
 
