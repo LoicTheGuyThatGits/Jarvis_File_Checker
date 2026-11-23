@@ -70,6 +70,7 @@ STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
     "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS),
+    "/game.html": ("game.html", "text/html; charset=utf-8"),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
     "/icons/jarvis.ico": ("icons/jarvis.ico", "image/x-icon"), "/favicon.ico": ("icons/jarvis.ico", "image/x-icon"),
 }

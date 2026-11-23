@@ -1000,5 +1000,21 @@
 "(text only: this model cannot see pictures)": "(nur Text: dieses Modell sieht keine Bilder)",
 "Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b-instruct</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. Not the plain qwen3-vl:8b: that is the “thinking” version, which thinks for minutes before every step. When it is installed, Autopilot uses it by itself; your chat model stays as it is.": "Der Autopilot funktioniert am besten mit einem Modell, das darauf trainiert ist, Bildschirme anzuschauen. Auf diesem PC ist <strong>qwen3-vl:8b-instruct</strong> das richtige: Es läuft auf einer 8-GB-Grafikkarte (wie einer RTX 4060), liest kleine Schrift gut und zeigt genau auf Dinge. Der Download ist 6,2 GB gross und braucht Ollama 0.12.7 oder neuer. Nicht das einfache qwen3-vl:8b: Das ist die „Thinking“-Version, die vor jedem Schritt minutenlang nachdenkt. Sobald es installiert ist, verwendet der Autopilot es von selbst; dein Chat-Modell bleibt, wie es ist.",
 "Download qwen3-vl:8b-instruct": "qwen3-vl:8b-instruct herunterladen",
-"The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.": "Das Modell, das der Autopilot jetzt verwendet, denkt vor jedem Schritt lange nach. Lade die Instruct-Version für schnelle Schritte herunter."
+"The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.": "Das Modell, das der Autopilot jetzt verwendet, denkt vor jedem Schritt lange nach. Lade die Instruct-Version für schnelle Schritte herunter.",
+"🎮 Play 2048 while you wait": "🎮 2048 spielen, während du wartest",
+"Opens 2048 in its own window while Jarvis works on the answer": "Öffnet 2048 in einem eigenen Fenster, während Jarvis an der Antwort arbeitet",
+"Allow pop-ups to play": "Pop-ups erlauben, um zu spielen",
+"Score": "Punkte",
+"New game": "Neues Spiel",
+"Game over": "Spiel vorbei",
+"Keep going": "Weiterspielen",
+"Jarvis has answered": "Jarvis hat geantwortet",
+"Jarvis has answered.": "Jarvis hat geantwortet.",
+"Your game is saved for next time.": "Dein Spiel wird fürs nächste Mal gespeichert.",
+"Back to Jarvis": "Zurück zu Jarvis",
+"Finish this game": "Dieses Spiel fertig spielen",
+"Arrow keys or WASD, or swipe. Join equal tiles to reach 2048.": "Pfeiltasten oder WASD, oder wischen. Gleiche Kacheln zusammenschieben, bis 2048.",
+"Jarvis is thinking…": "Jarvis denkt nach…",
+"You made 2048!": "Du hast 2048 geschafft!",
+"2048 board": "2048-Spielfeld"
 }
