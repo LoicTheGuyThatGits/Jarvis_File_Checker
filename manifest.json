@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "f128378a98e701ad5f7219493f0c78cf7467cabe0fe8671b7941438da3cb58d2",
-   "size": 79374
+   "sha256": "21fc89b612b37a6466306184156a411a2620b1f1b5f76fce95136c4c7425fb8b",
+   "size": 81291
   },
   {
    "path": "app/backup.py",
@@ -26,6 +26,11 @@
    "path": "app/calls.py",
    "sha256": "71fcac33d0e4e2418ac9c8accce3f29bbf60a0dd17b1f6a817fa04685b2ae21c",
    "size": 12011
+  },
+  {
+   "path": "app/classroom.py",
+   "sha256": "84cefa3c8ced47429d2f01421af52162daf6f6aa100387f3a1ffc77400ba156f",
+   "size": 12004
   },
   {
    "path": "app/countdowns.py",
@@ -74,8 +79,8 @@
   },
   {
    "path": "app/french.py",
-   "sha256": "49630984befa99d66b68eaaf3bec0903f80db160503d4c7d0f472de1d21db1cb",
-   "size": 36061
+   "sha256": "31d22db68a424b067cf56ecb9a7684862f0927ff2371f94c132cde7f155e9b63",
+   "size": 38584
   },
   {
    "path": "app/gmail_reader.py",
@@ -86,6 +91,11 @@
    "path": "app/grades.py",
    "sha256": "5272c94fe78397676b1ae36cb20f9319c536b648bfb88fabfa3aeea5669d544e",
    "size": 21451
+  },
+  {
+   "path": "app/homework.py",
+   "sha256": "19a87b89f8c5309c6d72e1a876ea6f4734a5f9bb1b8fe15d7af412cc5f755b79",
+   "size": 18026
   },
   {
    "path": "app/ical.py",
@@ -174,8 +184,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "360388bd6653fbcd3cb51cc65681f22f65527f7d502f268a87e02ff3d254e028",
-   "size": 474901
+   "sha256": "8a2e41cb19a6629e9de0ffbd136b65b3d635eb5d6853f5429bd5e57caa41a9ea",
+   "size": 485083
   },
   {
    "path": "app/set-address.py",
@@ -319,28 +329,28 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "99440214b9c7a0c9d3ac0036e03136fd43e2da32cde194ea00ca68e3c42f4f22",
-   "size": 67094
+   "sha256": "5bb8dc89e665b1272a2f7230ee7e9b855b42ea5e43e30e99a7441360cfb22eb1",
+   "size": 67511
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "252529e575b5b309ed87741f838c31ff77ee22b7c1dd00d3e7e65a63a6d5f32f",
-   "size": 80140
+   "sha256": "edcf73d8b2240a343e3bcb0a099050bc9886a141060f7b55cd85b8116692c606",
+   "size": 84569
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "cb943e099d816006f51a6e2b075524756761c0a5acce876b97e25b78a4c9998d",
-   "size": 83439
+   "sha256": "e0482783c69274b083614d93a9b6ca0a03fa2a412938b7b63a10522c689263bf",
+   "size": 87870
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "d6a88318b9c171a2a52c6f0076c492a15816c7aff3721193349775e70486de7b",
-   "size": 79916
+   "sha256": "53e059410ad00676d2f03988301a225232d3262ff68d1558c1bb1f910aa615f7",
+   "size": 84210
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "8ff8fb185f53df029b2c7d257cc0adcac6b2641ce92ba59c6314fab53c36de6f",
-   "size": 38436
+   "sha256": "33d62fba59699c3ad9272fc68c7eacd4ea6529d3857c3158fdcd8a82520374a2",
+   "size": 40465
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -354,8 +364,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "31511e1b4cb270016b337cddc0be52a337ffc79d3940483887f70c20ad24dbb9",
-   "size": 84958
+   "sha256": "b71eb856af81a2d5da7a4d8c4b00c4bdd8c44bb1df9b4c29ccad528a83e6ed28",
+   "size": 88515
   },
   {
    "path": "web/js/app.js",
@@ -384,8 +394,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "659e1323b3ee36fbbd1cd13e81991b930953000a06a3eb41001b33243920b675",
-   "size": 44075
+   "sha256": "4ee34c089b0d560724ee9dc046017e4af384dce8c8d1afafeb792145d05e9102",
+   "size": 50278
   },
   {
    "path": "web/js/features.js",

@@ -292,8 +292,44 @@ def _exam(m, now):
 
 
 EXAM = r"(?:examen|exam|contrôle|controle|interro(?:gation)?|épreuve|epreuve|test|partiel|devoir\s+surveillé|ds|évaluation|evaluation|éval|eval)"
+HW_SUBJ = r"[a-zà-ÿ][\w'’ .&-]{0,30}?"
+HW_WHEN = r"(?:le\s+)?prochain\s+cours|la\s+prochaine\s+fois|demain|après[- ]demain|apres[- ]demain|la\s+semaine\s+prochaine|(?:ce\s+|le\s+)?(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)(?:\s+prochain)?|le\s+\d{1,2}(?:er)?(?:\s+[a-zéû]+)?|\d{1,2}[./]\d{1,2}"
+
+
+def _hw_when(text, now):
+    if not text:
+        return ""
+    if re.search(r"prochain\s+cours|prochaine\s+fois", text):
+        return "next lesson"
+    return when(text, now) or ""
+
+
+def _homework(m, now):
+    due = _hw_when(m.group(2) or m.group(4), now)
+    if (m.group(2) or m.group(4)) and not due:
+        return None
+    return f"{m.group(1).strip()} homework: {m.group(3).strip()}" + (f", for {due}" if due else "")
+
+
+def _hw_list(day, subject, now):
+    if day:
+        due = _hw_when(day, now)
+        return f"what homework do I have for {due}" if due and due != "next lesson" else None
+    return f"what homework do I have in {subject.strip()}" if subject else "my homework"
+
+
 # (pattern on the cleaned sentence, English command or a function building it)
 RULES: list[tuple[str, object]] = [
+    # --- homework ---
+    (rf"(?:j['’]ai\s+)?(?:des\s+|mes\s+|les\s+)?devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})(?:\s+(?:pour|à\s+rendre(?:\s+pour)?)\s+({HW_WHEN}))?\s*[:,–-]\s*(.+?)"
+     rf"(?:\s*,?\s+(?:pour|à\s+rendre(?:\s+pour)?)\s+({HW_WHEN}))?", _homework),
+    (rf"(?:qu['’]est-ce\s+que\s+j['’]ai|j['’]ai\s+quoi|quels?(?:\s+sont)?)\s+(?:comme\s+)?(?:mes\s+)?devoirs(?:\s+(?:pour|à\s+rendre(?:\s+pour)?)\s+({HW_WHEN})|\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ}))?|"
+     rf"(?:est-ce\s+que\s+)?j['’]ai\s+des\s+devoirs(?:\s+(?:pour|à\s+rendre(?:\s+pour)?)\s+({HW_WHEN})|\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ}))?|(?:montre(?:-moi)?\s+|liste\s+)?mes\s+devoirs",
+     lambda m, now: _hw_list(m.group(1) or m.group(3), m.group(2) or m.group(4), now)),
+    (rf"j['’]ai\s+(?:fini|terminé|termine|fait|rendu)\s+(?:mes|mon|le|les)\s+devoirs?(?:\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ}))?|(?:mes\s+)?devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})\s+(?:sont\s+|est\s+)?(?:fini|faits?|terminés?)",
+     lambda m, now: f"I did my {(m.group(1) or m.group(2) or '').strip() + ' ' if (m.group(1) or m.group(2)) else ''}homework"),
+    (rf"(?:supprime[rz]?|efface[rz]?|enlève|enleve)\s+(?:mes|mon|le|les)\s+devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})", lambda m, now: f"remove my {m.group(1)} homework"),
+    (r"(?:vérifie|verifie|regarde|synchronise)\s+(?:google\s+)?classroom|(?:quoi\s+de\s+neuf|du\s+nouveau|des\s+nouveaux\s+devoirs)\s+sur\s+(?:google\s+)?classroom", "check classroom"),
     # --- files of a type on this PC (before the other searches) ---
     (r"(?:cherche[rz]?|trouve[rz]?|liste[rz]?|montre)(?:[- ]moi)?\s+(?:tous\s+|toutes\s+)?(?:les|des|mes)\s+fichiers\s+(\.?[a-z0-9]{1,10}(?:\s*(?:,|et|ou)\s*\.?[a-z0-9]{1,10})*)"
      r"(?:\s+(?:dans|sur|de)\s+(?:le\s+dossier\s+|mon\s+dossier\s+|le\s+|la\s+|les\s+|mon\s+|ma\s+|mes\s+|l['’])?(.+?))?",
@@ -424,7 +460,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge|raccroche|appelle|appel|appels)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge|raccroche|appelle|appel|appels|devoirs?|classroom)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

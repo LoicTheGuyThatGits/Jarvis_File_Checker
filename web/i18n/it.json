@@ -830,6 +830,37 @@
 [
 "^(\\d+) recent traces? \\(newest first\\)\\.$",
 "$1 tracce recenti (prima le più recenti)."
+],
+[
+"^(\\d+) new from Classroom\\.$",
+"$1 nuovi da Classroom."
 ]
-]
+],
+"Homework": "Compiti",
+"Tell Jarvis your homework and it works out when it is due from your timetable. In chat: “maths homework: exercises 4 to 7” (due your next maths lesson), “French homework for Friday: learn unit 4”, “what homework do I have?”, “what homework do I have for tomorrow?”, “I did my maths homework”; in French too (“devoirs de maths : exercices 4 à 7 pour le prochain cours”, “qu'est-ce que j'ai comme devoirs pour demain ?”). Homework due tomorrow is in the evening message and the morning briefing.": "Di' a Jarvis i tuoi compiti e lui calcola dall'orario per quando vanno consegnati. Nella chat (in inglese o in francese): “maths homework: exercises 4 to 7” (per la prossima lezione di matematica), “French homework for Friday: learn unit 4”, “what homework do I have?”, “what homework do I have for tomorrow?”, “I did my maths homework”, «devoirs de maths : exercices 4 à 7 pour le prochain cours». I compiti per domani compaiono nel messaggio della sera e nel briefing del mattino.",
+"What to do": "Cosa fare",
+"Due": "Scadenza",
+"for the next lesson": "per la prossima lezione",
+"on a date…": "per una data…",
+"Google Classroom": "Google Classroom",
+"Optional, if your school allows it: assignments from Google Classroom come in as homework by themselves, and the ones you hand in there are ticked off here. Jarvis only reads your classes and assignments; it never hands in or changes anything. Setup, once: (1) on console.cloud.google.com create a project (free) and turn on the <strong>Google Classroom API</strong> (APIs &amp; Services &gt; Library); (2) under OAuth consent screen choose External, add your school address as a test user, then press Publish app so the sign-in does not expire after 7 days; (3) under Credentials create an OAuth client ID of type <strong>Desktop app</strong>; (4) paste its client ID and secret here, press Connect and sign in with your school account.": "Facoltativo, se la tua scuola lo consente: i compiti di Google Classroom arrivano da soli, e quelli che consegni lì vengono spuntati qui. Jarvis legge solo i tuoi corsi e compiti; non consegna né modifica mai nulla. Configurazione, una volta: (1) su console.cloud.google.com crea un progetto (gratuito) e attiva la <strong>Google Classroom API</strong> (API e servizi &gt; Libreria); (2) in Schermata consenso OAuth scegli Esterno, aggiungi il tuo indirizzo scolastico come utente di test, poi premi Pubblica app così l'accesso non scade dopo 7 giorni; (3) in Credenziali crea un ID client OAuth di tipo <strong>App desktop</strong>; (4) incolla qui l'ID client e il secret, premi Connetti e accedi con il tuo account scolastico.",
+"Schools decide which apps may read their Google accounts, and many do not allow it for students. If yours does not, Google says so on the sign-in page (and may offer to ask the school's IT). That is the school's choice; homework you tell Jarvis keeps working either way.": "Le scuole decidono quali app possono leggere i loro account Google, e molte non lo consentono agli studenti. Se la tua non lo permette, Google lo dice nella pagina di accesso (e a volte propone di chiedere all'informatica della scuola). È una scelta della scuola; i compiti che dici a Jarvis funzionano comunque.",
+"Redirect URI": "URI di reindirizzamento",
+"Client ID": "ID client",
+"Client secret": "Secret client",
+"Sync now": "Sincronizza ora",
+"Classroom": "Classroom",
+"No homework. Well done.": "Nessun compito. Ben fatto.",
+"Connect again": "Riconnetti",
+"Choose the date.": "Scegli la data.",
+"Sign in with your school account in the new tab, then come back here.": "Accedi con il tuo account scolastico nella nuova scheda, poi torna qui.",
+"Checking Classroom…": "Controllo di Classroom…",
+"Nothing new on Classroom.": "Niente di nuovo su Classroom.",
+"Disconnect Google Classroom? Its assignments that are not done leave your homework list.": "Disconnettere Google Classroom? I suoi compiti non fatti escono dalla tua lista.",
+"Connected.": "Connesso.",
+"Classes:": "Corsi:",
+"Last checked:": "Ultimo controllo:",
+"late": "in ritardo",
+"no date": "senza data",
+"saved (leave empty to keep it)": "salvato (lascia vuoto per tenerlo)"
 }

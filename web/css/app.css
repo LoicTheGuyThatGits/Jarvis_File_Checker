@@ -591,6 +591,14 @@ html[data-boot="play"] .boot{display:flex}
 .tt-list li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
 .tt-list .tt-day{font-weight:600;color:var(--accent);margin-top:6px}
 .tt-list .tt-text{flex:1;min-width:0;overflow-wrap:anywhere}
+.hw-form{flex-wrap:wrap;gap:6px}
+.hw-form #hw-subject{flex:0 1 130px;min-width:0}
+.hw-form #hw-what{flex:1 1 180px;min-width:0}
+.hw-list li{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.hw-list .hw-text{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
+.hw-list .hw-when{color:var(--muted);font-size:.9em;white-space:nowrap}
+.hw-list .hw-late .hw-when{color:var(--red)}
+.hw-list .hw-link{font-size:.9em}
 
 .bench-models{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
 .bench-models label{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--a20);border-radius:5px;font-size:12px;cursor:pointer;max-width:100%;overflow-wrap:anywhere}

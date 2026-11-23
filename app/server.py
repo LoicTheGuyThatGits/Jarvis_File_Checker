@@ -28,7 +28,7 @@ try:
 except ImportError:  # the Windows fallback below still works without it
     psutil = None
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -1018,6 +1018,8 @@ import french as french_module
 import exams as exams_module
 import countdowns as countdowns_module
 import calls as calls_module
+import homework as homework_module
+import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
 import grades as grades_module
@@ -1331,6 +1333,106 @@ def timetable_events(start: datetime, end: datetime) -> list[dict]:
                 out.append({"title": l["subject"] + (f" ({l['room']})" if l.get("room") else ""), "start": when.timestamp(), "lesson": True})
         day += timedelta(days=1)
     return out
+
+
+# ---------------- homework (and Google Classroom) ----------------
+CLASSROOM_STATE: dict = {"at": 0.0, "running": False}
+CLASSROOM_LOCK = threading.Lock()
+
+
+def homework_subjects() -> list[str]:
+    return sorted({l["subject"] for l in timetable_obj().lessons()} | {g["subject"] for g in grades_obj().data()["grades"]})
+
+
+def homework_ctx() -> dict:
+    def next_lesson(subject, after):
+        k = homework_module.key(subject)
+        for ahead in range(0, 60):
+            day = after.date() + timedelta(days=ahead)
+            for l in timetable_module.lessons_on(timetable_obj(), day, day_off):
+                start = timetable_module.at(day, l["start"])
+                if start > after and homework_module.key(l["subject"]) == k:
+                    return l, start
+        return None
+    return {"next_lesson": next_lesson, "subjects": homework_subjects, "parse_when": planner_module.parse_when}
+
+
+CLASSROOM_ASK = re.compile(r"(?:(?:check|sync|update|refresh)\s+(?:my\s+)?(?:google\s+)?classroom|(?:check|sync|update)\s+(?:my\s+)?homework\s+(?:from|with|on)\s+(?:google\s+)?classroom|"
+                           r"(?:any(?:thing)?\s+new|what'?s\s+new|new\s+homework|new\s+assignments?)\s+(?:on|in)\s+(?:google\s+)?classroom)\??", re.I)
+
+
+def homework_command(text: str) -> str | None:
+    if CLASSROOM_ASK.fullmatch((text or "").strip().rstrip(".!")):
+        if not classroom_module.load(classroom_path()).get("refresh_token"):
+            return "Google Classroom is not connected, sir. Settings > School > Google Classroom explains how (your school has to allow it)."
+        try:
+            new = classroom_sync()
+        except classroom_module.ClassroomError as exc:
+            return str(exc)
+        if not new:
+            return "Nothing new on Classroom, sir. " + (homework_module.command("my homework", planner_obj(), datetime.now(), homework_ctx()) or "")
+        return f"{len(new)} new on Classroom, sir:\n" + "\n".join("• " + t["text"] + (f" (due {homework_module.say_day(datetime.fromtimestamp(t['due']).date(), date.today())})" if t.get("due") else "") for t in new)
+    return homework_module.command(text, planner_obj(), datetime.now(), homework_ctx())
+
+
+def classroom_path() -> Path:
+    return data_path("classroom.json")
+
+
+def classroom_redirect() -> str:
+    return f"http://127.0.0.1:{PORT}/"
+
+
+def classroom_subject(course: str) -> str:
+    """“3M Mathématiques – Mme Dupont” → the timetable's “Maths” when one of its subjects is in the course name."""
+    known = homework_subjects()
+    words = set(homework_module.key(course).split())
+    for name in known:
+        k = homework_module.key(name)
+        if k and (k in words or k == homework_module.key(course) or any(homework_module.ALIASES.get(w) == k for w in words)):
+            return name
+    return re.sub(r"\s+", " ", course).strip()[:40]
+
+
+def classroom_sync() -> list[dict]:
+    with CLASSROOM_LOCK:
+        try:
+            items = classroom_module.assignments(classroom_path())
+        except classroom_module.ClassroomError as exc:
+            classroom_module.note_error(classroom_path(), str(exc))
+            raise
+        CLASSROOM_STATE["at"] = time.time()
+        return homework_module.sync(planner_obj(), items, classroom_subject)
+
+
+def classroom_tick(now: float) -> None:
+    """About every hour while Classroom is connected: new assignments come in (and are announced in the chat)."""
+    if CLASSROOM_STATE["running"] or now - CLASSROOM_STATE["at"] < 3600 or not classroom_module.load(classroom_path()).get("refresh_token"):
+        return
+    CLASSROOM_STATE["running"], CLASSROOM_STATE["at"] = True, now
+
+    def work():
+        try:
+            new = classroom_sync()
+            if new:
+                lines = "; ".join(t["text"] + (f", due {homework_module.say_day(datetime.fromtimestamp(t['due']).date(), date.today())}" if t.get("due") else "") for t in new[:5])
+                publish_event({"type": "proactive", "id": "classroom-" + str(int(now)), "text": f"New on Classroom, sir: {lines}.", "chat": True})
+        except Exception as exc:
+            print(f"[jarvis] classroom: {exc}")
+        finally:
+            CLASSROOM_STATE["running"] = False
+    threading.Thread(target=work, daemon=True).start()
+
+
+def homework_public() -> dict:
+    now = datetime.now()
+    items = []
+    for t in homework_module.pending(planner_obj()):
+        due = datetime.fromtimestamp(t["due"]) if t.get("due") else None
+        items.append({"id": t["id"], "text": t["text"], "subject": t["homework"].get("subject", ""), "what": t["homework"].get("what", ""),
+                      "source": t["homework"].get("source", "chat"), "link": t["homework"].get("link", ""), "due": t.get("due"),
+                      "day": homework_module.say_day(due.date(), now.date()) if due else "", "late": bool(due and due.date() < now.date())})
+    return {"items": items, "subjects": homework_subjects(), "classroom": classroom_module.public(classroom_path(), classroom_redirect())}
 
 
 def timetable_command(text: str) -> str | None:
@@ -2871,6 +2973,10 @@ def alerts_tick(now: float | None = None, notify=None) -> None:
         timetable_tick(now, notify)
     except Exception as exc:
         print(f"[jarvis] timetable: {exc}")
+    try:
+        classroom_tick(now)
+    except Exception as exc:
+        print(f"[jarvis] classroom: {exc}")
     due = planner_obj().due_notifications(now, cfg["lead_minutes"] * 60)
     if proactive_obj().config()["enabled"]:        # Proactive Jarvis decides what to say, when, and where
         proactive_tick(now, due)
@@ -5687,6 +5793,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/debug":
             self.send_json(200, {"enabled": debug_enabled(), "traces": debugtrace.recent()})
             return
+        if path == "/api/homework":
+            self.send_json(200, homework_public())
+            return
         if path == "/api/call":
             obj = calls_obj()
             with SUBSCRIBERS_LOCK:
@@ -5878,6 +5987,9 @@ class Handler(BaseHTTPRequestHandler):
             except Exception as exc:
                 self.send_json(503, {"error": str(exc)})
             return
+        if path == "/" and classroom_module.is_ours((parse_qs(urlparse(self.path).query).get("state") or [""])[0]):
+            self.classroom_callback()
+            return
         if path == "/" or path == "/index.html":
             self.serve_file(web_path("index.html"), "text/html; charset=utf-8", replacements={"__BOOT_ID__": BOOT_ID, '"__ADDRESS__"': json.dumps(current_address())})
             return
@@ -5930,6 +6042,79 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(404, {"error": "Unknown endpoint"})
         except (ValueError, TypeError) as exc:
             self.send_json(400, {"error": str(exc)})
+
+    def homework_post(self, payload: dict) -> None:
+        """POST /api/homework: {"add": {subject, what, due: "next" | "YYYY-MM-DD"}} | {"done": id} | {"undo": id} | {"remove": id}
+        | {"classroom": {"connect": {client_id, client_secret}} | {"sync": true} | {"disconnect": true}}."""
+        pl = planner_obj()
+        try:
+            if isinstance(payload.get("add"), dict):
+                a = payload["add"]
+                subject = homework_module.canonical(str(a.get("subject") or ""), homework_subjects()) if a.get("subject") else ""
+                what = re.sub(r"\s+", " ", str(a.get("what") or "")).strip()[:180]
+                if not what and not subject:
+                    raise ValueError("Write what the homework is.")
+                when = str(a.get("due") or "next")
+                due, why = homework_module.due_for(subject, "" if when == "next" else when, datetime.now(), homework_ctx())
+                if due is None:
+                    raise ValueError(str(why))
+                homework_module.add(pl, subject, what, due)
+            elif payload.get("done") or payload.get("undo"):
+                if not pl.set_done(str(payload.get("done") or payload.get("undo")), bool(payload.get("done"))):
+                    raise ValueError("That homework is gone.")
+            elif payload.get("remove"):
+                pl.delete("task", str(payload["remove"]))
+            elif isinstance(payload.get("classroom"), dict):
+                c = payload["classroom"]
+                if c.get("connect") is not None:
+                    if self._from_phone:
+                        self.send_json(403, {"error": "Connect Classroom at the PC."})
+                        return
+                    conn = c["connect"] if isinstance(c["connect"], dict) else {}
+                    url = classroom_module.begin(classroom_path(), str(conn.get("client_id") or ""), str(conn.get("client_secret") or ""), classroom_redirect())
+                    self.send_json(200, {**homework_public(), "url": url})
+                    return
+                if c.get("disconnect"):
+                    classroom_module.disconnect(classroom_path())
+                    with planner_obj().lock:                 # Classroom homework not yet done leaves with it
+                        data = pl.load()
+                        data["tasks"] = [t for t in data["tasks"] if not (isinstance(t.get("homework"), dict) and t["homework"].get("source") == "classroom" and not t.get("done"))]
+                        pl.save(data)
+                if c.get("sync"):
+                    new = classroom_sync()
+                    self.send_json(200, {**homework_public(), "new": len(new)})
+                    return
+            self.send_json(200, homework_public())
+        except classroom_module.ClassroomError as exc:
+            self.send_json(409, {**homework_public(), "error": str(exc)})
+        except ValueError as exc:
+            self.send_json(400, {"error": str(exc)})
+
+    def classroom_callback(self) -> None:
+        query = parse_qs(urlparse(self.path).query)
+        state = (query.get("state") or [""])[0]
+        try:
+            if query.get("error"):
+                classroom_module.PENDING.pop(state, None)
+                raise classroom_module.ClassroomError(classroom_module.explain_error(str(query["error"][0])))
+            classroom_module.finish(classroom_path(), state, (query.get("code") or [""])[0])
+            try:
+                new = classroom_sync()
+                msg = f"Jarvis can now read your Google Classroom. {len(new)} assignment{'s' if len(new) != 1 else ''} came in as homework. You can close this tab."
+            except classroom_module.ClassroomError as exc:
+                msg = "Signed in, but reading Classroom failed: " + str(exc)
+            code, title = 200, "Google Classroom connected"
+        except classroom_module.ClassroomError as exc:
+            classroom_module.note_error(classroom_path(), str(exc))
+            code, title, msg = 400, "Google Classroom not connected", str(exc)
+        page = (f"<!doctype html><meta charset=utf-8><title>{title}</title><body style='font-family:sans-serif;padding:40px;max-width:640px'><h2>{title}</h2><p>"
+                + msg.replace("&", "&amp;").replace("<", "&lt;") + "</p></body>").encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(page)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(page)
 
     def call_action(self, payload: dict) -> None:
         """POST /api/call {"action": place | answer | decline | hangup | heartbeat | test | settings, "id": …}."""
@@ -6508,6 +6693,8 @@ class Handler(BaseHTTPRequestHandler):
                         self.send_json(400, {"error": str(exc)})
             elif path == "/api/call":
                 self.call_action(payload)
+            elif path == "/api/homework":
+                self.homework_post(payload)
             elif path == "/api/debug":
                 if self._from_phone:
                     self.send_json(403, {"error": "Change this at the PC."})
@@ -7397,7 +7584,7 @@ class Handler(BaseHTTPRequestHandler):
         if countdown_reply:
             self.send_json(200, {"reply": countdown_reply, "action": None})
             return
-        timetable_reply = timetable_command(latest)
+        timetable_reply = timetable_command(latest) or homework_command(latest)
         if timetable_reply:
             self.send_json(200, {"reply": timetable_reply, "action": None})
             return
@@ -8687,7 +8874,7 @@ def _debug_router_ask(fn):
 
 router_ask_model = _debug_router_ask(router_ask_model)
 for _name in ("language_command", "briefing_command", "mail_command", "grades_command", "timetable_command", "planner_command", "countdown_command", "exams_command",
-              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "pc_command",
+              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "pc_command",
               "explicit_assistant_command", "repeat_request", "jarvis_model_text"):
     if callable(globals().get(_name)) and not hasattr(globals()[_name], "__wrapped__"):
         globals()[_name] = debugtrace.traced(_name, globals()[_name])

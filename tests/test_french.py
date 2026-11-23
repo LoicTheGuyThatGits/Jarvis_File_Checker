@@ -20,7 +20,7 @@ assert f.split_when("appeler maman demain à 18h",n)==("appeler maman","tomorrow
 # ---- commands ----
 CASES=[("ajoute acheter du pain à ma liste","add task: acheter du pain"),("Jarvis, peux-tu ajouter acheter du pain à ma liste s'il te plaît ?","add task: acheter du pain"),
  ("ajoute une tâche : rendre le projet d'art pour vendredi","add task: rendre le projet d'art by friday"),("mets réviser les maths sur ma to-do list demain","add task: réviser les maths tomorrow"),
- ("qu'est-ce que j'ai à faire ?","show my to-do list"),("montre-moi ma liste de tâches","show my to-do list"),("j'ai fini le devoir d'histoire","mark le devoir d'histoire as done"),
+ ("qu'est-ce que j'ai à faire ?","show my to-do list"),("montre-moi ma liste de tâches","show my to-do list"),("j'ai fini le devoir d'histoire","I did my histoire homework"),
  ("qu'est-ce que j'ai demain ?","show my calendar for tomorrow"),("suis-je libre samedi après-midi","show my calendar for saturday"),("montre mon agenda","show my calendar for today"),
  ("ajoute dentiste mardi à 16h à mon agenda","schedule dentiste tuesday at 16:00"),("j'ai un rendez-vous chez le dentiste le 20 à 15h30","schedule rendez-vous chez le dentiste 20/11/2026 at 15:30"),
  ("rappelle-moi d'appeler maman demain à 18h","remind me to appeler maman tomorrow at 18:00"),("rappelle-moi dans 20 minutes de sortir le gâteau","remind me to sortir le gâteau in 20 minutes"),

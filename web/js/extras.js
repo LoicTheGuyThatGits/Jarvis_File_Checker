@@ -302,6 +302,77 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'bench-models')) benchLoad(); });
   }
+  if ($('hw-add')) {
+    var hwStatus = function (t) { $('hw-status').textContent = t || ''; };
+    var hwPost = function (body) {
+      return fetch('/api/homework', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (d) { if (d.items) hwDraw(d); if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); });
+    };
+    var hwDraw = function (d) {
+      var list = $('homework-list'); list.textContent = '';
+      (d.items || []).forEach(function (h) {
+        var li = document.createElement('li'), box = document.createElement('input'), text = document.createElement('span'), when = document.createElement('span'), x = document.createElement('button');
+        li.className = 'hw-item' + (h.late ? ' hw-late' : '');
+        box.type = 'checkbox'; box.setAttribute('aria-label', 'Done: ' + h.text);
+        box.addEventListener('change', function () { hwPost({ done: h.id }).catch(function (e) { hwStatus(e.message); }); });
+        text.className = 'hw-text'; text.setAttribute('data-no-i18n', ''); text.textContent = h.text;
+        when.className = 'hw-when'; when.textContent = h.due ? (h.late ? 'late' : new Date(h.due * 1000).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })) : 'no date';
+        li.append(box, text, when);
+        if (h.link) { var a = document.createElement('a'); a.href = h.link; a.target = '_blank'; a.rel = 'noopener'; a.className = 'hw-link'; a.textContent = 'Classroom'; li.append(a); }
+        x.type = 'button'; x.className = 'settings-action'; x.textContent = 'Remove'; x.setAttribute('aria-label', 'Remove ' + h.text);
+        x.addEventListener('click', function () { hwPost({ remove: h.id }).catch(function (e) { hwStatus(e.message); }); });
+        li.append(x); list.append(li);
+      });
+      if (!(d.items || []).length) { var li = document.createElement('li'); li.textContent = 'No homework. Well done.'; list.append(li); }
+      var dl = $('hw-subjects'); dl.textContent = '';
+      (d.subjects || []).forEach(function (s) { var o = document.createElement('option'); o.value = s; dl.append(o); });
+      var c = d.classroom || {};
+      $('classroom-redirect').value = c.redirect_uri || '';
+      if (c.client_id && !$('classroom-id').value) $('classroom-id').value = c.client_id;
+      $('classroom-secret').placeholder = c.has_secret ? 'saved (leave empty to keep it)' : '';
+      $('classroom-sync').classList.toggle('hidden', !c.connected); $('classroom-disconnect').classList.toggle('hidden', !c.connected);
+      $('classroom-connect').textContent = c.connected ? 'Connect again' : 'Connect';
+      var box = $('classroom-status'); box.textContent = '';
+      var part = function (cls, text, data) { var e = document.createElement('span'); e.className = cls; if (data) e.setAttribute('data-no-i18n', ''); e.textContent = text; box.append(e, ' '); };
+      part('cr-state', c.connected ? 'Connected.' : 'Not connected.');
+      if (c.connected && c.courses && c.courses.length) { part('cr-label', 'Classes:'); part('cr-courses', c.courses.join(', ') + '.', true); }
+      if (c.connected && c.last_sync) { part('cr-label', 'Last checked:'); part('cr-when', new Date(c.last_sync * 1000).toLocaleString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' }) + '.', true); }
+      if (c.last_error) part('cr-error', c.last_error, true);
+    };
+    var hwLoad = function () { fetch('/api/homework').then(function (r) { return r.json(); }).then(hwDraw).catch(function () {}); };
+    $('hw-due').addEventListener('change', function () { $('hw-date').classList.toggle('hidden', $('hw-due').value !== 'date'); });
+    $('hw-add').addEventListener('click', function () {
+      var due = $('hw-due').value === 'date' ? $('hw-date').value : 'next';
+      if (!due) { hwStatus('Choose the date.'); return; }
+      hwPost({ add: { subject: $('hw-subject').value, what: $('hw-what').value, due: due } })
+        .then(function () { hwStatus(''); $('hw-what').value = ''; $('hw-what').focus(); }).catch(function (e) { hwStatus(e.message); });
+    });
+    $('hw-what').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('hw-add').click(); });
+    $('classroom-connect').addEventListener('click', function () {
+      var tab = window.open('about:blank', '_blank');
+      hwPost({ classroom: { connect: { client_id: $('classroom-id').value, client_secret: $('classroom-secret').value } } })
+        .then(function (d) {
+          $('classroom-secret').value = '';
+          if (tab) tab.location.href = d.url; else window.location.href = d.url;
+          $('classroom-status').textContent = 'Sign in with your school account in the new tab, then come back here.';
+          var tries = 0, poll = setInterval(function () {
+            tries += 1; if (tries > 60) { clearInterval(poll); return; }
+            fetch('/api/homework').then(function (r) { return r.json(); }).then(function (x) { if (x.classroom && (x.classroom.connected && x.classroom.last_sync || x.classroom.last_error)) { clearInterval(poll); hwDraw(x); } }).catch(function () {});
+          }, 3000);
+        })
+        .catch(function (e) { if (tab) tab.close(); $('classroom-status').textContent = e.message; });
+    });
+    $('classroom-sync').addEventListener('click', function () {
+      $('classroom-status').textContent = 'Checking Classroom…';
+      hwPost({ classroom: { sync: true } }).then(function (d) { hwStatus(d.new ? d.new + ' new from Classroom.' : 'Nothing new on Classroom.'); }).catch(function (e) { hwStatus(e.message); });
+    });
+    $('classroom-disconnect').addEventListener('click', function () {
+      if (!confirm('Disconnect Google Classroom? Its assignments that are not done leave your homework list.')) return;
+      hwPost({ classroom: { disconnect: true } }).catch(function (e) { hwStatus(e.message); });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'homework-list')) hwLoad(); });
+    window.addEventListener('jarvis:reply', function (e) { if (e.detail && /homework|classroom/i.test(e.detail.text || '')) hwLoad(); });
+  }
   if ($('tt-add')) {
     var ttDraw = function (d) {
       var list = $('tt-list'), last = -1; list.textContent = '';

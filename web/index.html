@@ -470,6 +470,29 @@
         <div class="inline-form"><label class="settings-check"><input type="checkbox" id="tt-prep"> The evening before school, tell me what tomorrow brings (first lesson, what to bring, tests and tasks due) at</label><input type="time" id="tt-prep-time" value="19:00" aria-label="Time of the evening message"></div>
         <p class="settings-note" id="tt-status" role="status"></p>
       </div>
+      <div class="settings-section" id="homework-section">
+        <h2 class="settings-heading" id="homework-title">Homework</h2>
+        <p class="settings-note">Tell Jarvis your homework and it works out when it is due from your timetable. In chat: “maths homework: exercises 4 to 7” (due your next maths lesson), “French homework for Friday: learn unit 4”, “what homework do I have?”, “what homework do I have for tomorrow?”, “I did my maths homework”; in French too (“devoirs de maths : exercices 4 à 7 pour le prochain cours”, “qu'est-ce que j'ai comme devoirs pour demain ?”). Homework due tomorrow is in the evening message and the morning briefing.</p>
+        <div class="inline-form hw-form">
+          <input type="text" id="hw-subject" list="hw-subjects" placeholder="Subject" maxlength="40" aria-label="Subject"><datalist id="hw-subjects"></datalist>
+          <input type="text" id="hw-what" placeholder="What to do" maxlength="180" aria-label="What to do">
+          <select id="hw-due" aria-label="Due"><option value="next">for the next lesson</option><option value="date">on a date…</option></select>
+          <input type="date" id="hw-date" class="hidden" aria-label="Due date">
+          <button type="button" id="hw-add">Add</button>
+        </div>
+        <ul class="settings-list hw-list" id="homework-list"></ul>
+        <p class="settings-note" id="hw-status" role="status"></p>
+      </div>
+      <div class="settings-section" id="classroom-section">
+        <h2 class="settings-heading">Google Classroom</h2>
+        <p class="settings-note">Optional, if your school allows it: assignments from Google Classroom come in as homework by themselves, and the ones you hand in there are ticked off here. Jarvis only reads your classes and assignments; it never hands in or changes anything. Setup, once: (1) on console.cloud.google.com create a project (free) and turn on the <strong>Google Classroom API</strong> (APIs &amp; Services &gt; Library); (2) under OAuth consent screen choose External, add your school address as a test user, then press Publish app so the sign-in does not expire after 7 days; (3) under Credentials create an OAuth client ID of type <strong>Desktop app</strong>; (4) paste its client ID and secret here, press Connect and sign in with your school account.</p>
+        <p class="settings-note">Schools decide which apps may read their Google accounts, and many do not allow it for students. If yours does not, Google says so on the sign-in page (and may offer to ask the school's IT). That is the school's choice; homework you tell Jarvis keeps working either way.</p>
+        <div class="settings-field"><label for="classroom-redirect">Redirect URI</label><input type="text" id="classroom-redirect" readonly></div>
+        <div class="settings-field"><label for="classroom-id">Client ID</label><input type="text" id="classroom-id" maxlength="2000" autocomplete="off" spellcheck="false" placeholder="….apps.googleusercontent.com"></div>
+        <div class="settings-field"><label for="classroom-secret">Client secret</label><input type="password" id="classroom-secret" maxlength="200" autocomplete="off" spellcheck="false"></div>
+        <div class="inline-form"><button type="button" id="classroom-connect">Connect</button><button type="button" id="classroom-sync" class="hidden">Sync now</button><button type="button" id="classroom-disconnect" class="hidden">Disconnect</button></div>
+        <p class="settings-note" id="classroom-status" role="status"></p>
+      </div>
       <div class="settings-section">
         <h2 class="settings-heading">Grades</h2>
         <p class="settings-note">Your grades and averages per subject. In chat: “I got a 5 in maths”, “I got 4.5 on the French test, counts double”, “I got 17/20 in English” (converted to your scale), “what's my average in maths?”, “my grades”, “what do I need on the next maths test to keep a 4.5?”, “what do I need to pass French?”, “remove my last grade”, “start a new term”; in French too (“j'ai eu un 5 en maths”, “quelle est ma moyenne en maths ?”, “mes moyennes”). Averages are weighted (a test that counts double has weight 2) and shown with the report-card rounding.</p>
