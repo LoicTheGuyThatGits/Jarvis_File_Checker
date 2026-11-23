@@ -330,6 +330,17 @@ RULES: list[tuple[str, object]] = [
      lambda m, now: f"I did my {(m.group(1) or m.group(2) or '').strip() + ' ' if (m.group(1) or m.group(2)) else ''}homework"),
     (rf"(?:supprime[rz]?|efface[rz]?|enlève|enleve)\s+(?:mes|mon|le|les)\s+devoirs?\s+(?:de\s+|d['’]|en\s+)({HW_SUBJ})", lambda m, now: f"remove my {m.group(1)} homework"),
     (r"(?:vérifie|verifie|regarde|synchronise)\s+(?:google\s+)?classroom|(?:quoi\s+de\s+neuf|du\s+nouveau|des\s+nouveaux\s+devoirs)\s+sur\s+(?:google\s+)?classroom", "check classroom"),
+    # --- the date and the time ---
+    (r"(?:quelle\s+heure\s+(?:est-il|il\s+est|est\s+il)|il\s+est\s+quelle\s+heure|tu\s+as\s+l['’]heure|c['’]est\s+quelle\s+heure|l['’]heure)(?:\s+(?:maintenant|actuellement|là))?", "what time is it"),
+    (r"(?:quelle\s+est\s+la\s+date|c['’]est\s+quoi\s+la\s+date|quelle\s+date\s+(?:sommes-nous|on\s+est|est-on)|on\s+est\s+(?:le\s+combien|quel\s+jour|quelle\s+date)|"
+     r"quel\s+jour\s+(?:sommes-nous|on\s+est|est-on|est-ce|c['’]est|nous\s+sommes)|la\s+date)(?:\s+(?:d['’]aujourd['’]hui|aujourd['’]hui))?", "what's the date"),
+    (r"(?:on\s+sera\s+quel\s+jour|quel\s+jour\s+(?:on\s+sera|serons-nous|sera-t-on|ce\s+sera))\s+demain|demain\s+(?:on\s+est|c['’]est|ce\s+sera)\s+quel\s+jour|quelle\s+(?:est\s+la\s+)?date\s+demain", "what's the date tomorrow"),
+    (r"(?:on\s+était|c['’]était)\s+quel\s+jour\s+hier|hier\s+(?:on\s+était|c['’]était)\s+quel\s+jour", "what day was it yesterday"),
+    (r"(?:en\s+)?quelle\s+année\s+(?:sommes-nous|on\s+est|est-on|est-ce)|on\s+est\s+en\s+quelle\s+année", "what year is it"),
+    (r"(?:en\s+)?quel\s+mois\s+(?:sommes-nous|on\s+est|est-on)|on\s+est\s+en\s+quel\s+mois", "what month is it"),
+    (r"(?:quelle|on\s+est\s+(?:en|à\s+la))\s+semaine(?:\s+(?:sommes-nous|on\s+est|est-on))?|(?:quel\s+est\s+le\s+)?numéro\s+de\s+(?:la\s+)?semaine", "what week is it"),
+    (r"(?:quel|c['’]est\s+quel)\s+jour\s+(?:de\s+la\s+semaine\s+)?(?:le|tombe\s+le)\s+(\d{1,2}(?:er)?\s+\w+)",
+     lambda m, now: (lambda d: f"what day is {d}" if d else None)(when("le " + m.group(1), now))),
     # --- memory between chats ---
     (r"qu['’]est-ce\s+que\s+tu\s+as\s+appris\s+sur\s+moi|(?:qu['’]as-tu|tu\s+as\s+appris\s+quoi)\s+(?:appris\s+)?sur\s+moi", "what have you learned about me"),
     (r"(?:cherche|recherche|regarde)\s+(?:dans\s+)?(?:mes|nos)\s+(?:conversations|discussions|chats|messages)\s+(?:pour\s+|si\s+on\s+a\s+parlé\s+de\s+)?(.+)",

@@ -1021,6 +1021,7 @@ import calls as calls_module
 import homework as homework_module
 import coach as coach_module
 import recall as recall_module
+import clock as clock_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -5843,6 +5844,10 @@ def calls_command(text: str, source: str = "") -> str | None:
     return f"Very good, {address}. I will call you {when}" + (f": “{message}”." if message else ".")
 
 
+def clock_command(text: str) -> str | None:
+    return clock_module.command(text, datetime.now(), planner_module.parse_when)
+
+
 def explicit_assistant_command(text: str) -> str | None:
     for handler in (recall_command, handle_memory_command, handle_reminder_command):
         reply = handler(text)
@@ -6747,7 +6752,7 @@ class Handler(BaseHTTPRequestHandler):
             model = vision_model_for(ai)
         except RuntimeError as exc:
             raise VisionError(400, str(exc)) from exc
-        base_system = "You are Jarvis, a personal assistant. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " "
+        base_system = "You are Jarvis, a personal assistant. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " " + clock_module.prompt_line() + " "
         if mode == "cards":
             system = extra
         elif mode == "screen":
@@ -8007,6 +8012,10 @@ class Handler(BaseHTTPRequestHandler):
         if french_command:                      # a French request for a built-in command: run the English one, answer in French
             debugtrace.step("french", f"French rewritten as: “{french_command}” (the answer is translated back)")
             latest, self._reply_lang = french_command, "fr"
+        clock_reply = clock_command(latest)                 # the date and time come from the PC's clock, never from the model
+        if clock_reply:
+            self.send_json(200, {"reply": clock_reply, "action": None})
+            return
         screen_q = screen_request(latest)
         if screen_q:
             self._reply_lang = None             # the model answers about the screen in the user's language by itself
@@ -8298,6 +8307,7 @@ class Handler(BaseHTTPRequestHandler):
                 "You are Jarvis, a personal assistant on the user's Windows PC. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " "
                 "Answer in plain text; never reply with JSON."
             )
+        instructions += "\n\n" + clock_module.prompt_line()
         memory_block = memory_prompt_block(is_local_provider, latest)
         if memory_block:
             instructions += "\n\n" + memory_block
@@ -9354,7 +9364,7 @@ def _debug_router_ask(fn):
 
 router_ask_model = _debug_router_ask(router_ask_model)
 for _name in ("language_command", "briefing_command", "mail_command", "grades_command", "timetable_command", "planner_command", "countdown_command", "exams_command",
-              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "coach_command", "cards_command", "recall_command", "pc_command",
+              "watch_command", "routine_command", "routine_chat_command", "screen_request", "handle_memory_command", "handle_reminder_command", "calls_command", "homework_command", "coach_command", "cards_command", "recall_command", "clock_command", "pc_command",
               "explicit_assistant_command", "repeat_request", "jarvis_model_text"):
     if callable(globals().get(_name)) and not hasattr(globals()[_name], "__wrapped__"):
         globals()[_name] = debugtrace.traced(_name, globals()[_name])
