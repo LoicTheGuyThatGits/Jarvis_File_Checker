@@ -857,6 +857,14 @@
 [
 "^Moved to (.+)\\.$",
 "Déplacée à $1."
+],
+[
+"^· (\\d+) steps · reused (\\d+)×$",
+"· $1 étapes · réutilisé $2×"
+],
+[
+"^· (\\d+) steps$",
+"· $1 étapes"
 ]
 ],
 "Homework": "Devoirs",
@@ -960,5 +968,33 @@
 "Show my next connections": "Afficher mes prochaines correspondances",
 "Looking up the stops…": "Recherche des arrêts…",
 "Asking the timetable…": "Consultation de l'horaire…",
-"No connections found.": "Aucune correspondance trouvée."
+"No connections found.": "Aucune correspondance trouvée.",
+"Draw numbered boxes on the controls in the screenshot, so the model can say “click 14” instead of guessing a spot": "Dessiner des cases numérotées sur les commandes de la capture d'écran, pour que le modèle dise « clique sur 14 » au lieu de deviner un endroit",
+"Screens": "Écrans",
+"The main screen": "L'écran principal",
+"All screens": "Tous les écrans",
+"Autopilot's model": "Le modèle de l'Autopilot",
+"Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. When it is installed, Autopilot uses it by itself; your chat model stays as it is.": "L'Autopilot marche le mieux avec un modèle entraîné à regarder des écrans. Sur ce PC, c'est <strong>qwen3-vl:8b</strong> qu'il faut : il tourne sur une carte graphique de 8 Go (comme une RTX 4060), lit bien les petits textes et désigne les choses avec précision. C'est un téléchargement de 6,2 Go qui demande Ollama 0.12.7 ou plus récent. Une fois installé, l'Autopilot l'utilise tout seul ; votre modèle de chat reste le même.",
+"Download qwen3-vl:8b": "Télécharger qwen3-vl:8b",
+"Model for Autopilot": "Modèle pour l'Autopilot",
+"Automatic (the best installed model that can see)": "Automatique (le meilleur modèle installé qui voit les images)",
+"The Jarvis browser": "Le navigateur de Jarvis",
+"For websites, Autopilot uses a browser window of its own (Edge or Chrome, with its own profile, so it is not signed in to your accounts unless you sign in there yourself). It reads each page as a list of links, buttons and boxes and uses them exactly, instead of clicking spots on a picture. It never types into password boxes.": "Pour les sites web, l'Autopilot utilise sa propre fenêtre de navigateur (Edge ou Chrome, avec son propre profil : il n'est connecté à aucun de vos comptes, sauf si vous vous y connectez vous-même). Il lit chaque page comme une liste de liens, de boutons et de champs et les utilise exactement, au lieu de cliquer à des endroits d'une image. Il ne tape jamais dans un champ de mot de passe.",
+"Use the Jarvis browser for websites": "Utiliser le navigateur de Jarvis pour les sites web",
+"Install browser control": "Installer le contrôle du navigateur",
+"Close the Jarvis browser": "Fermer le navigateur de Jarvis",
+"What Autopilot learned": "Ce que l'Autopilot a appris",
+"When Autopilot finishes a task, it keeps the steps that worked, and uses them as a guide the next time you ask for something similar. Delete any you do not want it to reuse.": "Quand l'Autopilot termine une tâche, il garde les étapes qui ont marché et s'en sert comme guide la prochaine fois que vous demandez quelque chose de semblable. Supprimez celles que vous ne voulez pas qu'il réutilise.",
+"Remember the steps of finished tasks": "Retenir les étapes des tâches terminées",
+"Downloaded. Autopilot uses it now.": "Téléchargé. L'Autopilot l'utilise maintenant.",
+"qwen3-vl is installed.": "qwen3-vl est installé.",
+"Browser control is ready.": "Le contrôle du navigateur est prêt.",
+"Installing browser control… (a minute or two)": "Installation du contrôle du navigateur… (une ou deux minutes)",
+"Browser control needs a small extra package (Playwright).": "Le contrôle du navigateur a besoin d'un petit paquet en plus (Playwright).",
+"Forget": "Oublier",
+"The Jarvis browser is closed.": "Le navigateur de Jarvis est fermé.",
+"Autopilot uses:": "L'Autopilot utilise :",
+"(sees the screen, positions in thousandths)": "(voit l'écran, positions en millièmes)",
+"(sees the screen)": "(voit l'écran)",
+"(text only: this model cannot see pictures)": "(texte seulement : ce modèle ne voit pas les images)"
 }

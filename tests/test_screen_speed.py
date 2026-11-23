@@ -188,7 +188,13 @@ class R:
     def __exit__(s, *a): pass
     def read(s): return s.b
 def fake_urlopen(req, timeout=0):
-    sent.append(json.loads(req.data)); return R(json.dumps({"choices": [{"message": {"content": '{"reply":"done","done":true,"action":null}'}}]}).encode())
+    url = getattr(req, "full_url", str(req))
+    if url.endswith("/models"): return R(json.dumps({"data": [{"id": "llama3.2:3b"}]}).encode())
+    body = json.loads(req.data); answer = '{"reply":"done","done":true,"action":null}'
+    if url.endswith("/api/chat"):                       # Autopilot uses Ollama's own API on this PC
+        u = body["messages"][1]; sent.append({**body, "messages": [body["messages"][0], {"role": "user", "content": [{"type": "text", "text": u["content"]}]}]})
+        return R(json.dumps({"message": {"content": answer}}).encode())
+    sent.append(body); return R(json.dumps({"choices": [{"message": {"content": answer}}]}).encode())
 S.urllib.request.urlopen = fake_urlopen; S.ensure_ollama = lambda base, wait=25.0: True
 S.screen_map_now = lambda screen=None: {"title": "Untitled - Notepad", "elements": [{"n": 1, "name": "Text editor", "kind": "Document", "x": 500, "y": 400, "w": 800, "h": 600, "enabled": True, "value": "hello"}], "windows": []}
 S.screen_ocr_now = lambda screen=None: None

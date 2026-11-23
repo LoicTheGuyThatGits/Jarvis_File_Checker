@@ -866,6 +866,14 @@
 [
 "^Moved to (.+)\\.$",
 "Spostata a $1."
+],
+[
+"^· (\\d+) steps · reused (\\d+)×$",
+"· $1 passaggi · riusato $2×"
+],
+[
+"^· (\\d+) steps$",
+"· $1 passaggi"
 ]
 ],
 "Homework": "Compiti",
@@ -969,5 +977,33 @@
 "Show my next connections": "Mostra i prossimi collegamenti",
 "Looking up the stops…": "Ricerca delle fermate…",
 "Asking the timetable…": "Consultazione dell'orario…",
-"No connections found.": "Nessun collegamento trovato."
+"No connections found.": "Nessun collegamento trovato.",
+"Draw numbered boxes on the controls in the screenshot, so the model can say “click 14” instead of guessing a spot": "Disegnare riquadri numerati sui controlli nello screenshot, così il modello può dire «clicca il 14» invece di indovinare un punto",
+"Screens": "Schermi",
+"The main screen": "Lo schermo principale",
+"All screens": "Tutti gli schermi",
+"Autopilot's model": "Il modello dell'Autopilot",
+"Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. When it is installed, Autopilot uses it by itself; your chat model stays as it is.": "L'Autopilot funziona meglio con un modello addestrato a guardare gli schermi. Su questo PC il modello giusto è <strong>qwen3-vl:8b</strong>: gira su una scheda grafica da 8 GB (come una RTX 4060), legge bene i testi piccoli e indica le cose con precisione. Il download è di 6,2 GB e richiede Ollama 0.12.7 o più recente. Una volta installato, l'Autopilot lo usa da solo; il tuo modello di chat resta lo stesso.",
+"Download qwen3-vl:8b": "Scarica qwen3-vl:8b",
+"Model for Autopilot": "Modello per l'Autopilot",
+"Automatic (the best installed model that can see)": "Automatico (il miglior modello installato che vede le immagini)",
+"The Jarvis browser": "Il browser di Jarvis",
+"For websites, Autopilot uses a browser window of its own (Edge or Chrome, with its own profile, so it is not signed in to your accounts unless you sign in there yourself). It reads each page as a list of links, buttons and boxes and uses them exactly, instead of clicking spots on a picture. It never types into password boxes.": "Per i siti web, l'Autopilot usa una finestra del browser tutta sua (Edge o Chrome, con un profilo proprio, quindi non è collegato ai tuoi account a meno che tu non acceda lì). Legge ogni pagina come un elenco di link, pulsanti e campi e li usa con precisione, invece di cliccare punti di un'immagine. Non scrive mai nei campi password.",
+"Use the Jarvis browser for websites": "Usare il browser di Jarvis per i siti web",
+"Install browser control": "Installa il controllo del browser",
+"Close the Jarvis browser": "Chiudi il browser di Jarvis",
+"What Autopilot learned": "Cosa ha imparato l'Autopilot",
+"When Autopilot finishes a task, it keeps the steps that worked, and uses them as a guide the next time you ask for something similar. Delete any you do not want it to reuse.": "Quando l'Autopilot finisce un compito, conserva i passaggi che hanno funzionato e li usa come guida la prossima volta che chiedi qualcosa di simile. Elimina quelli che non vuoi che riutilizzi.",
+"Remember the steps of finished tasks": "Ricordare i passaggi dei compiti finiti",
+"Downloaded. Autopilot uses it now.": "Scaricato. L'Autopilot ora lo usa.",
+"qwen3-vl is installed.": "qwen3-vl è installato.",
+"Browser control is ready.": "Il controllo del browser è pronto.",
+"Installing browser control… (a minute or two)": "Installazione del controllo del browser… (un paio di minuti)",
+"Browser control needs a small extra package (Playwright).": "Il controllo del browser richiede un piccolo pacchetto in più (Playwright).",
+"Forget": "Dimentica",
+"The Jarvis browser is closed.": "Il browser di Jarvis è chiuso.",
+"Autopilot uses:": "L'Autopilot usa:",
+"(sees the screen, positions in thousandths)": "(vede lo schermo, posizioni in millesimi)",
+"(sees the screen)": "(vede lo schermo)",
+"(text only: this model cannot see pictures)": "(solo testo: questo modello non vede le immagini)"
 }

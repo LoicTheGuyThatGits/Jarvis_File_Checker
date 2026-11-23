@@ -17,7 +17,10 @@ BLOCKED_WRITE = {".exe", ".dll", ".msi", ".bat", ".cmd", ".ps1", ".psm1", ".vbs"
 READ_LIMIT = 60_000
 WRITE_LIMIT = 300_000
 SIGHTS = ("auto", "picture", "text")
-DEFAULTS = {"folders": [], "sight": "auto", "max_steps": 40, "ocr": True, "overlay": True}
+DEFAULTS = {"folders": [], "sight": "auto", "max_steps": 40, "ocr": True, "overlay": True,
+            "model": "", "marks": True, "screens": "main", "coords": "auto", "browser": True, "learn": True}
+SCREENS = ("main", "all")
+COORDS = ("auto", "pixels", "thousandths")
 
 
 def load_config(path: Path) -> dict:
@@ -35,6 +38,11 @@ def load_config(path: Path) -> dict:
             pass
         cfg["ocr"] = raw.get("ocr") is not False
         cfg["overlay"] = raw.get("overlay") is not False
+        cfg["model"] = str(raw.get("model") or "")[:120]
+        cfg["screens"] = raw.get("screens") if raw.get("screens") in SCREENS else "main"
+        cfg["coords"] = raw.get("coords") if raw.get("coords") in COORDS else "auto"
+        for k in ("marks", "browser", "learn"):
+            cfg[k] = raw.get(k) is not False
     return cfg
 
 
@@ -59,6 +67,18 @@ def save_config(path: Path, update: dict) -> dict:
         cfg["ocr"] = update["ocr"] is not False
     if "overlay" in update:
         cfg["overlay"] = update["overlay"] is not False
+    if "model" in update:
+        model = str(update["model"] or "").strip()
+        if model and not __import__("re").fullmatch(r"[\w.:/@-]{1,120}", model):
+            raise ValueError("That is not a model name (for example qwen3-vl:8b).")
+        cfg["model"] = model
+    if update.get("screens") in SCREENS:
+        cfg["screens"] = update["screens"]
+    if update.get("coords") in COORDS:
+        cfg["coords"] = update["coords"]
+    for k in ("marks", "browser", "learn"):
+        if k in update:
+            cfg[k] = update[k] is not False
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(cfg, indent=2), encoding="utf-8")

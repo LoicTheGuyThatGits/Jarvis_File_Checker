@@ -29,7 +29,10 @@ import time
 ACCENT, LABEL_BG, BAR_BG, KEY = "#29d3ff", "#0b3b4a", "#10161c", "#010203"
 VERBS = {"click": "Click", "double_click": "Double-click", "right_click": "Right-click", "scroll": "Scroll", "type_text": "Type",
          "press_key": "Press", "hotkey": "Keys", "focus_window": "Switch to", "window_state": "Window", "open_app": "Open",
-         "open_url": "Open", "open_folder": "Open", "list_folder": "Look in", "read_file": "Read", "write_file": "Write", "wait": "Wait"}
+         "open_url": "Open", "open_folder": "Open", "list_folder": "Look in", "read_file": "Read", "write_file": "Write", "wait": "Wait",
+         "zoom": "Look closer", "web_open": "Open in the browser", "web_click": "Click on the page", "web_type": "Type on the page",
+         "web_select": "Choose on the page", "web_key": "Press on the page", "web_scroll": "Scroll the page", "web_back": "Go back",
+         "web_read": "Read the page", "web_tab": "Switch tab"}
 
 
 # ---------------- layout (no screen needed) ----------------
@@ -37,10 +40,10 @@ def describe(action: dict) -> str:
     """'Click: the Save button', 'Type: “hello”', 'Keys: ctrl+s' – the words shown for an action."""
     kind = action.get("type", "")
     verb = VERBS.get(kind, kind.replace("_", " ").capitalize() or "Step")
-    if kind == "type_text":
+    if kind in ("type_text", "web_type"):
         text = str(action.get("text", ""))
         what = "“" + (text[:40] + "…" if len(text) > 40 else text) + "”"
-    elif kind == "press_key":
+    elif kind in ("press_key", "web_key"):
         what = str(action.get("key", ""))
     elif kind == "hotkey":
         what = "+".join(action.get("keys") or [])

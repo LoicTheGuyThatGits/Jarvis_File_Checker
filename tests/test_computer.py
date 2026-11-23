@@ -25,8 +25,8 @@ r=pj.write_file("src/new/util.py","x=1\n",F,backups); assert "(a new file)" in r
 for path,msg in (("run.bat","does not write .bat"),("../secret.txt","only write inside"),("tool.ps1","does not write .ps1")):
     try: pj.write_file(path,"x",F,backups); raise SystemExit("wrote "+path)
     except ValueError as e: assert msg in str(e), (path,e)
-cfgp=tmp/"ctl.json"; assert pj.load_config(cfgp)=={"folders":[],"sight":"auto","max_steps":40,"ocr":True,"overlay":True}
-c=pj.save_config(cfgp,{"folders":[str(proj)],"sight":"text","max_steps":500,"ocr":False}); assert c=={"folders":[str(proj.resolve())],"sight":"text","max_steps":150,"ocr":False,"overlay":True}
+cfgp=tmp/"ctl.json"; assert pj.load_config(cfgp)=={"folders":[],"sight":"auto","max_steps":40,"ocr":True,"overlay":True,"model":"","marks":True,"screens":"main","coords":"auto","browser":True,"learn":True}
+c=pj.save_config(cfgp,{"folders":[str(proj)],"sight":"text","max_steps":500,"ocr":False}); assert c=={"folders":[str(proj.resolve())],"sight":"text","max_steps":150,"ocr":False,"overlay":True,"model":"","marks":True,"screens":"main","coords":"auto","browser":True,"learn":True}
 for bad in (["/"],[str(Path.home())],[str(tmp/"missing")],["relative/path"]):
     try: pj.save_config(cfgp,{"folders":bad}); raise SystemExit(f"accepted {bad}")
     except ValueError: pass
@@ -76,8 +76,15 @@ class Resp:
     def read(s): return s.body
 plans=[]
 def fake_urlopen(req,timeout=0):
-    body=json.loads(req.data); sent.append(body)
+    url=req.full_url if hasattr(req,"full_url") else str(req)
+    if url.endswith("/models"): return Resp(json.dumps({"data":[{"id":"llama3.2:3b"}]}).encode())
+    body=json.loads(req.data)
+    if url.endswith("/api/chat"):                       # Autopilot talks to Ollama's own API (to set its working memory)
+        msgs=body["messages"]; u=msgs[1]
+        body={**body,"messages":[msgs[0],{"role":"user","content":[{"type":"text","text":u["content"]}]+[{"type":"image_url","image_url":{"url":"data:image/jpeg;base64,"+i}} for i in u.get("images",[])]}]}
+    sent.append(body)
     content=plans.pop(0) if plans else '{"reply":"done","done":true,"action":null}'
+    if url.endswith("/api/chat"): return Resp(json.dumps({"message":{"content":content}}).encode())
     return Resp(json.dumps({"choices":[{"message":{"content":content}}]}).encode())
 S.urllib.request.urlopen=fake_urlopen; S.ensure_ollama=lambda base,wait=25.0: True
 S.projects.save_config(S.control_config_path(),{"sight":"text"})

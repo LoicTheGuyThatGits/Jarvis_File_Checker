@@ -396,12 +396,33 @@
           <select id="ctl-sight"><option value="auto">Automatic (picture when the model can see)</option><option value="picture">Screenshot and text</option><option value="text">Text only (for models that cannot see)</option></select>
         </label>
         <p class="settings-note" id="ctl-sight-now"></p>
+        <label class="settings-check"><input type="checkbox" id="ctl-marks"> Draw numbered boxes on the controls in the screenshot, so the model can say “click 14” instead of guessing a spot</label>
+        <label class="settings-field">Screens
+          <select id="ctl-screens"><option value="main">The main screen</option><option value="all">All screens</option></select>
+        </label>
         <label class="settings-check"><input type="checkbox" id="ctl-ocr"> Read all the text on the screen (adds a fraction of a second a step)</label>
         <label class="settings-check"><input type="checkbox" id="ctl-overlay"> Show on the screen what Autopilot is about to do: an outline around what it will click, and a bar with a Stop button</label>
         <div class="inline-form"><button type="button" id="ctl-overlay-test">Try the overlay</button></div>
         <label class="settings-field">Most actions in one Autopilot run
           <select id="ctl-steps"><option value="20">20</option><option value="40">40</option><option value="80">80</option><option value="150">150</option></select>
         </label>
+        <h3 class="settings-subheading">Autopilot's model</h3>
+        <p class="settings-note">Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. When it is installed, Autopilot uses it by itself; your chat model stays as it is.</p>
+        <p class="settings-note" id="ctl-model-now"></p>
+        <div class="inline-form"><button type="button" id="ctl-pull">Download qwen3-vl:8b</button></div>
+        <p class="settings-note" id="ctl-pull-status" role="status"></p>
+        <label class="settings-field">Model for Autopilot
+          <select id="ctl-model"><option value="">Automatic (the best installed model that can see)</option></select>
+        </label>
+        <h3 class="settings-subheading">The Jarvis browser</h3>
+        <p class="settings-note">For websites, Autopilot uses a browser window of its own (Edge or Chrome, with its own profile, so it is not signed in to your accounts unless you sign in there yourself). It reads each page as a list of links, buttons and boxes and uses them exactly, instead of clicking spots on a picture. It never types into password boxes.</p>
+        <label class="settings-check"><input type="checkbox" id="ctl-browser"> Use the Jarvis browser for websites</label>
+        <p class="settings-note" id="ctl-browser-status" role="status"></p>
+        <div class="inline-form"><button type="button" id="ctl-install" class="hidden">Install browser control</button><button type="button" id="ctl-close-browser" class="settings-action">Close the Jarvis browser</button></div>
+        <h3 class="settings-subheading">What Autopilot learned</h3>
+        <p class="settings-note">When Autopilot finishes a task, it keeps the steps that worked, and uses them as a guide the next time you ask for something similar. Delete any you do not want it to reuse.</p>
+        <label class="settings-check"><input type="checkbox" id="ctl-learn"> Remember the steps of finished tasks</label>
+        <ul class="settings-list" id="ctl-learned"></ul>
         <h3 class="settings-subheading">Project folders</h3>
         <p class="settings-note">Folders where Autopilot may read and write files directly (your code, your website, a Unity project's scripts), instead of typing into an editor. Each file it changes is backed up first in data\file-backups\projects. It never writes programs or scripts Windows runs by double-click (.exe, .bat, .ps1…) and cannot reach anything outside these folders.</p>
         <ul class="settings-list" id="ctl-folders"></ul>

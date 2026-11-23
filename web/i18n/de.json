@@ -860,6 +860,14 @@
 [
 "^Moved to (.+)\\.$",
 "Verschoben auf $1."
+],
+[
+"^· (\\d+) steps · reused (\\d+)×$",
+"· $1 Schritte · $2× wiederverwendet"
+],
+[
+"^· (\\d+) steps$",
+"· $1 Schritte"
 ]
 ],
 "Homework": "Hausaufgaben",
@@ -963,5 +971,33 @@
 "Show my next connections": "Meine nächsten Verbindungen zeigen",
 "Looking up the stops…": "Haltestellen werden gesucht…",
 "Asking the timetable…": "Fahrplan wird abgefragt…",
-"No connections found.": "Keine Verbindungen gefunden."
+"No connections found.": "Keine Verbindungen gefunden.",
+"Draw numbered boxes on the controls in the screenshot, so the model can say “click 14” instead of guessing a spot": "Nummerierte Kästchen um die Bedienelemente im Screenshot zeichnen, damit das Modell „klick auf 14“ sagen kann statt eine Stelle zu raten",
+"Screens": "Bildschirme",
+"The main screen": "Der Hauptbildschirm",
+"All screens": "Alle Bildschirme",
+"Autopilot's model": "Das Modell des Autopiloten",
+"Autopilot works best with a model trained to look at screens. On this PC, <strong>qwen3-vl:8b</strong> is the one to use: it runs on an 8 GB graphics card (such as an RTX 4060), reads small text well and points at things precisely. It is a 6.2 GB download and needs Ollama 0.12.7 or newer. When it is installed, Autopilot uses it by itself; your chat model stays as it is.": "Der Autopilot funktioniert am besten mit einem Modell, das darauf trainiert ist, Bildschirme anzuschauen. Auf diesem PC ist <strong>qwen3-vl:8b</strong> das richtige: Es läuft auf einer 8-GB-Grafikkarte (wie einer RTX 4060), liest kleine Schrift gut und zeigt genau auf Dinge. Der Download ist 6,2 GB gross und braucht Ollama 0.12.7 oder neuer. Sobald es installiert ist, verwendet der Autopilot es von selbst; dein Chat-Modell bleibt, wie es ist.",
+"Download qwen3-vl:8b": "qwen3-vl:8b herunterladen",
+"Model for Autopilot": "Modell für den Autopiloten",
+"Automatic (the best installed model that can see)": "Automatisch (das beste installierte Modell, das Bilder sieht)",
+"The Jarvis browser": "Der Jarvis-Browser",
+"For websites, Autopilot uses a browser window of its own (Edge or Chrome, with its own profile, so it is not signed in to your accounts unless you sign in there yourself). It reads each page as a list of links, buttons and boxes and uses them exactly, instead of clicking spots on a picture. It never types into password boxes.": "Für Websites verwendet der Autopilot ein eigenes Browserfenster (Edge oder Chrome, mit eigenem Profil, also bei keinem deiner Konten angemeldet, ausser du meldest dich dort selbst an). Er liest jede Seite als Liste von Links, Schaltflächen und Feldern und benutzt sie genau, statt auf Stellen in einem Bild zu klicken. In Passwortfelder tippt er nie.",
+"Use the Jarvis browser for websites": "Den Jarvis-Browser für Websites verwenden",
+"Install browser control": "Browsersteuerung installieren",
+"Close the Jarvis browser": "Jarvis-Browser schliessen",
+"What Autopilot learned": "Was der Autopilot gelernt hat",
+"When Autopilot finishes a task, it keeps the steps that worked, and uses them as a guide the next time you ask for something similar. Delete any you do not want it to reuse.": "Wenn der Autopilot eine Aufgabe beendet, behält er die Schritte, die funktioniert haben, und nimmt sie als Leitfaden, wenn du das nächste Mal etwas Ähnliches verlangst. Lösche alle, die er nicht wiederverwenden soll.",
+"Remember the steps of finished tasks": "Schritte erledigter Aufgaben merken",
+"Downloaded. Autopilot uses it now.": "Heruntergeladen. Der Autopilot verwendet es jetzt.",
+"qwen3-vl is installed.": "qwen3-vl ist installiert.",
+"Browser control is ready.": "Die Browsersteuerung ist bereit.",
+"Installing browser control… (a minute or two)": "Browsersteuerung wird installiert… (ein, zwei Minuten)",
+"Browser control needs a small extra package (Playwright).": "Die Browsersteuerung braucht ein kleines Zusatzpaket (Playwright).",
+"Forget": "Vergessen",
+"The Jarvis browser is closed.": "Der Jarvis-Browser ist geschlossen.",
+"Autopilot uses:": "Der Autopilot verwendet:",
+"(sees the screen, positions in thousandths)": "(sieht den Bildschirm, Positionen in Tausendsteln)",
+"(sees the screen)": "(sieht den Bildschirm)",
+"(text only: this model cannot see pictures)": "(nur Text: dieses Modell sieht keine Bilder)"
 }

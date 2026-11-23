@@ -308,8 +308,9 @@ class ReplyStreamer:
 
 
 AUTOPILOT_PREVIEW_SECONDS = 0.45
-ONCE_KINDS = ("type_text", "open_app", "open_url", "open_folder", "write_file")   # doing one of these twice in a row is almost always a mistake
-NEVER_STUCK_KINDS = ("press_key", "scroll", "wait", "hotkey")                          # repeating these is normal (moving down a list, undoing)
+ONCE_KINDS = ("type_text", "open_app", "open_url", "open_folder", "write_file", "web_open", "web_type")   # doing one of these twice in a row is almost always a mistake
+SCREEN_KINDS = ("click", "double_click", "right_click", "type_text", "press_key", "hotkey", "scroll")      # steps that should change what the screen shows
+NEVER_STUCK_KINDS = ("press_key", "scroll", "wait", "hotkey", "web_scroll", "web_key", "web_read")                          # repeating these is normal (moving down a list, undoing)
 
 
 def step_record(action: dict, seen: str | None) -> str:
@@ -1036,6 +1037,9 @@ import focus as focus_module
 import search_all
 import network as network_module
 import screenmap
+import sight as sight_module
+import webpilot
+import procedures
 import filetypes
 import docedit
 import doccreate
@@ -2571,8 +2575,25 @@ def screen_map_text(screen: dict) -> str:
     if "ocr" not in screen:
         screen["ocr"] = screen_ocr_now(screen) if control_config()["ocr"] else None
     sx, sy = screen["shown_width"] / max(1, screen["width"]), screen["shown_height"] / max(1, screen["height"])
-    parts = [screenmap.describe(screen["map"], sx, sy) if screen["map"] else "", screenmap.describe_ocr(screen["ocr"], sx, sy)]
+    shown_map = shifted_map(screen)
+    ocr = screen["ocr"]
+    if ocr and screen.get("_ocr_limit"):
+        ocr = {**ocr, "lines": ocr["lines"][: screen["_ocr_limit"]]}
+    parts = [screenmap.describe(shown_map, sx, sy, screen.get("_map_limit", 110)) if shown_map else "", screenmap.describe_ocr(ocr, sx, sy)]
     return "\n".join(p for p in parts if p)
+
+
+def shifted_map(screen: dict) -> dict | None:
+    """The controls as seen in this capture: positions measured from its top-left corner, and only those inside it."""
+    m = screen.get("map")
+    if not m:
+        return m
+    ox, oy = screen.get("origin") or (0, 0)
+    if (ox, oy) == (0, 0) and not screen.get("zoom"):
+        return m
+    w, h = screen["width"], screen["height"]
+    inside = [{**e, "x": e["x"] - ox, "y": e["y"] - oy} for e in m.get("elements", []) if ox <= e["x"] < ox + w and oy <= e["y"] < oy + h]
+    return {**m, "elements": inside}
 
 
 FOUND_PATHS: dict = {"paths": set(), "at": 0.0}
@@ -2757,13 +2778,182 @@ def control_config() -> dict:
 VISION_NAMES = re.compile(r"llava|moondream|vision|-vl|vl:|qwen2\.5vl|qwen2-vl|minicpm-v|gemma3|llama4|bakllava|pixtral|gpt-4o|gpt-4\.1|gpt-5|o3|o4|claude|gemini", re.I)
 
 
+AUTOPILOT_PREFS = ("qwen3-vl", "ui-tars", "qwen2.5vl", "qwen2.5-vl", "gemma3", "llama3.2-vision", "llama4", "minicpm-v", "mistral-small3", "llava", "moondream")
+AUTOPILOT_MODEL = "qwen3-vl:8b"          # the one to download for Autopilot on an 8 GB graphics card
+MODELS_SEEN: dict = {"at": 0.0, "base": "", "ids": []}
+
+
+def installed_models(ai: dict) -> list[str]:
+    """The models the local server (Ollama) has, looked up at most every 30 seconds."""
+    if MODELS_SEEN["base"] == ai["base"] and time.time() - MODELS_SEEN["at"] < 30:
+        return MODELS_SEEN["ids"]
+    ids: list[str] = []
+    try:
+        req = urllib.request.Request(ai["base"] + "/models", headers={"Authorization": "Bearer " + (ai["key"] or "ollama")})
+        with urllib.request.urlopen(req, timeout=5) as r:
+            ids = [i["id"] for i in json.loads(r.read().decode("utf-8", "replace")).get("data", []) if isinstance(i, dict) and isinstance(i.get("id"), str)]
+    except Exception:
+        pass
+    MODELS_SEEN.update(at=time.time(), base=ai["base"], ids=ids)
+    return ids
+
+
+def autopilot_ai() -> dict:
+    """The model Autopilot asks: the one chosen in Settings > Computer control, else (on this PC) the best installed model
+    that can see, else the chat model."""
+    ai = ai_settings("vision")
+    chosen = control_config()["model"]
+    if chosen:
+        return {**ai, "model": chosen}
+    if ai["is_local"] and not os.environ.get("OPENAI_VISION_MODEL"):
+        ids = installed_models(ai)
+        for pref in AUTOPILOT_PREFS:
+            for name in sorted(ids):
+                if pref in name.lower():
+                    return {**ai, "model": name}
+    return ai
+
+
 def autopilot_sight() -> str:
     """'picture' (screenshot + text) or 'text' (what Windows reports and reads on the screen only, for models that cannot see)."""
     cfg = control_config()
     if cfg["sight"] in ("picture", "text"):
         return cfg["sight"]
-    ai = ai_settings("vision")
+    ai = autopilot_ai()
     return "picture" if ai["key"] and (not ai["is_local"] or VISION_NAMES.search(ai["model"])) else "text"
+
+
+AUTOPILOT_CTX = 8192          # Ollama's working memory for Autopilot: a picture, the lists and the instructions fit; an 8 GB card holds it
+
+
+def ollama_autopilot_chat(base: str, model: str, system: str, user_text: str, picture: str | None) -> str:
+    """Ollama's own chat API, so the working memory (num_ctx) can be set: through the OpenAI-style API it stays at Ollama's
+    default, and long screen lists were cut off without a word."""
+    root = re.sub(r"/v1/?$", "", base)
+    user = {"role": "user", "content": user_text}
+    if picture:
+        user["images"] = [picture]
+    body = json.dumps({"model": model, "messages": [{"role": "system", "content": system}, user], "stream": False, "format": "json",
+                       "options": {"num_ctx": AUTOPILOT_CTX, "temperature": 0.2}, "keep_alive": "15m"}).encode()
+    req = urllib.request.Request(root + "/api/chat", data=body, headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=240) as r:
+            data = json.loads(r.read())
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", errors="replace")[:500]
+        if exc.code == 404 and "not found" in detail.lower():
+            raise RuntimeError(f"The model {model} is not installed. Download it in Settings > Computer control.") from exc
+        raise RuntimeError(f"Ollama answered {exc.code}: {detail}") from exc
+    return str((data.get("message") or {}).get("content") or "")
+
+
+def autopilot_coords(model: str | None = None) -> str:
+    """How the model gives positions: 'pixels' of the picture, or 'thousandths' (0–1000, how Qwen3-VL was trained)."""
+    mode = control_config()["coords"]
+    if mode != "auto":
+        return mode
+    return "thousandths" if re.search(r"qwen3[-_.]?vl", model or autopilot_ai()["model"], re.I) else "pixels"
+
+
+# ---------------- the Jarvis browser ----------------
+WEB: dict = {"obj": None}
+
+
+def web_pilot() -> "webpilot.WebPilot":
+    if WEB["obj"] is None:
+        WEB["obj"] = webpilot.WebPilot(ROOT / "data" / "browser-profile")
+    return WEB["obj"]
+
+
+def web_snapshot_now() -> dict | None:
+    """What the Jarvis browser shows, when it is open."""
+    w = WEB["obj"]
+    if w is None or not w.active():
+        return None
+    try:
+        return w.snapshot()
+    except webpilot.WebError:
+        return None
+
+
+PULL: dict = {"model": "", "status": "", "done": 0, "total": 0, "error": "", "running": False}
+INSTALL: dict = {"status": "", "error": "", "running": False}
+
+
+def pull_model(name: str) -> None:
+    """Download a model into Ollama (its own API), with the progress in PULL."""
+    ai = ai_settings("vision")
+    root = re.sub(r"/v1/?$", "", ai["base"])
+    PULL.update(model=name, status="starting", done=0, total=0, error="", running=True)
+    try:
+        req = urllib.request.Request(root + "/api/pull", data=json.dumps({"model": name, "stream": True}).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        with urllib.request.urlopen(req, timeout=60) as r:
+            for line in r:
+                try:
+                    msg = json.loads(line.decode("utf-8", "replace"))
+                except ValueError:
+                    continue
+                if msg.get("error"):
+                    err = str(msg["error"])
+                    if "newer version" in err.lower() or "requires" in err.lower():
+                        err += " Update Ollama (ollama.com/download), then try again."
+                    raise RuntimeError(err)
+                PULL["status"] = str(msg.get("status") or "")
+                if msg.get("total"):
+                    PULL["total"], PULL["done"] = int(msg["total"]), int(msg.get("completed") or 0)
+        PULL["status"] = "success"
+        MODELS_SEEN["at"] = 0
+    except Exception as exc:
+        PULL["error"] = str(exc)[:300] or "The download failed."
+        if isinstance(exc, urllib.error.URLError) and not isinstance(exc, urllib.error.HTTPError):
+            PULL["error"] = "Ollama is not running, so the model cannot be downloaded. Start Ollama and try again."
+    finally:
+        PULL["running"] = False
+
+
+def install_playwright() -> None:
+    INSTALL.update(status="installing", error="", running=True)
+    try:
+        out = subprocess.run([sys.executable, "-m", "pip", "install", "playwright>=1.40"], capture_output=True, text=True, timeout=900,
+                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        if out.returncode != 0:
+            raise RuntimeError((out.stderr or out.stdout or "pip failed").strip().splitlines()[-1][:300])
+        INSTALL["status"] = "installed"
+    except Exception as exc:
+        INSTALL["error"], INSTALL["status"] = str(exc)[:300], "failed"
+    finally:
+        INSTALL["running"] = False
+
+
+def control_public() -> dict:
+    ai = autopilot_ai()
+    cfg = control_config()
+    with WATCH_LOCK:
+        watching = WATCH["condition"]
+    have = installed_models(ai_settings("vision")) if ai["is_local"] else []
+    return {**cfg, "sight_now": autopilot_sight(), "watching": watching, "model_now": ai["model"], "local": ai["is_local"], "coords_now": autopilot_coords(ai["model"]),
+            "recommended": AUTOPILOT_MODEL, "has_recommended": any(m.split(":")[0] == AUTOPILOT_MODEL.split(":")[0] for m in have),
+            "vision_models": [m for m in have if VISION_NAMES.search(m)], "browser_ready": webpilot.available(), "pull": dict(PULL), "install": dict(INSTALL),
+            "learned": [{"id": i["id"], "task": i["task"], "steps": len(i["steps"]), "at": i.get("at"), "uses": i.get("uses", 0)} for i in reversed(procedures.load(learned_path()))]}
+
+
+def learned_path() -> Path:
+    return data_path("autopilot-learned.json")
+
+
+PROC_HINTS: dict = {}
+
+
+def procedure_hint(task: str) -> str:
+    """What worked before for a similar task (looked up once per task, not at every step)."""
+    if not control_config()["learn"]:
+        return ""
+    hit = PROC_HINTS.get(task)
+    if hit and time.time() - hit[1] < 1800:
+        return hit[0]
+    text = procedures.hint(learned_path(), task)
+    PROC_HINTS[task] = (text, time.time())
+    return text
 
 
 # ---------------- watching the screen: "watch my screen and tell me when the download finishes" ----------------
@@ -6226,9 +6416,7 @@ class Handler(BaseHTTPRequestHandler):
             self.wfile.write(data)
             return
         if path == "/api/control":
-            with WATCH_LOCK:
-                watching = WATCH["condition"]
-            self.send_json(200, {**control_config(), "sight_now": autopilot_sight(), "watching": watching})
+            self.send_json(200, control_public())
             return
         if path == "/api/install":
             self.send_json(200, install_info())
@@ -7239,12 +7427,33 @@ class Handler(BaseHTTPRequestHandler):
                     try:
                         if payload.get("test_overlay"):
                             self.send_json(200, overlay_test())
+                        elif payload.get("pull"):
+                            name = str(payload["pull"]).strip()
+                            if not re.fullmatch(r"[\w.:/-]{1,80}", name):
+                                raise ValueError("That is not a model name.")
+                            if not PULL["running"]:
+                                threading.Thread(target=pull_model, args=(name,), daemon=True).start()
+                                time.sleep(0.2)
+                            self.send_json(200, control_public())
+                        elif payload.get("install_browser"):
+                            if not INSTALL["running"] and not webpilot.available():
+                                threading.Thread(target=install_playwright, daemon=True).start()
+                                time.sleep(0.2)
+                            self.send_json(200, control_public())
+                        elif payload.get("forget"):
+                            procedures.delete(learned_path(), str(payload["forget"]))
+                            PROC_HINTS.clear()
+                            self.send_json(200, control_public())
+                        elif payload.get("close_browser"):
+                            if WEB["obj"] is not None:
+                                WEB["obj"].close()
+                            self.send_json(200, control_public())
                         else:
-                            update = {k: payload[k] for k in ("sight", "ocr", "max_steps", "folders", "overlay") if k in payload}
+                            update = {k: payload[k] for k in ("sight", "ocr", "max_steps", "folders", "overlay", "model", "marks", "screens", "coords", "browser", "learn") if k in payload}
                             cfg = projects.save_config(control_config_path(), update)
                             if "folders" in update:
                                 audit("computer control: project folders now " + "; ".join(cfg["folders"]))
-                            self.send_json(200, {**cfg, "sight_now": autopilot_sight()})
+                            self.send_json(200, control_public())
                     except (ValueError, TypeError) as exc:
                         self.send_json(400, {"error": str(exc)})
             elif path == "/api/call":
@@ -8598,16 +8807,28 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(502, {"error": f"The AI response was not in the expected format: {exc}"})
 
     @staticmethod
-    def capture_screen() -> dict:
+    def capture_screen(region: tuple | None = None, all_screens: bool | None = None) -> dict:
+        """The screen as the model sees it. region (left, top, width, height in screen pixels) looks closer at one part."""
         try:
-            import pyautogui
+            import pyautogui  # noqa: F401
         except ImportError as exc:
             raise RuntimeError("Computer control needs its packages. From the Jarvis folder run: py -m pip install -r requirements.txt") from exc
+        if all_screens is None:
+            all_screens = control_config()["screens"] == "all"
         with overlay_module.OVERLAY.out_of_picture():
-            full = pyautogui.screenshot()
+            full, origin = sight_module.grab(all_screens)
+        zoom = None
+        if region:
+            left, top, w, h = (int(v) for v in region)
+            zoom = round(full.width / max(1, w), 1)
+            full = full.crop((left - origin[0], top - origin[1], left - origin[0] + w, top - origin[1] + h))
+            origin = (left, top)
         original_width, original_height = full.size
-        image = full.copy()
-        image.thumbnail((1440, 900), reducing_gap=2.0)
+        if region:                                            # a closer look: the part, enlarged (at most 2.5 times)
+            scale = min(sight_module.SHOWN[0] / full.width, sight_module.SHOWN[1] / full.height, 2.5)
+            image = full.resize((max(1, round(full.width * scale)), max(1, round(full.height * scale))))
+        else:
+            image = sight_module.shrink(full)
         shown_width, shown_height = image.size
         buffer = BytesIO()
         image.convert("RGB").save(buffer, format="JPEG", quality=78)
@@ -8615,7 +8836,10 @@ class Handler(BaseHTTPRequestHandler):
             "data": base64.b64encode(buffer.getvalue()).decode("ascii"),
             "width": original_width, "height": original_height,
             "shown_width": shown_width, "shown_height": shown_height,
+            "origin": list(origin), "zoom": zoom,
             "_image": full,                                   # the full-size picture, reused for OCR (never sent anywhere)
+            "_shown": image,                                  # the picture as sent, for drawing the numbered boxes on
+            "_print": None if region else sight_module.fingerprint(image),
         }
 
     @staticmethod
@@ -8640,13 +8864,20 @@ class Handler(BaseHTTPRequestHandler):
         kind = action.get("type")
         target = str(action.get("target", "the screen")).strip()[:160]
         result = {"type": kind, "target": target}
+        ox, oy = screen.get("origin") or (0, 0)
+        if isinstance(kind, str) and kind.startswith("web_"):
+            return Handler.validate_web_action(action, screen, result)
+        if kind == "zoom":
+            point = Handler.validate_computer_action({**action, "type": "click"}, screen)
+            result.update(x=point["x"], y=point["y"], target=point["target"] if target in ("", "the screen") else target)
+            return result
         line = action.get("line")
         if kind in ("click", "double_click", "right_click") and isinstance(line, (int, float)) and not isinstance(line, bool) and action.get("element") is None:
             found = next((l for l in ((screen.get("ocr") or {}).get("lines") or []) if l["n"] == int(line)), None)
             if found is None:
                 raise ValueError(f"There is no text line number {int(line)} in the list.")
-            result["x"], result["y"] = found["x"], found["y"]
-            result["box"] = [found["x"] - found["w"] // 2, found["y"] - found["h"] // 2, found["w"], found["h"]]
+            result["x"], result["y"] = found["x"] + ox, found["y"] + oy          # OCR positions are inside this capture
+            result["box"] = [result["x"] - found["w"] // 2, result["y"] - found["h"] // 2, found["w"], found["h"]]
             result["shown_x"] = round(found["x"] * screen["shown_width"] / max(1, screen["width"]))
             result["shown_y"] = round(found["y"] * screen["shown_height"] / max(1, screen["height"]))
             if target in ("", "the screen"):
@@ -8675,6 +8906,8 @@ class Handler(BaseHTTPRequestHandler):
             url = str(action.get("url", "")).strip()
             if not re.fullmatch(r"https?://[^\s\"'<>]{3,2000}", url):
                 raise ValueError("Only http and https web addresses can be opened.")
+            if webpilot.blocked(url):
+                raise ValueError("Autopilot does not open parental-control or account-security pages.")
             result.update(url=url, target=url[:120])
             return result
         if kind == "open_folder":
@@ -8707,8 +8940,8 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError(f"There is no control number {int(number)} in the list.")
             result["x"], result["y"] = element["x"], element["y"]
             result["box"] = [element["x"] - element["w"] // 2, element["y"] - element["h"] // 2, element["w"], element["h"]]
-            result["shown_x"] = round(element["x"] * screen["shown_width"] / max(1, screen["width"]))
-            result["shown_y"] = round(element["y"] * screen["shown_height"] / max(1, screen["height"]))
+            result["shown_x"] = round((element["x"] - ox) * screen["shown_width"] / max(1, screen["width"]))
+            result["shown_y"] = round((element["y"] - oy) * screen["shown_height"] / max(1, screen["height"]))
             if target in ("", "the screen"):
                 result["target"] = f"{element['name']} ({element['kind']})"
             return result
@@ -8716,11 +8949,15 @@ class Handler(BaseHTTPRequestHandler):
             x, y = action.get("x"), action.get("y")
             if not isinstance(x, (int, float)) or not isinstance(y, (int, float)):
                 raise ValueError("The model did not provide valid screen coordinates.")
+            if screen.get("coords") == "thousandths":           # 0–1000 across the picture (Qwen3-VL)
+                if not (0 <= x <= 1000 and 0 <= y <= 1000):
+                    raise ValueError("Positions are thousandths of the picture: x and y must be between 0 and 1000.")
+                x, y = min(screen["shown_width"] - 1, x * screen["shown_width"] / 1000), min(screen["shown_height"] - 1, y * screen["shown_height"] / 1000)
             x, y = int(x), int(y)
             if not (0 <= x < screen["shown_width"] and 0 <= y < screen["shown_height"]):
                 raise ValueError("The proposed screen coordinates are outside the captured screen.")
-            result["x"] = round(x * screen["width"] / screen["shown_width"])
-            result["y"] = round(y * screen["height"] / screen["shown_height"])
+            result["x"] = ox + round(x * screen["width"] / screen["shown_width"])
+            result["y"] = oy + round(y * screen["height"] / screen["shown_height"])
             result["shown_x"], result["shown_y"] = x, y
         if kind == "type_text":
             text = action.get("text")
@@ -8773,6 +9010,68 @@ class Handler(BaseHTTPRequestHandler):
         return result
 
     @staticmethod
+    def validate_web_action(action: dict, screen: dict, result: dict) -> dict:
+        """Actions in the Jarvis browser: items are the B-numbers of the page as it was last read."""
+        kind = result["type"]
+        web = screen.get("web")
+        if kind == "web_open":
+            url = str(action.get("url", "")).strip()
+            if not re.fullmatch(r"https?://[^\s\"'<>]{3,2000}", url):
+                raise ValueError("web_open needs an http or https address.")
+            if webpilot.blocked(url):
+                raise ValueError("Autopilot does not open parental-control or account-security pages.")
+            result.update(url=url, target=url[:120])
+            return result
+        if not control_config()["browser"]:
+            raise ValueError("The Jarvis browser is switched off in Settings > Computer control; use the screen instead.")
+        if web is None:
+            raise ValueError("The Jarvis browser is not open. Open a page with web_open first.")
+        if kind in ("web_click", "web_type", "web_select"):
+            n = action.get("item")
+            if isinstance(n, str) and re.fullmatch(r"[Bb]?\d+", n.strip()):
+                n = int(n.strip().lstrip("Bb"))
+            item = next((i for i in web.get("items", []) if isinstance(n, int) and not isinstance(n, bool) and i["n"] == n), None)
+            if item is None:
+                raise ValueError("Give the number of an item of the page (B-number) as \"item\".")
+            result.update(item=item["n"], target=result["target"] if result["target"] not in ("", "the screen") else f"“{item['label'] or item['tag']}” on the page")
+            if kind == "web_type":
+                text = action.get("text")
+                if item.get("password"):
+                    raise ValueError("That is a password box: Autopilot never types passwords. Ask the user to sign in themselves.")
+                if not isinstance(text, str) or len(text) > 4000:
+                    raise ValueError("web_type needs the text.")
+                result.update(text=text, enter=action.get("enter") is True)
+            if kind == "web_select":
+                option = str(action.get("option", "")).strip()
+                if not option:
+                    raise ValueError("web_select needs the option to choose.")
+                result["option"] = option[:120]
+            return result
+        if kind == "web_key":
+            key = str(action.get("key", "")).lower()
+            if key not in webpilot.KEYS:
+                raise ValueError("web_key takes one key: enter, esc, tab, up, down, pagedown…")
+            result["key"] = key
+            return result
+        if kind == "web_scroll":
+            result.update(down=str(action.get("direction", "down")).lower() != "up", target="the page")
+            return result
+        if kind == "web_back":
+            result["target"] = "the previous page"
+            return result
+        if kind == "web_read":
+            start = action.get("start", 0)
+            result.update(start=int(start) if isinstance(start, (int, float)) and not isinstance(start, bool) and start >= 0 else 0, target="the page's text")
+            return result
+        if kind == "web_tab":
+            n = action.get("tab")
+            if not isinstance(n, int) or isinstance(n, bool) or not 1 <= n <= len(web.get("tabs") or [1]):
+                raise ValueError("web_tab needs the number of a tab.")
+            result.update(tab=n, target=f"tab {n}")
+            return result
+        raise ValueError("Unsupported browser action.")
+
+    @staticmethod
     def sanitize_computer_context(value: object) -> list[dict[str, str]]:
         if not isinstance(value, list):
             return []
@@ -8785,13 +9084,18 @@ class Handler(BaseHTTPRequestHandler):
 
     def computer_plan(self, task: str, screen: dict, completed_steps: list[str], conversation_context: list[dict[str, str]] | None = None) -> dict:
         sight = autopilot_sight()
-        ai = ai_settings("vision" if sight == "picture" else "chat")
+        cfg = control_config()
+        ai = autopilot_ai() if sight == "picture" or cfg["model"] else ai_settings("chat")
         key, base, model = ai["key"], ai["base"], ai["model"]
         if not key:
             raise RuntimeError("No AI model is set up. Choose one in Settings > AI model.")
         if ai["is_local"]:
             ensure_ollama(base)
-        cfg = control_config()
+            screen.setdefault("_map_limit", 80)               # a local model has a small memory: shorter lists
+            screen.setdefault("_ocr_limit", 60)
+        screen["coords"] = autopilot_coords(model) if sight == "picture" else "pixels"
+        if cfg["browser"] and "web" not in screen:
+            screen["web"] = web_snapshot_now()
         screen["windows"] = window_list() if "windows" not in screen else screen["windows"]
         if "front" not in screen:
             try:
@@ -8799,6 +9103,22 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 screen["front"] = 0
         screen_text = screen_map_text(screen)
+        picture = screen["data"]
+        marked = False
+        if sight == "picture" and cfg["marks"] and screen.get("_shown") is not None:
+            shown_map = shifted_map(screen) or {}
+            clickable = [e for e in shown_map.get("elements", []) if e["kind"] in screenmap.CLICKABLE][: screen.get("_map_limit", 110)]
+            if clickable:
+                try:
+                    img = sight_module.draw_marks(screen["_shown"], clickable, (0, 0), (screen["width"], screen["height"]))
+                    buf = BytesIO()
+                    img.save(buf, format="JPEG", quality=80)
+                    picture, marked = base64.b64encode(buf.getvalue()).decode("ascii"), True
+                except Exception as exc:
+                    print(f"[jarvis] autopilot marks: {exc}")
+        web_text = webpilot.describe(screen.get("web"), 1200 if ai["is_local"] else 2500, 70 if ai["is_local"] else 120) if screen.get("web") else ""
+        hint = procedure_hint(task)
+        thousandths = screen["coords"] == "thousandths"
         if sight == "text" and not screen_text:
             raise RuntimeError("This model cannot see pictures and Windows gave me no text from the screen. Choose a model that can see (for example ollama pull moondream) in Settings > AI model.")
         system = (
@@ -8807,7 +9127,7 @@ class Handler(BaseHTTPRequestHandler):
             "Use recent chat context only to resolve references such as 'continue that task' or 'do the same'; "
             "the current task is authoritative, and old messages do not authorize unrelated actions. "
             "Follow only the user's task. Propose exactly one small next step at a time. Return one JSON object only: "
-            '{"reply":"brief status","done":false,"action":{"type":"click","x":100,"y":200,"target":"the Search box"}}. '
+            '{"reply":"brief status","done":false,"expect":"what the screen should show after this step","action":{"type":"click","x":100,"y":200,"target":"the Search box"}}. '
             + ("Set done=true only when the screenshot visibly confirms the user's task is complete. " if sight == "picture" else
                "Set done=true when the windows, controls and text read on the screen confirm the user's task is complete, or when the completed actions already did everything the task asked and nothing on the screen shows a failure. ")
             + "If more work remains, action must contain the next safe step. "
@@ -8820,7 +9140,17 @@ class Handler(BaseHTTPRequestHandler):
             "write_file ({\"type\":\"write_file\",\"path\":\"src/app.py\",\"text\":\"<the whole new file>\"}). For files in a project folder, read and write them directly instead of typing into an editor; "
             "always read a file before you change it, and write the complete new content. What a read or a list returns appears in the completed actions. "
             "A hotkey action must use a keys array, for example {\"type\":\"hotkey\",\"keys\":[\"ctrl\",\"l\"]}; do not return the shortcut as another field. "
-            "Coordinates refer to the screenshot pixels whose dimensions are provided in the user message. "
+            + ("Positions (x, y) are thousandths of the picture: 0,0 is the top-left corner and 1000,1000 the bottom-right, whatever its size in pixels. "
+               if thousandths else "Coordinates refer to the screenshot pixels whose dimensions are provided in the user message. ")
+            + ("Numbered coloured boxes are drawn on the picture around the controls of the list below; the number on a box is the control's number. " if marked else "")
+            + "If something is too small to read or to hit exactly, look closer first: {\"type\":\"zoom\",\"x\":..,\"y\":..} (or \"element\":N) shows that area enlarged in the next picture; positions then refer to the enlarged picture. "
+            + "Websites: use the Jarvis browser, which you control exactly by the numbered items of the page (B-numbers): web_open ({\"type\":\"web_open\",\"url\":\"https://...\"}), "
+            "web_click ({\"type\":\"web_click\",\"item\":N}), web_type ({\"type\":\"web_type\",\"item\":N,\"text\":\"...\",\"enter\":true}), web_select ({\"type\":\"web_select\",\"item\":N,\"option\":\"...\"}), "
+            "web_key ({\"type\":\"web_key\",\"key\":\"enter\"}), web_scroll ({\"type\":\"web_scroll\",\"direction\":\"down\"}), web_back, web_read ({\"type\":\"web_read\",\"start\":0} for more of the page's text), "
+            "web_tab ({\"type\":\"web_tab\",\"tab\":N}). Prefer these to clicking a browser window on the screen. "
+            "After every step, look at the new screen (and page) and check that the last step did what you expected (the completed actions show what you expected and whether the screen changed); "
+            "if it did not, do not repeat it: try another way (an element number, a keyboard shortcut, zooming in, the browser actions). "
+            "Never change parental controls, Family Link, Microsoft Family Safety, or security and sign-in settings, even if asked. "
             "The user message may list the numbered controls Windows reports in the front window. When one of them is what you need, give its number instead of coordinates, "
             'for example {"type":"click","element":12,"target":"the Save button"}: that is exact, while positions read from the picture are approximate. '
 
@@ -8839,8 +9169,11 @@ class Handler(BaseHTTPRequestHandler):
             f"User's task: {task}\n"
             f"Completed actions: {step_summary}\n"
             f"Screenshot dimensions: {screen['shown_width']} x {screen['shown_height']} pixels.\n"
+            + (f"This picture is a closer look at one part of the screen ({screen.get('zoom') or 2}× larger); positions refer to this picture.\n" if screen.get("zoom") else "")
             + windows_ctl.describe(screen["windows"], screen.get("front", 0)) + "\n"
             + (screen_text + "\n" if screen_text else "")
+            + (web_text + "\n" if web_text else "")
+            + (hint + "\n" if hint else "")
             + (projects.describe(cfg["folders"]) + "\n" if cfg["folders"] else "")
             + ("Choose one safe next action that directly advances the user's task. Return action null with done=true only if the latest screenshot visibly proves the requested result is complete."
                if sight == "picture" else
@@ -8848,27 +9181,32 @@ class Handler(BaseHTTPRequestHandler):
         )
         repair_note = ""
         for attempt in range(3):
-            request_body = json_bytes({
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system + language_instruction()},
-                    {"role": "user", "content": [{"type": "text", "text": user_text + repair_note}]
-                     + ([{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + screen["data"], "detail": "high"}}] if sight == "picture" else [])},
-                ],
-                "response_format": {"type": "json_object"},
-            })
-            req = urllib.request.Request(
-                base + "/chat/completions", data=request_body,
-                headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST",
-            )
+            if ai["is_local"]:
+                content = ollama_autopilot_chat(base, model, system + language_instruction(), user_text + repair_note, picture if sight == "picture" else None)
+            else:
+                request_body = json_bytes({
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system + language_instruction()},
+                        {"role": "user", "content": [{"type": "text", "text": user_text + repair_note}]
+                         + ([{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + picture, "detail": "high"}}] if sight == "picture" else [])},
+                    ],
+                    "response_format": {"type": "json_object"},
+                })
+                req = urllib.request.Request(
+                    base + "/chat/completions", data=request_body,
+                    headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"}, method="POST",
+                )
+                try:
+                    with urllib.request.urlopen(req, timeout=90) as response:
+                        response_data = json.loads(response.read())
+                except urllib.error.HTTPError as exc:
+                    detail = exc.read().decode("utf-8", errors="replace")[:800]
+                    raise RuntimeError(f"Computer vision request returned {exc.code}: {detail}") from exc
+                content = None
             try:
-                with urllib.request.urlopen(req, timeout=180 if ai["is_local"] else 90) as response:
-                    response_data = json.loads(response.read())
-            except urllib.error.HTTPError as exc:
-                detail = exc.read().decode("utf-8", errors="replace")[:800]
-                raise RuntimeError(f"Computer vision request returned {exc.code}: {detail}") from exc
-            try:
-                content = response_data["choices"][0]["message"]["content"]
+                if content is None:
+                    content = response_data["choices"][0]["message"]["content"]
                 if isinstance(content, list):
                     content = "".join(part.get("text", "") for part in content if isinstance(part, dict))
                 split = debugtrace.ThinkSplitter()
@@ -8881,7 +9219,7 @@ class Handler(BaseHTTPRequestHandler):
                 validated = self.validate_computer_action(parsed.get("action"), screen)
                 if validated:
                     debugtrace.step("autopilot", "Planned action: " + overlay_module.describe(validated), json.dumps(validated, ensure_ascii=False, indent=1))
-                return {"reply": str(parsed.get("reply", ""))[:1000], "action": validated, "done": parsed.get("done") is True}
+                return {"reply": str(parsed.get("reply", ""))[:1000], "action": validated, "done": parsed.get("done") is True, "expect": str(parsed.get("expect") or "")[:200]}
             except (ValueError, TypeError, AttributeError, KeyError, IndexError) as exc:
                 if attempt == 2:
                     raise ValueError(f"The AI returned an invalid computer action after 3 attempts: {exc}") from exc
@@ -8894,10 +9232,23 @@ class Handler(BaseHTTPRequestHandler):
 
     def plan_computer_step(self, task: str, screen: dict, completed_steps: list[str], conversation_context: list[dict[str, str]] | None = None) -> tuple[dict, dict]:
         """Wait actions are bounded and run automatically; interactive actions still need approval."""
-        automatic_waits = 0
+        automatic_waits = zooms = 0
         while True:
             plan = self.computer_plan(task, screen, completed_steps, conversation_context)
             action = plan["action"]
+            if action and action["type"] == "zoom":                  # looking closer is not an action on the PC: done at once
+                if zooms >= 2 or screen.get("zoom"):
+                    completed_steps.append("You already looked closer: act on what this picture shows, or work from the element numbers.")
+                    screen = self.capture_screen()
+                    zooms += 1
+                    if zooms > 3:
+                        return {"reply": "I could not get a clear enough look at the screen.", "action": None, "done": False}, screen
+                    continue
+                area = (screen.get("origin") or [0, 0])[0], (screen.get("origin") or [0, 0])[1], screen["width"], screen["height"]
+                completed_steps.append(f"looked closer at {action.get('target', 'part of the screen')}")
+                screen = self.capture_screen(region=sight_module.zoom_region(action["x"], action["y"], area))
+                zooms += 1
+                continue
             if not action or action["type"] != "wait":
                 return plan, screen
             if automatic_waits >= 3:
@@ -8978,6 +9329,7 @@ class Handler(BaseHTTPRequestHandler):
 
         def stopped(reply: str) -> None:
             self.send_json(200, {"ok": True, "stopped": True, "reply": reply, "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
+        did: list[str] = []                                            # the steps that ran, to remember the way when it works
         try:
             plan, screen = self.plan_computer_step(task, screen, completed_actions, conversation_context)
             no_action_retries = 0
@@ -8990,6 +9342,12 @@ class Handler(BaseHTTPRequestHandler):
                 action = plan["action"]
                 if not action:
                     if plan.get("done"):
+                        if did and control_config()["learn"]:
+                            try:
+                                procedures.remember(learned_path(), task, did)
+                                PROC_HINTS.pop(task, None)
+                            except OSError:
+                                pass
                         self.send_json(200, {"ok": True, "done": True, "reply": plan["reply"] or "Task complete.", "screenshot": screen["data"], "screen_width": screen["shown_width"], "screen_height": screen["shown_height"]})
                         return
                     if no_action_retries < 2:
@@ -9019,12 +9377,18 @@ class Handler(BaseHTTPRequestHandler):
                     if stop_event.is_set():
                         stopped("Stopped before that action. Nothing more was done.")
                         return
+                before = screen.get("_print")
                 try:
                     seen = self.execute_computer_action(action)
-                except (ValueError, OSError) as exc:
-                    seen = f"that did not work: {exc}"
+                    worked = True
+                except (ValueError, OSError, webpilot.WebError) as exc:
+                    seen, worked = f"that did not work: {exc}", False
                 debugtrace.step("tool", f"Autopilot did step {step}: {overlay_module.describe(action)}", seen or "(no result)")
-                completed_actions.append(step_record(action, seen))
+                record = step_record(action, seen)
+                if plan.get("expect"):
+                    record += f" — you expected: {plan['expect']}"
+                if worked:
+                    did.append(overlay_module.describe(action) + (f" ({action['target']})" if action.get("target") and action["target"] not in overlay_module.describe(action) else ""))
                 if last_key == action_key(action):
                     same_in_row += 1
                 else:
@@ -9033,6 +9397,9 @@ class Handler(BaseHTTPRequestHandler):
                     ov.clear()
                     ov.status(f"Autopilot · step {step} of {limit} done · looking at the screen…")
                 screen = self.capture_screen()
+                if worked and action["type"] in SCREEN_KINDS and sight_module.changed(before, screen.get("_print")) is False:
+                    record += " — NOTHING CHANGED on the screen after this step: it probably did not work"
+                completed_actions.append(record)
                 if stop_event.is_set():
                     stopped("Stopped after the current action. No further computer actions will run.")
                     return
@@ -9068,8 +9435,37 @@ class Handler(BaseHTTPRequestHandler):
             time.sleep(2.0)
             return None
         if kind == "open_url":
+            if control_config()["browser"] and webpilot.available():
+                try:
+                    web_pilot().open(action["url"])            # in the Jarvis browser, so the next steps can use the page's items
+                    return "opened in the Jarvis browser (its items are listed now)"
+                except webpilot.WebError:
+                    pass
             Handler.open_in_browser(action["url"], None)
             time.sleep(2.5)
+            return None
+        if kind.startswith("web_"):
+            w = web_pilot()
+            if kind == "web_open":
+                w.open(action["url"])
+            elif kind == "web_click":
+                w.click(action["item"])
+            elif kind == "web_type":
+                w.type(action["item"], action["text"], action.get("enter", False))
+            elif kind == "web_select":
+                w.select(action["item"], action["option"])
+            elif kind == "web_key":
+                w.key(action["key"])
+            elif kind == "web_scroll":
+                w.scroll(action.get("down", True))
+            elif kind == "web_back":
+                w.back()
+            elif kind == "web_tab":
+                w.tab(action["tab"])
+            elif kind == "web_read":
+                return w.read(action.get("start", 0))
+            return None
+        if kind == "zoom":
             return None
         if kind == "open_folder":
             open_folder_path(Path(action["path"]))

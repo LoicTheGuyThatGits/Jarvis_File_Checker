@@ -649,8 +649,37 @@
         li.append(code, ' ', x); list.append(li);
       });
       if (!(d.folders || []).length) { var li = document.createElement('li'); li.textContent = 'None yet.'; list.append(li); }
+      $('ctl-marks').checked = d.marks !== false; $('ctl-screens').value = d.screens || 'main'; $('ctl-browser').checked = d.browser !== false; $('ctl-learn').checked = d.learn !== false;
+      var mn = $('ctl-model-now'), mk = function (cls, text, raw) { var e = document.createElement('span'); e.className = cls; e.textContent = text; if (raw) e.setAttribute('data-no-i18n', ''); return e; };
+      mn.textContent = '';
+      mn.append(mk('ctl-l', 'Autopilot uses:'), ' ', mk('ctl-m', d.model_now || '?', true), ' ', mk('ctl-l', d.sight_now === 'picture' ? (d.coords_now === 'thousandths' ? '(sees the screen, positions in thousandths)' : '(sees the screen)') : '(text only: this model cannot see pictures)'));
+      var sel = $('ctl-model'), keep = d.model || '';
+      while (sel.options.length > 1) sel.remove(1);
+      (d.vision_models || []).concat(keep && (d.vision_models || []).indexOf(keep) < 0 ? [keep] : []).forEach(function (m) { var o = document.createElement('option'); o.value = o.textContent = m; sel.append(o); });
+      sel.value = keep;
+      var p = d.pull || {};
+      $('ctl-pull').classList.toggle('hidden', !!d.has_recommended || !d.local);
+      $('ctl-pull').disabled = !!p.running;
+      $('ctl-pull-status').textContent = p.running ? (window.JarvisI18n ? window.JarvisI18n.t('Downloading…') : 'Downloading…') + ' ' + (p.total ? Math.round(100 * p.done / p.total) + ' %' : (p.status || ''))
+        : p.error ? p.error : (p.status === 'success' ? (window.JarvisI18n ? window.JarvisI18n.t('Downloaded. Autopilot uses it now.') : 'Downloaded. Autopilot uses it now.') : (d.has_recommended ? (window.JarvisI18n ? window.JarvisI18n.t('qwen3-vl is installed.') : 'qwen3-vl is installed.') : ''));
+      var inst = d.install || {};
+      $('ctl-install').classList.toggle('hidden', !!d.browser_ready || !!inst.running);
+      $('ctl-browser-status').textContent = d.browser_ready ? 'Browser control is ready.' : inst.running ? 'Installing browser control… (a minute or two)' : inst.error ? inst.error : 'Browser control needs a small extra package (Playwright).';
+      var learned = $('ctl-learned'); learned.textContent = '';
+      (d.learned || []).forEach(function (it) {
+        var li = document.createElement('li'), t = document.createElement('span'), n = document.createElement('span'), x = document.createElement('button');
+        t.className = 'ctl-task'; t.setAttribute('data-no-i18n', ''); t.textContent = it.task;
+        n.className = 'ctl-steps'; n.textContent = ' · ' + it.steps + ' steps' + (it.uses ? ' · reused ' + it.uses + '×' : '');
+        x.type = 'button'; x.className = 'settings-action'; x.textContent = 'Forget';
+        x.addEventListener('click', function () { ctlSave({ forget: it.id }); });
+        li.append(t, n, ' ', x); learned.append(li);
+      });
+      if (!(d.learned || []).length) { var none = document.createElement('li'); none.textContent = window.JarvisI18n ? window.JarvisI18n.t('Nothing yet.') : 'Nothing yet.'; learned.append(none); }
       ctlState = d;
+      clearTimeout(ctlTimer);
+      if (p.running || inst.running) ctlTimer = setTimeout(function () { api('/api/control').then(ctlShow).catch(function () {}); }, 1500);
     };
+    var ctlTimer = 0;
     var ctlState = { folders: [] };
     var ctlSave = function (update) { return api('/api/control', update).then(function (d) { ctlShow(d); $('ctl-status').textContent = 'Saved.'; }).catch(function (e) { $('ctl-status').textContent = e.message; }); };
     $('ctl-sight').addEventListener('change', function () { ctlSave({ sight: $('ctl-sight').value }); });
@@ -662,6 +691,14 @@
       }).catch(function (e) { $('ctl-status').textContent = e.message; });
     });
     $('ctl-steps').addEventListener('change', function () { ctlSave({ max_steps: Number($('ctl-steps').value) }); });
+    $('ctl-marks').addEventListener('change', function () { ctlSave({ marks: $('ctl-marks').checked }); });
+    $('ctl-screens').addEventListener('change', function () { ctlSave({ screens: $('ctl-screens').value }); });
+    $('ctl-browser').addEventListener('change', function () { ctlSave({ browser: $('ctl-browser').checked }); });
+    $('ctl-learn').addEventListener('change', function () { ctlSave({ learn: $('ctl-learn').checked }); });
+    $('ctl-model').addEventListener('change', function () { ctlSave({ model: $('ctl-model').value }); });
+    $('ctl-pull').addEventListener('click', function () { api('/api/control', { pull: ctlState.recommended || 'qwen3-vl:8b' }).then(ctlShow).catch(function (e) { $('ctl-pull-status').textContent = e.message; }); });
+    $('ctl-install').addEventListener('click', function () { api('/api/control', { install_browser: true }).then(ctlShow).catch(function (e) { $('ctl-browser-status').textContent = e.message; }); });
+    $('ctl-close-browser').addEventListener('click', function () { api('/api/control', { close_browser: true }).then(function (d) { ctlShow(d); $('ctl-status').textContent = 'The Jarvis browser is closed.'; }).catch(function () {}); });
     $('ctl-folder-add').addEventListener('click', function () {
       var f = $('ctl-folder').value.trim(); if (!f) return;
       ctlSave({ folders: (ctlState.folders || []).concat([f]) }).then(function () { if ($('ctl-status').textContent === 'Saved.') $('ctl-folder').value = ''; });
