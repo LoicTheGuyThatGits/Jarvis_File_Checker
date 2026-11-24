@@ -657,6 +657,7 @@
       btn.addEventListener('click', function () {
         var how = r.fix.do;
         if (how.indexOf('pane:') === 0) { window.JarvisUI.openPane(how.slice(5)); return; }
+        if (how === 'pull_coder') { btn.disabled = true; api('/api/coder', { pull: true }).then(function () { btn.textContent = tr('Downloading: the progress is in Jarvis Code.'); }).catch(function (e) { btn.disabled = false; btn.textContent = e.message; }); return; }
         var body = how === 'pull' ? { pull: 'qwen3-vl:8b-instruct' } : how === 'install_browser' ? { install_browser: true } : how === 'install_recording' ? { install_recording: true } : null;
         if (!body) return;
         btn.disabled = true;

@@ -71,6 +71,7 @@ STATIC_FILES = {
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
     "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS),
     "/game.html": ("game.html", "text/html; charset=utf-8"),
+    "/coder.html": ("coder.html", "text/html; charset=utf-8"), "/js/coder.js": ("js/coder.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
     "/icons/jarvis.ico": ("icons/jarvis.ico", "image/x-icon"), "/favicon.ico": ("icons/jarvis.ico", "image/x-icon"),
 }
@@ -1031,6 +1032,7 @@ import transport as transport_module
 import replies as replies_module
 import awareness as awareness_module
 import teach as teach_module
+import coder as coder_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -2992,6 +2994,216 @@ def control_public() -> dict:
                         for i in reversed(procedures.load(learned_path()))]}
 
 
+# ---------------- Jarvis Code: the model codes on a project and looks at it in a browser ----------------
+CODER: dict = {"session": None, "preview": None, "browser": None, "vision": {}}
+CODER_RECOMMENDED = "qwen3.5:9b"
+CODER_PREFS = ("qwen3.5:9b", "qwen3.5", "qwen3-coder", "qwen2.5-coder", "qwen3-vl", "qwen3", "gemma3", "llama3.1")
+CODER_CTX = 16384
+CODER_OPEN = re.compile(r"(?:(?:hey\s+)?jarvis[,.:]?\s+)?(?:please\s+)?(?:open|show|start|launch)\s+(?:the\s+)?(?:jarvis\s+code|code\s+(?:workspace|window|editor)|coding\s+(?:workspace|window))[.!]?", re.I)
+
+
+def coder_settings(update: dict | None = None) -> dict:
+    path = data_path("coder.json")
+    try:
+        cfg = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        cfg = {}
+    cfg = cfg if isinstance(cfg, dict) else {}
+    out = {"model": str(cfg.get("model") or ""), "max_turns": cfg.get("max_turns") if cfg.get("max_turns") in (15, 30, 50, 80) else 30,
+           "trusted": [str(t) for t in cfg.get("trusted", []) if isinstance(t, str)][:50], "recent": [str(t) for t in cfg.get("recent", []) if isinstance(t, str)][:12]}
+    if update:
+        if "model" in update:
+            out["model"] = str(update["model"] or "")[:120]
+        if update.get("max_turns") in (15, 30, 50, 80):
+            out["max_turns"] = update["max_turns"]
+        if update.get("trust"):
+            t = str(Path(update["trust"]).resolve())
+            out["trusted"] = [x for x in out["trusted"] if x != t] + [t]
+        if update.get("untrust"):
+            t = str(Path(update["untrust"]).resolve())
+            out["trusted"] = [x for x in out["trusted"] if x != t]
+        if update.get("recent"):
+            t = str(Path(update["recent"]).resolve())
+            out["recent"] = ([t] + [x for x in out["recent"] if x != t])[:12]
+        path.write_text(json.dumps(out, indent=2), encoding="utf-8")
+    return out
+
+
+def coder_workspace() -> Path:
+    w = ROOT / "workspace"
+    w.mkdir(exist_ok=True)
+    return w
+
+
+def coder_projects() -> list[dict]:
+    """The folders Jarvis Code may work in: Autopilot's project folders, the folders in Jarvis's workspace, recent ones."""
+    seen, out = set(), []
+
+    def add(p: Path, source: str):
+        try:
+            r = p.resolve()
+        except OSError:
+            return
+        if str(r) in seen or not r.is_dir():
+            return
+        seen.add(str(r))
+        out.append({"path": str(r), "name": r.name, "source": source})
+    allowed = [Path(f) for f in control_config()["folders"]]
+    for f in coder_settings()["recent"]:
+        if coder_allowed(Path(f)):
+            add(Path(f), "recent")
+    for f in allowed:
+        add(f, "project")
+    w = coder_workspace()
+    for f in sorted((p for p in w.iterdir() if p.is_dir() and not p.name.startswith(".")), key=lambda p: -p.stat().st_mtime)[:30]:
+        add(f, "workspace")
+    return out
+
+
+def coder_allowed(p: Path) -> bool:
+    try:
+        r = p.resolve()
+    except OSError:
+        return False
+    roots = [coder_workspace().resolve()] + [Path(f).resolve() for f in control_config()["folders"]]
+    return r.is_dir() and any(r == root and root != coder_workspace().resolve() or root in r.parents for root in roots)
+
+
+def coder_new_project(name: str) -> Path:
+    clean = re.sub(r"[^\w .-]", "", str(name or "")).strip(" .")[:60]
+    if not clean or clean.lower() in WINDOWS_RESERVED_NAMES:
+        raise ValueError("Give the new project a simple name (letters, numbers, spaces, - or _).")
+    p = coder_workspace() / clean
+    if p.exists():
+        raise ValueError(f"There is already a project called {clean}.")
+    p.mkdir(parents=True)
+    return p
+
+
+def coder_model() -> tuple[str, dict]:
+    ai = ai_settings("chat")
+    if not ai["is_local"]:
+        ai = ai_settings("chat", "local")
+    chosen = coder_settings()["model"]
+    if chosen:
+        return chosen, ai
+    ids = installed_models(ai)
+    for pref in CODER_PREFS:
+        hits = sorted((n for n in ids if n.lower().startswith(pref) or pref in n.lower()), key=lambda n: (slow_thinker(n) and "instruct" not in n.lower(), len(n)))
+        if hits:
+            return hits[0], ai
+    return ai["model"], ai
+
+
+def coder_vision(base: str, model: str) -> bool:
+    """Whether the model can look at the screenshot (Ollama says so in /api/show), remembered per model."""
+    key = base + "|" + model
+    if key not in CODER["vision"]:
+        seen = None
+        try:
+            req = urllib.request.Request(re.sub(r"/v1/?$", "", base) + "/api/show", data=json.dumps({"model": model}).encode(), headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=8) as r:
+                caps = json.loads(r.read()).get("capabilities")
+            if isinstance(caps, list):
+                seen = "vision" in caps
+        except Exception:
+            pass
+        CODER["vision"][key] = bool(VISION_NAMES.search(model) or re.search(r"qwen3\.5", model, re.I)) if seen is None else seen
+    return CODER["vision"][key]
+
+
+def coder_llm(base: str, model: str):
+    """Ollama's own chat API, streamed (the page shows the answer as it is written), thinking off, a bigger working memory."""
+    root = re.sub(r"/v1/?$", "", base)
+
+    def ask(messages: list[dict], on_text) -> str:
+        payload = {"model": model, "messages": messages, "stream": True, "keep_alive": "20m",
+                   "options": {"num_ctx": CODER_CTX, "temperature": 0.2, "num_predict": 6000}}
+        if re.search(r"qwen3|deepseek-r1|gpt-oss|magistral", model, re.I):
+            payload["think"] = False
+        req = urllib.request.Request(root + "/api/chat", data=json.dumps(payload).encode(), headers={"Content-Type": "application/json"}, method="POST")
+        parts: list[str] = []
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                for line in r:
+                    try:
+                        msg = json.loads(line.decode("utf-8", "replace"))
+                    except ValueError:
+                        continue
+                    if msg.get("error"):
+                        raise coder_module.CoderError(str(msg["error"])[:300])
+                    piece = str((msg.get("message") or {}).get("content") or "")
+                    if piece:
+                        parts.append(piece)
+                        on_text(piece)
+                    if msg.get("done"):
+                        break
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", "replace")[:400]
+            if exc.code == 404:
+                raise coder_module.CoderError(f"The model {model} is not installed. Download it in Jarvis Code > Model.") from exc
+            if "think" in detail.lower() and "think" in payload:
+                payload.pop("think")
+                return ask(messages, on_text)
+            raise coder_module.CoderError(f"Ollama answered {exc.code}: {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise coder_module.CoderError("Ollama is not running, so the model cannot be asked. Start Ollama (or restart Jarvis) and try again.") from exc
+        except (TimeoutError, OSError) as exc:
+            raise coder_module.CoderError(f"{model} gave no answer for 5 minutes. It may not fit in the graphics card's memory: close games and other AI models.") from exc
+        return "".join(parts)
+    return ask
+
+
+def coder_parts():
+    if CODER["preview"] is None:
+        CODER["preview"] = coder_module.PreviewServer()
+    if CODER["browser"] is None:
+        CODER["browser"] = coder_module.BrowserWorker()
+    return CODER["preview"], CODER["browser"]
+
+
+def coder_notify(kind: str, text: str) -> None:
+    title = "Jarvis Code: "
+    publish_event({"type": "proactive", "id": "coder-" + secrets.token_hex(4), "text": title + text, "chat": kind == "end", "speak": False})
+
+
+def coder_session(project: str, task: str = "", start: bool = False):
+    p = Path(project)
+    if not coder_allowed(p):
+        raise ValueError("Jarvis Code works only in Jarvis's workspace folder and in the project folders of Settings > Computer control.")
+    cur = CODER["session"]
+    if cur and cur.status in ("working", "waiting"):
+        raise ValueError("Jarvis Code is already working on a task. Stop it first.")
+    if start and not task.strip():
+        raise ValueError("Write what Jarvis should do.")
+    preview, browser = coder_parts()
+    model, ai = coder_model()
+    cfg = coder_settings({"recent": str(p)})
+    s = coder_module.Session(p, task or "", llm=coder_llm(ai["base"], model), check=browser.check, preview=preview,
+                             backup_root=ROOT / "data" / "file-backups" / "coder", vision=coder_vision(ai["base"], model) if start else False,
+                             max_turns=cfg["max_turns"], trusted=str(p.resolve()) in cfg["trusted"], notify=coder_notify, model=model)
+    if not start:
+        s.status = "ready"
+    if cur and cur.root == s.root and cur.status not in ("working", "waiting"):
+        s.changes = cur.changes                       # undo still reaches the earlier tasks on this project
+        s.last_check = cur.last_check
+    CODER["session"] = s
+    if start:
+        s.start()
+    return s
+
+
+def coder_public(since: int = 0, shot_at: float = 0) -> dict:
+    s = CODER["session"]
+    model, ai = coder_model()
+    have = installed_models(ai)
+    return {"session": s.public(since, shot_at) if s else None, "projects": coder_projects(), "settings": coder_settings(),
+            "model": model, "installed": model in have or any(h.split(":")[0] == model for h in have), "recommended": CODER_RECOMMENDED,
+            "has_recommended": any(h == CODER_RECOMMENDED or h.startswith(CODER_RECOMMENDED + "-") for h in have),
+            "models": [m for m in have if not re.search(r"embed", m, re.I)], "pull": dict(PULL), "browser_ready": webpilot.available(),
+            "workspace": str(coder_workspace())}
+
+
 # ---------------- teaching Autopilot by showing it ----------------
 TEACH: dict = {"rec": None, "listeners": [], "map": None, "result": None}
 
@@ -3626,7 +3838,23 @@ def feature_checks() -> list:
         return ("ok" if listening else "warn"), ("the phone app is connected" if listening else "on, but no phone app is connected right now (open the app on the phone)") + \
             ("; missed calls go to Telegram" if cfg["telegram_fallback"] else "")
 
-    return [("PC clock", clock), ("Ollama", ollama), ("Autopilot model", autopilot_model), ("Jarvis browser", browser), ("Show Autopilot how (recording)", recording),
+    def code():
+        model, ai = coder_model()
+        have = installed_models(ai)
+        if not webpilot.available():
+            return "warn", "Jarvis Code can write code but cannot look at pages without Playwright", {"do": "install_browser", "label": "Install browser control"}
+        try:
+            base = coder_parts()[0].start()
+        except coder_module.CoderError as exc:
+            return "fail", str(exc)
+        sealed = "" if "127.0.0.2" in base else " (pages sealed with a sandbox header)"
+        if not any(h == CODER_RECOMMENDED or h.startswith(CODER_RECOMMENDED + "-") for h in have):
+            return "warn", f"uses {model} for now; {CODER_RECOMMENDED} codes better and can see the screenshots", {"do": "pull_coder", "label": f"Download {CODER_RECOMMENDED} (6.6 GB)"}
+        share = gpu_share(ai["base"], model)
+        where = "" if share is None else f", {round(share * 100)} % on the graphics card"
+        return "ok", f"{model}{where}; pages are previewed at {base}{sealed}"
+
+    return [("PC clock", clock), ("Ollama", ollama), ("Autopilot model", autopilot_model), ("Jarvis Code", code), ("Jarvis browser", browser), ("Show Autopilot how (recording)", recording),
             ("Screen awareness", awareness), ("Public transport", transport), ("Google Classroom", classroom), ("Study coach", coach), ("Memory between chats", memory), ("Calls", calls)]
 
 
@@ -6859,6 +7087,35 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/teach":
             self.send_json(200, teach_status())
             return
+        if path.startswith("/api/coder"):
+            if self._from_phone:
+                self.send_json(403, {"error": "Jarvis Code works at the PC only."})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            if path == "/api/coder":
+                try:
+                    since, shot = int((q.get("since") or ["0"])[0]), float((q.get("shot") or ["0"])[0])
+                except ValueError:
+                    since, shot = 0, 0.0
+                self.send_json(200, coder_public(since, shot))
+                return
+            if path == "/api/coder/file":
+                s = CODER["session"]
+                try:
+                    if not s:
+                        raise coder_module.CoderError("Open a project first.")
+                    p = coder_module.safe_path(s.root, (q.get("path") or [""])[0])
+                    if p.is_dir() or not p.exists():
+                        raise coder_module.CoderError("There is no such file.")
+                    self.send_json(200, {"path": coder_module.rel_of(s.root, p), "text": coder_module.read_text(p), "size": p.stat().st_size})
+                except coder_module.CoderError as exc:
+                    self.send_json(400, {"error": str(exc)})
+                return
+            if path == "/api/coder/files":
+                s = CODER["session"]
+                files = [{"path": coder_module.rel_of(s.root, p), "size": p.stat().st_size} for p in coder_module.walk(s.root)] if s else []
+                self.send_json(200, {"files": files})
+                return
         if path == "/api/call":
             obj = calls_obj()
             with SUBSCRIBERS_LOCK:
@@ -7892,6 +8149,55 @@ class Handler(BaseHTTPRequestHandler):
                 self.coach_post(payload)
             elif path == "/api/transport":
                 self.transport_post(payload)
+            elif path == "/api/coder":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Jarvis Code works at the PC only."})
+                    return
+                s = CODER["session"]
+                try:
+                    if payload.get("new"):
+                        coder_session(str(coder_new_project(payload["new"])))
+                    elif payload.get("open"):
+                        coder_session(str(payload["open"]))
+                    elif payload.get("start") is not None:
+                        if not s:
+                            raise ValueError("Pick a project first.")
+                        coder_session(str(s.root), str(payload["start"])[:4000], start=True)
+                    elif payload.get("stop"):
+                        if s:
+                            s.stop()
+                    elif payload.get("decide") in ("yes", "always", "no"):
+                        if s and s.pending:
+                            if payload["decide"] == "always":
+                                coder_settings({"trust": str(s.root)})
+                            s.decide(payload["decide"])
+                    elif payload.get("undo") in ("last", "all"):
+                        if not s:
+                            raise ValueError("Nothing is open.")
+                        s.undo_last() if payload["undo"] == "last" else s.undo_all()
+                    elif payload.get("check"):
+                        if not s:
+                            raise ValueError("Pick a project first.")
+                        if s.status in ("working", "waiting"):
+                            raise ValueError("Jarvis is working on it; the page is checked after each change.")
+                        s._check(str(payload.get("page") or s.page or ""), [x for x in payload.get("steps", []) if isinstance(x, str)][:12] if isinstance(payload.get("steps"), list) else [])
+                    elif payload.get("open_folder"):
+                        if s:
+                            open_folder_path(s.root)
+                    elif payload.get("pull"):
+                        if not PULL["running"]:
+                            threading.Thread(target=pull_model, args=(CODER_RECOMMENDED,), daemon=True).start()
+                            time.sleep(0.2)
+                    elif isinstance(payload.get("settings"), dict):
+                        st = payload["settings"]
+                        if s and st.get("untrust"):
+                            s.trusted = False
+                        if s and st.get("trust"):
+                            s.trusted = True
+                        coder_settings({k: st[k] for k in ("model", "max_turns", "untrust", "trust") if k in st})
+                    self.send_json(200, coder_public())
+                except (ValueError, coder_module.CoderError) as exc:
+                    self.send_json(400, {"error": str(exc), **coder_public()})
             elif path == "/api/teach":
                 if self._from_phone:
                     self.send_json(403, {"error": "Showing Autopilot how to do something works at the PC only."})
@@ -8752,6 +9058,12 @@ class Handler(BaseHTTPRequestHandler):
         if french_command:                      # a French request for a built-in command: run the English one, answer in French
             debugtrace.step("french", f"French rewritten as: “{french_command}” (the answer is translated back)")
             latest, self._reply_lang = french_command, "fr"
+        if CODER_OPEN.fullmatch(latest.strip()):
+            if self._offsite:
+                self.send_json(200, {"reply": "Jarvis Code opens at the PC only, sir.", "action": None})
+            else:
+                self.send_json(200, {"reply": "Opening Jarvis Code, sir. Pick a project, write what you want, and I will build it and check it in the browser.", "action": None, "open": "/coder.html"})
+            return
         if TEACH["rec"] is not None and teach_module.STOP.fullmatch(latest.strip()):
             result = teach_stop(cancel=latest.strip().lower().startswith("cancel"))
             self.send_json(200, {"reply": teach_summary(result), "action": None})

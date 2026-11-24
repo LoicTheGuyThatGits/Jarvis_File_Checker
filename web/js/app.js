@@ -17,6 +17,9 @@ let latestScreenAt = 0;
 let activePromptController = null;
 let activePromptId = null;
 const sendButton = document.querySelector('#composer .send-button');
+// Jarvis Code opens in its own window (the </> Code button, or “open Jarvis Code” in chat)
+window.JarvisOpenCode=()=>{const w=window.open('/coder.html','jarvis-code','popup,width=1360,height=880');if(w){try{w.focus()}catch{}}return w};
+{const codeBtn=document.querySelector('#open-code');if(codeBtn)codeBtn.addEventListener('click',()=>window.JarvisOpenCode());}
 // Easter egg: click the “AI model” tab of the settings 7 times in a row to play any time.
 {const aiTab=document.querySelector('#tab-ai');let taps=0,lastTap=0;
  if(aiTab)aiTab.addEventListener('click',()=>{const now=Date.now();taps=now-lastTap<1500?taps+1:1;lastTap=now;
@@ -304,7 +307,7 @@ async function sendMessage(text) {
     let replyRow=live.row;
     if(live.row&&!data.cancelled)renderBubble(live.bubble,reply);else replyRow=addMessage('assistant',reply);
     if(data.debug&&window.JarvisDebug)window.JarvisDebug.attach(data.debug,replyRow);
-    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);if(data.ui_language&&window.JarvisI18n&&data.ui_language!==window.JarvisI18n.code())window.JarvisI18n.set(data.ui_language);
+    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.open==='/coder.html')window.JarvisOpenCode&&window.JarvisOpenCode();if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);if(data.ui_language&&window.JarvisI18n&&data.ui_language!==window.JarvisI18n.code())window.JarvisI18n.set(data.ui_language);
   } catch(error) {
     if(error.name==='AbortError'){
       window.dispatchEvent(new CustomEvent('jarvis:stop'));const stopped='Stopped the current prompt, '+(window.JARVIS_ADDRESS||'sir')+'.';if(live.text)history.push({role:'assistant',content:live.text});history.push({role:'assistant',content:stopped});saveHistory();addMessage('assistant',stopped);

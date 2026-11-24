@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en" class="i18n-pending">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis Code</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+  :root{--bg:#02070d;--bg2:#04101b;--panel:#061726;--text:#d7f6ff;--muted:#7fb0c2;--accent:#00d9ff;--good:#62f5aa;--warn:#ffbf63;--bad:#ff5c62;
+        --line:color-mix(in srgb,var(--accent) 22%,transparent);--hud:'Rajdhani','Segoe UI',sans-serif;--disp:'Orbitron','Rajdhani','Segoe UI',sans-serif;--mono:'DM Mono','Cascadia Mono',Consolas,monospace}
+  html.i18n-pending body{visibility:hidden}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:15px/1.4 var(--hud)}
+  button,select,input,textarea{font:inherit;color:inherit}
+  button{background:var(--accent);color:var(--bg);border:0;border-radius:6px;padding:6px 12px;font-weight:600;cursor:pointer}
+  button.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+  button.bad{background:var(--bad)}
+  button:disabled{opacity:.45;cursor:default}
+  select,input[type=text],textarea{background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+  .hidden{display:none!important}
+  .app{display:grid;grid-template-rows:auto 1fr;height:100%}
+  header{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);background:var(--bg2);flex-wrap:wrap}
+  header h1{margin:0 8px 0 0;font:700 18px var(--disp);letter-spacing:.12em;color:var(--accent)}
+  header .grow{flex:1}
+  .chip{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .chip b{color:var(--text);font-weight:600}
+  main{display:grid;grid-template-columns:minmax(360px,42%) 1fr;min-height:0}
+  .left{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
+  .task{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+  .task textarea{width:100%;min-height:74px;resize:vertical}
+  .task .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .status{font-size:14px;color:var(--muted)}
+  .status.working{color:var(--accent)}
+  .ask{margin:10px 14px 0;padding:10px 12px;border:1px solid var(--warn);border-radius:8px;background:color-mix(in srgb,var(--warn) 10%,transparent)}
+  .ask code{font-family:var(--mono);color:var(--warn)}
+  .ask .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .log{flex:1;overflow:auto;padding:8px 14px 14px;min-height:0}
+  .entry{border-left:2px solid var(--line);padding:3px 0 3px 10px;margin:4px 0}
+  .entry summary{cursor:pointer;list-style:none}
+  .entry summary::-webkit-details-marker{display:none}
+  .entry .ico{display:inline-block;width:20px;color:var(--accent)}
+  .entry.bad{border-color:var(--bad)} .entry.bad .ico{color:var(--bad)}
+  .entry.think{color:var(--muted);font-style:italic}
+  .entry.done{border-color:var(--good)} .entry.done .ico{color:var(--good)}
+  .entry.check.good .ico{color:var(--good)}
+  pre.detail{margin:6px 0 4px;padding:8px;background:var(--bg2);border-radius:6px;font:12.5px/1.45 var(--mono);white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto}
+  pre.detail .add{color:var(--good)} pre.detail .del{color:var(--bad)} pre.detail .at{color:var(--muted)}
+  .live{margin:6px 0;padding:8px;border:1px dashed var(--line);border-radius:6px;font:12.5px/1.45 var(--mono);white-space:pre-wrap;max-height:260px;overflow:auto;color:var(--muted)}
+  .summary{margin:10px 14px;padding:10px 12px;border:1px solid var(--good);border-radius:8px;background:color-mix(in srgb,var(--good) 8%,transparent)}
+  .summary.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,transparent)}
+  .summary .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .right{display:flex;flex-direction:column;min-height:0}
+  .tabs{display:flex;gap:4px;padding:8px 14px 0;border-bottom:1px solid var(--line)}
+  .tabs button{background:transparent;color:var(--muted);border-radius:6px 6px 0 0;border:1px solid transparent;border-bottom:0}
+  .tabs button[aria-selected=true]{color:var(--accent);border-color:var(--line);background:var(--bg2)}
+  .pane{flex:1;min-height:0;display:flex;flex-direction:column}
+  .urlbar{display:flex;gap:8px;align-items:center;padding:8px 14px}
+  .urlbar input{flex:1;font:13px var(--mono);color:var(--muted)}
+  .view{flex:1;min-height:0;margin:0 14px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;position:relative}
+  .view iframe{width:100%;height:100%;border:0;background:#fff}
+  .view img{width:100%;height:100%;object-fit:contain;background:var(--bg2)}
+  .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);background:var(--bg2);text-align:center;padding:20px}
+  .problems{margin:8px 14px 12px;max-height:150px;overflow:auto;font:13px/1.45 var(--mono)}
+  .problems .err{color:var(--bad)} .problems .warn{color:var(--warn)} .problems .ok{color:var(--good)}
+  .files{display:grid;grid-template-columns:240px 1fr;flex:1;min-height:0}
+  .files ul{list-style:none;margin:0;padding:8px;overflow:auto;border-right:1px solid var(--line)}
+  .files li button{display:block;width:100%;text-align:left;background:transparent;color:var(--text);font:13px var(--mono);padding:4px 6px;border-radius:4px}
+  .files li button:hover,.files li button[aria-current=true]{background:var(--bg2);color:var(--accent)}
+  .files li .changed{color:var(--warn);font-size:11px;margin-left:4px}
+  .code{margin:0;overflow:auto;padding:10px 0;font:12.5px/1.5 var(--mono);background:var(--bg2)}
+  .code .ln{display:inline-block;width:3.5em;padding-right:10px;text-align:right;color:var(--muted);user-select:none;opacity:.7}
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:10px;max-width:520px}
+  dialog label{display:block;margin:10px 0}
+  dialog::backdrop{background:#0008}
+  @media (max-width:900px){main{grid-template-columns:1fr}.left{border-right:0;border-bottom:1px solid var(--line);max-height:60vh}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>JARVIS CODE</h1>
+    <select id="project" aria-label="Project"></select>
+    <button type="button" class="ghost" id="new-project">＋ New project</button>
+    <button type="button" class="ghost" id="open-folder" title="Open the project folder in Windows">Open folder</button>
+    <span class="grow"></span>
+    <span class="chip" id="model-chip">Model: <b id="model-name" data-no-i18n>…</b></span>
+    <button type="button" id="pull" class="hidden">Download qwen3.5:9b (6.6 GB)</button>
+    <button type="button" class="ghost" id="settings-open" aria-label="Jarvis Code settings">⚙</button>
+  </header>
+  <main>
+    <section class="left">
+      <div class="task">
+        <textarea id="task" maxlength="4000" placeholder="What should Jarvis build or fix? For example: a snake game with a score and a restart button" aria-label="Task"></textarea>
+        <div class="row">
+          <button type="button" id="start">Start</button>
+          <button type="button" class="bad hidden" id="stop">Stop</button>
+          <span class="status" id="status" role="status"></span>
+        </div>
+      </div>
+      <div class="ask hidden" id="ask">
+        <div>Jarvis wants to run <code id="ask-cmd" data-no-i18n></code> on this PC.</div>
+        <div class="row"><button type="button" id="ask-yes">Run it</button><button type="button" class="ghost" id="ask-always">Always for this project</button><button type="button" class="ghost" id="ask-no">No</button></div>
+      </div>
+      <div class="summary hidden" id="summary">
+        <div id="summary-text" data-no-i18n></div>
+        <div class="row"><button type="button" class="ghost" id="undo-last">Undo the last change</button><button type="button" class="ghost" id="undo-all">Undo everything</button></div>
+      </div>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+    <section class="right">
+      <div class="tabs" role="tablist">
+        <button type="button" role="tab" id="tab-browser" aria-selected="true">Browser</button>
+        <button type="button" role="tab" id="tab-shot" aria-selected="false">What Jarvis saw</button>
+        <button type="button" role="tab" id="tab-files" aria-selected="false">Files</button>
+      </div>
+      <div class="pane" id="pane-browser">
+        <div class="urlbar"><input type="text" id="url" readonly aria-label="Page address" data-no-i18n><button type="button" class="ghost" id="reload">Reload</button><button type="button" id="check">Check now</button><button type="button" class="ghost" id="external">Open in my browser</button></div>
+        <div class="view"><iframe id="frame" title="The page Jarvis is building" sandbox="allow-scripts allow-forms allow-modals allow-pointer-lock allow-same-origin allow-popups"></iframe><div class="empty" id="frame-empty">No web page in this project yet.</div></div>
+        <div class="problems" id="problems" data-no-i18n></div>
+      </div>
+      <div class="pane hidden" id="pane-shot">
+        <div class="urlbar"><span class="status" id="shot-when"></span></div>
+        <div class="view"><img id="shot" alt="The screenshot Jarvis looked at"><div class="empty" id="shot-empty">Jarvis has not looked at the page yet.</div></div>
+      </div>
+      <div class="pane hidden" id="pane-files">
+        <div class="files"><ul id="file-list" data-no-i18n></ul><pre class="code" id="file-view" data-no-i18n></pre></div>
+      </div>
+    </section>
+  </main>
+</div>
+<dialog id="settings">
+  <h2 style="margin:0 0 6px;font:700 16px var(--disp);color:var(--accent)">Jarvis Code settings</h2>
+  <label>Model <select id="set-model"></select></label>
+  <p class="status">qwen3.5:9b is recommended for 8 GB graphics cards: it codes well and can look at the screenshots. Smaller models are faster but make more mistakes.</p>
+  <label>Steps per task <select id="set-steps"><option value="15">15</option><option value="30">30</option><option value="50">50</option><option value="80">80</option></select></label>
+  <label><input type="checkbox" id="set-trust"> Run Python and JavaScript files in this project without asking</label>
+  <p class="status">Pages are always checked in a hidden browser without asking. Programs run on this PC, so Jarvis asks first unless this is ticked.</p>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="ghost" id="set-cancel">Cancel</button><button type="button" id="set-save">Save</button></div>
+</dialog>
+<script src="/js/i18n.js"></script>
+<script src="/js/coder.js"></script>
+</body>
+</html>

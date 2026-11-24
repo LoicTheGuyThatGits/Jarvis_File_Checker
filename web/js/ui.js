@@ -133,9 +133,11 @@
     }
     $('settings-content').classList.add('is-search');
     Array.prototype.forEach.call(document.querySelectorAll('.settings-group-label'), function (n) { n.remove(); });
-    var words = q.split(/\s+/), hits = 0, paneHits = {};
-    entries().forEach(function (e) {
-      var text = textOf(e), ok = words.every(function (w) { return text.indexOf(w) >= 0; });
+    var words = q.split(/\s+/), hits = 0, paneHits = {}, all = entries();
+    // several words: the sections with them side by side (“app password”) come first, and alone when there are some
+    var phrase = words.length > 1 && all.some(function (e) { return textOf(e).indexOf(q) >= 0; });
+    all.forEach(function (e) {
+      var text = textOf(e), ok = phrase ? text.indexOf(q) >= 0 : words.every(function (w) { return text.indexOf(w) >= 0; });
       e.el.classList.toggle('search-hidden', !ok);
       if (ok) { hits++; paneHits[e.tab.dataset.pane] = true; }
     });

@@ -495,6 +495,7 @@ html[data-boot="play"] .boot{display:flex}
   .hud-frame,.rail,.topbar-right .status{display:none}
   .brand{letter-spacing:.3em;font-size:13px}.brand>span:last-child{display:none}
   .topbar-right{gap:6px}.settings-button{padding:0 8px;font-size:10px;letter-spacing:.1em}
+  .code-button{display:none}
   .workspace{display:flex;flex-direction:column;gap:12px;padding-top:12px}
   .sidebar{position:relative;top:0;max-height:none;display:grid;grid-template-columns:1fr auto;gap:6px 10px;padding:10px;overflow:visible}
   .sidebar .panel-title,.sidebar-label{display:none}
