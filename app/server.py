@@ -1029,6 +1029,7 @@ import recall as recall_module
 import clock as clock_module
 import transport as transport_module
 import replies as replies_module
+import awareness as awareness_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -3106,6 +3107,90 @@ def windows_backend():
     if WIN_BACKEND["obj"] is None:
         WIN_BACKEND["obj"] = windows_ctl.WinBackend()
     return WIN_BACKEND["obj"]
+
+
+# ---------------- screen awareness (opt-in): the last half hour of the screen, in memory only ----------------
+AWARE: dict = {"obj": None, "path": None, "busy": False}
+
+
+def awareness_obj() -> "awareness_module.Awareness":
+    path = data_path("awareness.json")
+    if AWARE["path"] != path:
+        AWARE["path"], AWARE["obj"] = path, awareness_module.Awareness(path)
+    return AWARE["obj"]
+
+
+def awareness_capture() -> dict | None:
+    """One look: the window in front, a small fingerprint of the screen, and (only when it changed) its text."""
+    if os.name != "nt":
+        return None
+    with AUTONOMOUS_LOCK:
+        if AUTONOMOUS_RUNS:                                   # Autopilot is working: it looks at the screen itself
+            return None
+    try:
+        image, _ = sight_module.grab(False)
+    except Exception:
+        return None
+    title, app = "", ""
+    try:
+        front = windows_backend().foreground()
+        w = next((w for w in window_list() if w.get("id") == front), None)
+        title, app = (w or {}).get("title", ""), (w or {}).get("app", "")
+    except Exception:
+        pass
+
+    def read() -> str:
+        ocr = screen_ocr_now({"_image": image})
+        return "\n".join(l["text"] for l in (ocr or {}).get("lines", []))
+    return {"title": title, "app": app, "print": sight_module.fingerprint(sight_module.shrink(image)),
+            "same": lambda a, b: sight_module.changed(a, b) is False, "read": read}
+
+
+def awareness_tick() -> None:
+    a = awareness_obj()
+    if AWARE["busy"] or not a.active() or time.time() - a.last_at < a.settings()["every"] - 1:
+        return
+    AWARE["busy"] = True
+
+    def work():
+        try:
+            a.observe(awareness_capture)
+        except Exception as exc:
+            print(f"[jarvis] screen awareness: {exc}")
+        finally:
+            AWARE["busy"] = False
+    threading.Thread(target=work, daemon=True).start()
+
+
+def awareness_context(latest: str) -> str:
+    """For a question about the screen: what is on it now, or the matching moments of the last minutes."""
+    a = awareness_obj()
+    if not a.settings()["on"] or not a.latest():
+        return ""
+    if awareness_module.PAST.search(latest):
+        return a.recall_text(latest)
+    if awareness_module.DEICTIC.search(latest):
+        return a.now_text()
+    return ""
+
+
+def awareness_reply(req: dict) -> str:
+    a = awareness_obj()
+    if req.get("ask"):
+        p = a.public()
+        if not p["on"]:
+            return "No, sir: screen awareness is off. Say “start screen awareness” (at the PC) to switch it on."
+        if p["paused"]:
+            return f"Screen awareness is paused until {datetime.fromtimestamp(p['paused_until']).strftime('%H:%M')}, sir."
+        return f"Yes, sir: I look every {p['every']} seconds when the screen changes, and keep the last {p['keep']} minutes in memory only."
+    cfg = a.set(req)
+    if "pause_minutes" in req:
+        return f"Screen awareness paused until {datetime.fromtimestamp(cfg['paused_until']).strftime('%H:%M')}, sir. Say “start screen awareness” to resume sooner."
+    if cfg["on"]:
+        return (f"Screen awareness is on, sir. Every {cfg['every']} seconds, when the screen has changed, I note the window in front and read its text, "
+                f"and keep the last {cfg['keep']} minutes in memory only (never on disk, never sent anywhere). Ask “what does this error mean?” or "
+                "“what was that website earlier?”. Say “pause screen awareness” to pause it.")
+    return "Screen awareness is off, sir, and I have forgotten what I saw."
 
 
 def window_list() -> list[dict]:
@@ -5681,6 +5766,10 @@ def start_scheduler() -> None:
                     CALLS["obj"].tick()
             except Exception:
                 pass
+            try:
+                awareness_tick()
+            except Exception:
+                pass
             counter += 1
             if counter % 20 == 0:
                 try:
@@ -6493,6 +6582,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/transport":
             self.send_json(200, transport_public())
+            return
+        if path == "/api/awareness":
+            self.send_json(200, awareness_obj().public())
             return
         if path == "/api/call":
             obj = calls_obj()
@@ -7522,6 +7614,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.coach_post(payload)
             elif path == "/api/transport":
                 self.transport_post(payload)
+            elif path == "/api/awareness":
+                if self._from_phone and (payload.get("on") or "skip" in payload or "every" in payload or "keep" in payload):
+                    self.send_json(403, {"error": "Screen awareness is set up at the PC."})
+                else:
+                    awareness_obj().set(payload)
+                    self.send_json(200, awareness_obj().public())
             elif path == "/api/debug":
                 if self._from_phone:
                     self.send_json(403, {"error": "Change this at the PC."})
@@ -8316,6 +8414,7 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(400, {"error": "Send a conversation in messages."})
             return
         self._remote = payload.get("source") in ("telegram", "voice")   # a request from the phone or a spoken one: never run routines unasked
+        self._offsite = self._from_phone or payload.get("source") == "telegram"   # not at the PC: no screen contents in the answer
         ai = ai_settings()
         base = ai["base"]
         is_local_provider = ai["is_local"]
@@ -8363,6 +8462,13 @@ class Handler(BaseHTTPRequestHandler):
         if french_command:                      # a French request for a built-in command: run the English one, answer in French
             debugtrace.step("french", f"French rewritten as: “{french_command}” (the answer is translated back)")
             latest, self._reply_lang = french_command, "fr"
+        aware_req = awareness_module.control(latest)
+        if aware_req is not None:
+            if self._offsite and not aware_req.get("ask") and not (aware_req.get("on") is False or "pause_minutes" in aware_req):
+                self.send_json(200, {"reply": "Screen awareness can only be switched on at the PC, sir.", "action": None})
+            else:
+                self.send_json(200, {"reply": awareness_reply(aware_req), "action": None})
+            return
         clock_reply = clock_command(latest)                 # the date and time come from the PC's clock, never from the model
         if clock_reply:
             self.send_json(200, {"reply": clock_reply, "action": None})
@@ -8663,6 +8769,11 @@ class Handler(BaseHTTPRequestHandler):
         if memory_block:
             instructions += "\n\n" + memory_block
             debugtrace.step("memory", "Your long-term memory was added to the instructions", memory_block)
+        if not getattr(self, "_offsite", False):         # the screen is shown only to questions asked at the PC
+            screen_block = awareness_context(latest)
+            if screen_block:
+                instructions += "\n\n" + screen_block
+                debugtrace.step("screen", "What screen awareness saw was added", screen_block[:600])
         earlier_block = recall_block(latest)
         if earlier_block:
             instructions += "\n\n" + earlier_block

@@ -302,6 +302,33 @@
     });
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'bench-models')) benchLoad(); });
   }
+  if ($('aware-on')) {
+    var awPost = function (body) {
+      return fetch('/api/awareness', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        .then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); awDraw(d); return d; }); });
+    };
+    var awDraw = function (d) {
+      $('aware-on').checked = !!d.on; $('aware-every').value = String(d.every); $('aware-keep').value = String(d.keep);
+      if (document.activeElement !== $('aware-skip')) $('aware-skip').value = d.skip || '';
+      var badge = $('aware-badge'); badge.classList.toggle('hidden', !d.on); badge.classList.toggle('aware-paused', !!d.paused);
+      var st = $('aware-status'); st.textContent = '';
+      var part = function (cls, text, raw) { var e = document.createElement('span'); e.className = cls; e.textContent = text; if (raw) e.setAttribute('data-no-i18n', ''); st.append(e, ' '); };
+      if (!d.on) part('aw-l', 'Off.');
+      else if (d.paused) { part('aw-l', 'Paused until'); part('aw-v', new Date(d.paused_until * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) + '.', true); }
+      else { part('aw-l', 'On.'); part('aw-l', 'Moments in memory:'); part('aw-v', String(d.moments), true); }
+      $('aware-pause').textContent = d.paused ? 'Resume now' : 'Pause for an hour';
+    };
+    var awLoad = function () { fetch('/api/awareness').then(function (r) { return r.json(); }).then(awDraw).catch(function () {}); };
+    $('aware-on').addEventListener('change', function () { awPost({ on: $('aware-on').checked }).catch(function (e) { $('aware-status').textContent = e.message; }); });
+    $('aware-save').addEventListener('click', function () {
+      awPost({ every: +$('aware-every').value, keep: +$('aware-keep').value, skip: $('aware-skip').value }).then(function () { $('aware-status').prepend('Saved. '); }).catch(function (e) { $('aware-status').textContent = e.message; });
+    });
+    $('aware-pause').addEventListener('click', function () { awPost({ pause_minutes: $('aware-badge').classList.contains('aware-paused') ? 0 : 60 }).catch(function () {}); });
+    $('aware-badge').addEventListener('click', function () { awPost({ pause_minutes: $('aware-badge').classList.contains('aware-paused') ? 0 : 60 }).catch(function () {}); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'aware-on')) awLoad(); });
+    window.addEventListener('jarvis:reply', function (e) { if (e.detail && /screen awareness|écran/i.test(e.detail.text || '')) awLoad(); });
+    awLoad(); setInterval(awLoad, 60000);
+  }
   if ($('tr-save')) {
     var trPost = function (body) {
       return fetch('/api/transport', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })

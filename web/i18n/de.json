@@ -868,6 +868,10 @@
 [
 "^· (\\d+) steps$",
 "· $1 Schritte"
+],
+[
+"^(\\d+) s$",
+"$1 s"
 ]
 ],
 "Homework": "Hausaufgaben",
@@ -1017,5 +1021,21 @@
 "Jarvis is thinking…": "Jarvis denkt nach…",
 "You made 2048!": "Du hast 2048 geschafft!",
 "2048 board": "2048-Spielfeld",
-"You found the secret game.": "Du hast das geheime Spiel gefunden."
+"You found the secret game.": "Du hast das geheime Spiel gefunden.",
+"Screen awareness is on: click to pause it for an hour": "Bildschirmwahrnehmung ist an: klicken, um sie eine Stunde zu pausieren",
+"Screen awareness is on: pause it for an hour": "Bildschirmwahrnehmung ist an: eine Stunde pausieren",
+"Screen awareness": "Bildschirmwahrnehmung",
+"When it is on, Jarvis keeps a quiet eye on your screen, so you can just ask “what does this error mean?”, “help me with this” or “what was that website I had open earlier?”. Every so often, when the screen has changed, it notes the window in front and reads the text on the screen (on this PC). It keeps only the last minutes, in memory: nothing is written to disk or sent anywhere except with your question to your AI model, and it is gone when Jarvis closes. Windows about passwords, private or incognito browsing, and the apps you list below are never read, nor is anything while Autopilot works. It only answers questions asked at the PC, never from the phone or Telegram. In chat: “pause screen awareness”, “stop looking at my screen”, “start screen awareness”.": "Wenn sie an ist, behält Jarvis deinen Bildschirm unauffällig im Blick, damit du einfach fragen kannst: “what does this error mean?”, “help me with this” oder “what was that website I had open earlier?”. Ab und zu, wenn sich der Bildschirm verändert hat, merkt er sich das Fenster im Vordergrund und liest den Text darauf (auf diesem PC). Er behält nur die letzten Minuten, im Arbeitsspeicher: Nichts wird auf die Festplatte geschrieben oder irgendwohin geschickt, ausser mit deiner Frage an dein KI-Modell, und alles ist weg, wenn Jarvis schliesst. Fenster mit Passwörtern, privatem oder Inkognito-Surfen und die Apps, die du unten aufführst, werden nie gelesen, und auch nichts, während der Autopilot arbeitet. Sie antwortet nur auf Fragen am PC, nie vom Handy oder von Telegram. Im Chat: “pause screen awareness”, “stop looking at my screen”, “start screen awareness”.",
+"Keep an eye on my screen": "Meinen Bildschirm im Blick behalten",
+"Look every": "Schauen alle",
+"How often": "Wie oft",
+"Remember the last": "Die letzten merken:",
+"How long": "Wie lange",
+"Never read these apps or windows (comma-separated words of their names)": "Diese Apps oder Fenster nie lesen (Wörter aus ihrem Namen, durch Kommas getrennt)",
+"e.g. WhatsApp, Discord": "z. B. WhatsApp, Discord",
+"Pause for an hour": "Eine Stunde pausieren",
+"Paused until": "Pausiert bis",
+"Resume now": "Jetzt fortsetzen",
+"On.": "An.",
+"Moments in memory:": "Momente im Speicher:"
 }

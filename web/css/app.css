@@ -801,3 +801,7 @@ html.i18n-pending body{visibility:hidden}   /* a moment while the menus load in 
 .tr-form input[type=text]{width:13em;max-width:100%;min-width:0}
 .tr-form input[type=number]{width:4.5em}
 .tr-list li{overflow-wrap:anywhere}
+.aware-badge{display:inline-flex;align-items:center;justify-content:center;width:36px;padding:0}
+.aware-badge svg{width:18px;height:18px;fill:var(--accent)}
+.aware-badge.aware-paused svg{fill:var(--muted);opacity:.6}
+.aware-form{flex-wrap:wrap;gap:6px 14px}

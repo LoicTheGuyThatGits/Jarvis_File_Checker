@@ -874,6 +874,10 @@
 [
 "^· (\\d+) steps$",
 "· $1 passaggi"
+],
+[
+"^(\\d+) s$",
+"$1 s"
 ]
 ],
 "Homework": "Compiti",
@@ -1023,5 +1027,21 @@
 "Jarvis is thinking…": "Jarvis sta pensando…",
 "You made 2048!": "Hai fatto 2048!",
 "2048 board": "Tabellone di 2048",
-"You found the secret game.": "Hai trovato il gioco segreto."
+"You found the secret game.": "Hai trovato il gioco segreto.",
+"Screen awareness is on: click to pause it for an hour": "La consapevolezza dello schermo è attiva: clicca per metterla in pausa un'ora",
+"Screen awareness is on: pause it for an hour": "La consapevolezza dello schermo è attiva: mettila in pausa un'ora",
+"Screen awareness": "Consapevolezza dello schermo",
+"When it is on, Jarvis keeps a quiet eye on your screen, so you can just ask “what does this error mean?”, “help me with this” or “what was that website I had open earlier?”. Every so often, when the screen has changed, it notes the window in front and reads the text on the screen (on this PC). It keeps only the last minutes, in memory: nothing is written to disk or sent anywhere except with your question to your AI model, and it is gone when Jarvis closes. Windows about passwords, private or incognito browsing, and the apps you list below are never read, nor is anything while Autopilot works. It only answers questions asked at the PC, never from the phone or Telegram. In chat: “pause screen awareness”, “stop looking at my screen”, “start screen awareness”.": "Quando è attiva, Jarvis tiene discretamente d'occhio il tuo schermo, così puoi semplicemente chiedere “what does this error mean?”, “help me with this” o “what was that website I had open earlier?”. Ogni tanto, quando lo schermo è cambiato, annota la finestra in primo piano e legge il testo sullo schermo (su questo PC). Conserva solo gli ultimi minuti, in memoria: niente viene scritto su disco né inviato altrove, se non con la tua domanda al tuo modello di IA, e tutto sparisce quando Jarvis si chiude. Le finestre di password, navigazione privata o in incognito e le app che elenchi qui sotto non vengono mai lette, né nulla mentre l'Autopilot lavora. Risponde solo a domande fatte al PC, mai dal telefono o da Telegram. Nella chat: “pause screen awareness”, “stop looking at my screen”, “start screen awareness”.",
+"Keep an eye on my screen": "Tenere d'occhio il mio schermo",
+"Look every": "Guardare ogni",
+"How often": "Ogni quanto",
+"Remember the last": "Ricordare gli ultimi",
+"How long": "Per quanto",
+"Never read these apps or windows (comma-separated words of their names)": "Non leggere mai queste app o finestre (parole del loro nome, separate da virgole)",
+"e.g. WhatsApp, Discord": "p. es. WhatsApp, Discord",
+"Pause for an hour": "Pausa di un'ora",
+"Paused until": "In pausa fino alle",
+"Resume now": "Riprendi ora",
+"On.": "Attiva.",
+"Moments in memory:": "Momenti in memoria:"
 }
