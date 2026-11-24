@@ -224,6 +224,18 @@ S = [
     (r"Say “focus” when you are ready for another session\.", "Dites « concentration » quand vous êtes prêt pour une autre séance."),
     (r"Focus session stopped, sir\.", "Séance de concentration arrêtée, monsieur."),
     (r"You did (.+)\.", "Vous avez fait {w1}."),
+    # showing Autopilot how
+    (r"Go ahead, sir: I am watching how you (.+)\.", "Allez-y, monsieur : je regarde comment vous faites : {1}."),
+    (r"Do it the way you normally would; I note your clicks, typing and keys \(never passwords\)\.",
+     "Faites-le comme d'habitude ; je note vos clics, ce que vous tapez et les touches (jamais les mots de passe)."),
+    (r"Press Ctrl\+Shift\+F9 or say “stop recording” when you are done\.", "Appuyez sur Ctrl+Maj+F9 ou dites « arrête l'enregistrement » quand vous avez fini."),
+    (r"I did not see any clicks or typing, sir, so there is nothing to learn\.", "Je n'ai vu aucun clic ni rien de tapé, monsieur, il n'y a donc rien à apprendre."),
+    (r"Try again with “watch me …”\.", "Réessayez avec « regarde-moi faire … »."),
+    (r"Recording cancelled, sir\.", "Enregistrement annulé, monsieur."),
+    (r"Nothing was kept\.", "Rien n'a été gardé."),
+    (r"Showing me how to do something works at the PC only, sir\.", "Me montrer comment faire quelque chose ne fonctionne qu'au PC, monsieur."),
+    (r"I am already watching you (.+)\.", "Je vous regarde déjà ({1})."),
+    (r"Press Ctrl\+Shift\+F9 or say “stop recording” first\.", "Appuyez d'abord sur Ctrl+Maj+F9 ou dites « arrête l'enregistrement »."),
     # the usual politeness
     (r"Done, sir\.", "C'est fait, monsieur."),
     (r"Of course, sir\.", "Bien sûr, monsieur."),

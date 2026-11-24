@@ -36,20 +36,24 @@ def save(path: Path, items: list[dict]) -> None:
     tmp.replace(path)
 
 
-def remember(path: Path, task: str, steps: list[str]) -> dict | None:
+def remember(path: Path, task: str, steps: list[str], taught: bool = False) -> dict | None:
     steps = [s[:200] for s in steps if s][:MAX_STEPS]
     task = " ".join((task or "").split())[:300]
     if not steps or not task:
         return None
     items = load(path)
     same = next((i for i in items if recall.similar(i["task"], task) >= 0.8), None)
+    if same and taught:                                       # what you showed replaces what Autopilot found by itself
+        same.update(task=task, steps=steps, at=time.time(), taught=True, uses=0)
+        save(path, items)
+        return same
     if same:
         if len(steps) <= len(same["steps"]) or same.get("uses", 0) == 0:      # a shorter way, or the first one was never reused: keep the new one
             same.update(task=task, steps=steps, at=time.time())
         same["uses"] = same.get("uses", 0)
         save(path, items)
         return same
-    item = {"id": secrets.token_hex(4), "task": task, "steps": steps, "at": time.time(), "uses": 0}
+    item = {"id": secrets.token_hex(4), "task": task, "steps": steps, "at": time.time(), "uses": 0, "taught": taught}
     items.append(item)
     save(path, items)
     return item
@@ -70,6 +74,9 @@ def hint(path: Path, task: str) -> str:
         if i["id"] == item["id"]:
             i["uses"] = i.get("uses", 0) + 1
     save(path, items)
+    if item.get("taught"):
+        return (f"The user showed you how to do a similar task (“{item['task']}”): these are their own clicks and typing, recorded. Follow the same way, "
+                "but go by what the screen shows now (windows and positions may differ):\n" + "\n".join(f"{n + 1}. {s}" for n, s in enumerate(item["steps"])))
     return (f"A similar task was finished before (“{item['task']}”) with these steps. Use them as a guide, but follow what the screen shows now "
             "(windows, positions and numbers will differ):\n" + "\n".join(f"{n + 1}. {s}" for n, s in enumerate(item["steps"])))
 

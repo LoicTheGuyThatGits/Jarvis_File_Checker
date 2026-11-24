@@ -806,6 +806,14 @@
 "Selected text": "Markierter Text",
 "@patterns": [
 [
+"^· (\\d+) steps · shown by you$",
+"· $1 Schritte · von dir gezeigt"
+],
+[
+"^· (\\d+) steps · shown by you · reused (\\d+)×$",
+"· $1 Schritte · von dir gezeigt · $2× wiederverwendet"
+],
+[
 "^1 month$",
 "1 Monat"
 ],
@@ -1037,5 +1045,17 @@
 "Paused until": "Pausiert bis",
 "Resume now": "Jetzt fortsetzen",
 "On.": "An.",
-"Moments in memory:": "Momente im Speicher:"
+"Moments in memory:": "Momente im Speicher:",
+"Show Autopilot how": "Autopilot zeigen, wie es geht",
+"Do a task once yourself while Jarvis watches, and Autopilot does it your way the next time you ask. Write what you are going to show, press Start, then do it as you normally would in the other windows. Jarvis notes where you click (the button or box under the mouse), what you type and the shortcuts you press. Typing in password boxes, or in windows about passwords or private browsing, is never kept. Press Ctrl+Shift+F9 when you are done. In chat: “watch me export a report as a PDF”, then “stop recording”.": "Erledige eine Aufgabe einmal selbst, während Jarvis zuschaut, und der Autopilot macht sie beim nächsten Mal auf deine Art. Schreib, was du zeigen willst, drück Start und mach es dann wie gewohnt in den anderen Fenstern. Jarvis merkt sich, wo du klickst (die Schaltfläche oder das Feld unter der Maus), was du tippst und welche Tastenkürzel du drückst. Eingaben in Passwortfeldern oder in Fenstern zu Passwörtern oder privatem Surfen werden nie gespeichert. Drück Strg+Umschalt+F9, wenn du fertig bist. Im Chat: „watch me export a report as a PDF“, dann „stop recording“.",
+"e.g. export my report as a PDF": "z. B. meinen Bericht als PDF exportieren",
+"What you are going to show": "Was du zeigen willst",
+"I'm done": "Fertig",
+"Install recording": "Aufzeichnung installieren",
+"Installing recording… (under a minute)": "Aufzeichnung wird installiert… (unter einer Minute)",
+"Recording what you do needs a small extra package (pynput).": "Für die Aufzeichnung braucht es ein kleines Zusatzpaket (pynput).",
+"Watching you… Press Ctrl+Shift+F9 when you are done.": "Ich schaue zu… Drück Strg+Umschalt+F9, wenn du fertig bist.",
+"Learned. Autopilot will do it this way next time.": "Gelernt. Der Autopilot macht es nächstes Mal so.",
+"Nothing was kept.": "Nichts wurde gespeichert.",
+"Write first what you are going to show.": "Schreib zuerst, was du zeigen willst."
 }

@@ -483,6 +483,15 @@ RULES: list[tuple[str, object]] = [
     # --- the screen ---
     (r"(?:surveille[rz]?|regarde[rz]?)\s+(?:mon\s+|l['’])écran\s+(?:et\s+)?(?:dis|préviens|previens|avertis)[- ]moi\s+(?:quand|dès\s+que|si)\s+(.+)", lambda m, now: f"watch my screen and tell me when {m.group(1)}"),
     (r"(?:arrête[rz]?|arrete[rz]?)\s+de\s+surveiller\s+(?:mon\s+|l['’])écran", "stop watching the screen"),
+    (r"(?:regarde[rz]?|observe[rz]?)[- ]moi\s+(?:faire|pendant\s+que\s+je\s+fais)\s+(.{3,180})|(?:je\s+vais\s+te\s+montrer|laisse[- ]moi\s+te\s+montrer)\s+comment\s+(.{3,180})|"
+     r"(?:apprends|regarde)\s+comment\s+je\s+(?:fais\s+(?:pour\s+)?)?(.{3,180})|enregistre[rz]?\s+ce\s+que\s+je\s+fais\s*(?:pour|:)\s*(.{3,180})",
+     lambda m, now: "watch me " + next(g for g in m.groups() if g)),
+    (r"(?:arrête[rz]?|arrete[rz]?|stoppe[rz]?|termine[rz]?)\s+(?:l['’]|d['’])enregistr(?:ement|er)|stop\s+enregistrement|j['’]ai\s+(?:fini|terminé)\s+de\s+te\s+montrer", "stop recording"),
+    (r"annule[rz]?\s+l['’]enregistrement", "cancel recording"),
+    (r"(?:active[rz]?|allume[rz]?|démarre[rz]?|demarre[rz]?|lance[rz]?)\s+la\s+conscience\s+(?:de\s+l['’]|d['’])écran|garde\s+un\s+œil\s+sur\s+mon\s+écran", "start screen awareness"),
+    (r"(?:désactive[rz]?|desactive[rz]?|éteins|eteins|coupe[rz]?)\s+la\s+conscience\s+(?:de\s+l['’]|d['’])écran|(?:arrête[rz]?|arrete[rz]?)\s+de\s+regarder\s+mon\s+écran", "stop looking at my screen"),
+    (r"(?:mets?|met)\s+(?:la\s+conscience\s+(?:de\s+l['’]|d['’])écran\s+en\s+pause|en\s+pause\s+la\s+conscience\s+(?:de\s+l['’]|d['’])écran)|pause\s+(?:la\s+)?conscience\s+(?:de\s+l['’]|d['’])écran", "pause screen awareness"),
+    (r"(?:est-ce\s+que\s+)?tu\s+regardes\s+mon\s+écran|la\s+conscience\s+(?:de\s+l['’]|d['’])écran\s+est\s+(?:active|allumée)", "are you looking at my screen"),
     (r"double[- ]?clique[rz]?\s+sur\s+(?:le\s+bouton\s+|le\s+lien\s+|l['’]onglet\s+)?(.+)", lambda m, now: f"double click {m.group(1)}"),
     (r"(?:clic\s+droit|clique[rz]?\s+droit)\s+sur\s+(.+)", lambda m, now: f"right click {m.group(1)}"),
     (r"(?:clique[rz]?|appuie[rz]?)\s+sur\s+le\s+bouton\s+(.+)", lambda m, now: f"click the {m.group(1)} button"),
@@ -505,7 +514,7 @@ RULES: list[tuple[str, object]] = [
     (r"(?:annule(?:[rz])?\s+(?:ça|ca|cela)|défais\s+(?:ça|ca))", "undo that"),
 ]
 COMPILED = [(re.compile(p, re.IGNORECASE), build) for p, build in RULES]
-FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge|raccroche|appelle|appel|appels|devoirs?|classroom)\b", re.I)
+FRENCH_HINT = re.compile(r"[éèêàùçôîûë]|\b(?:cartes|fiches|paquet|combien|quand|vacances|rebours|cours|prochain|quoi|horaire|prendre|commence|finis|moyenne|notes?|eu|semestre|moi|mes|mon|ma|une?|les?|des|du|est|sur|dans|pour|quel(?:le)?s?|qu['’]|j['’]|d['’]|l['’]|ajoute|mets|cherche|rappelle|montre|oui|minuteur|minuterie|chrono|pomodoro|concentration|agenda|calendrier|appareils|fichiers|clique[rz]?|clic|écran|surveille[rz]?|coche|note[rz]?|fiches|planifie|interroge|raccroche|appelle|appel|appels|devoirs?|classroom|enregistrement|enregistre[rz]?|regarde[rz]?|montrer)\b", re.I)
 
 
 def to_english(text: str, now: datetime | None = None) -> str | None:

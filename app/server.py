@@ -1030,6 +1030,7 @@ import clock as clock_module
 import transport as transport_module
 import replies as replies_module
 import awareness as awareness_module
+import teach as teach_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -2962,10 +2963,11 @@ def pull_model(name: str) -> None:
         PULL["running"] = False
 
 
-def install_playwright() -> None:
-    INSTALL.update(status="installing", error="", running=True)
+def install_playwright(package: str = "playwright>=1.40") -> None:
+    """pip install one extra package (the browser control, or the recording of what you show Autopilot)."""
+    INSTALL.update(status="installing", error="", running=True, package=package.split(">")[0])
     try:
-        out = subprocess.run([sys.executable, "-m", "pip", "install", "playwright>=1.40"], capture_output=True, text=True, timeout=900,
+        out = subprocess.run([sys.executable, "-m", "pip", "install", package], capture_output=True, text=True, timeout=900,
                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if out.returncode != 0:
             raise RuntimeError((out.stderr or out.stdout or "pip failed").strip().splitlines()[-1][:300])
@@ -2985,7 +2987,166 @@ def control_public() -> dict:
     return {**cfg, "sight_now": autopilot_sight(), "watching": watching, "model_now": ai["model"], "local": ai["is_local"], "coords_now": autopilot_coords(ai["model"]),
             "recommended": AUTOPILOT_MODEL, "has_recommended": AUTOPILOT_MODEL in have, "slow_model": slow_thinker(ai["model"]),
             "vision_models": [m for m in have if VISION_NAMES.search(m)], "browser_ready": webpilot.available(), "pull": dict(PULL), "install": dict(INSTALL),
-            "learned": [{"id": i["id"], "task": i["task"], "steps": len(i["steps"]), "at": i.get("at"), "uses": i.get("uses", 0)} for i in reversed(procedures.load(learned_path()))]}
+            "recording_ready": teach_ready(),
+            "learned": [{"id": i["id"], "task": i["task"], "steps": len(i["steps"]), "at": i.get("at"), "uses": i.get("uses", 0), "taught": bool(i.get("taught"))}
+                        for i in reversed(procedures.load(learned_path()))]}
+
+
+# ---------------- teaching Autopilot by showing it ----------------
+TEACH: dict = {"rec": None, "listeners": [], "map": None, "result": None}
+
+
+def teach_front() -> tuple[str, str]:
+    return foreground_window()
+
+
+def teach_element_at(x: int, y: int) -> dict | None:
+    """The smallest control Windows reported under the mouse (from the screen map refreshed while recording)."""
+    m = TEACH["map"] or {}
+    hits = [e for e in m.get("elements", []) if abs(e["x"] - x) <= e["w"] / 2 + 2 and abs(e["y"] - y) <= e["h"] / 2 + 2 and e.get("name")]
+    if not hits:
+        return None
+    e = min(hits, key=lambda e: e["w"] * e["h"])
+    return {"name": e["name"], "kind": e.get("kind", "")}
+
+
+def teach_status() -> dict:
+    rec = TEACH["rec"]
+    return {"recording": bool(rec and not rec.done), "task": rec.task if rec else "", "steps": rec.steps() if rec else [], "result": TEACH["result"],
+            "ready": teach_ready()}
+
+
+def teach_ready() -> bool:
+    try:
+        import importlib
+        importlib.invalidate_caches()                     # it may have been installed a moment ago
+        import pynput  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def teach_start(task: str) -> str:
+    task = " ".join((task or "").split()).strip(" .!?:")
+    if not task:
+        raise ValueError("Say what you are going to show me, for example “watch me rename a file”.")
+    if TEACH["rec"] and not TEACH["rec"].done:
+        raise ValueError(f"I am already watching you {TEACH['rec'].task}. Press Ctrl+Shift+F9 or say “stop recording” first.")
+    try:
+        from pynput import keyboard, mouse
+    except Exception:
+        raise ValueError("Watching you needs a small extra package (pynput): Settings > Computer control > Teach Autopilot > Install recording.")
+    import jarvis_window
+    rec = teach_module.Recorder(task, {"front": teach_front, "element_at": teach_element_at})
+    held: set = set()
+    last = {"x": None, "y": None, "at": 0.0}
+
+    def on_click(x, y, button, pressed):
+        if not pressed or rec.done:
+            return
+        title, _ = teach_front()
+        if jarvis_window.is_app_title(title):                 # clicks on Jarvis itself (Start, Stop) are not part of the task
+            return
+        now = time.time()
+        double = last["x"] == int(x) and last["y"] == int(y) and now - last["at"] < 0.45
+        last.update(x=int(x), y=int(y), at=now)
+        rec.click(int(x), int(y), "right" if getattr(button, "name", "") == "right" else "left", double)
+
+    def on_scroll(x, y, dx, dy):
+        if not rec.done:
+            rec.scroll(int(dy))
+
+    def key_of(key):
+        name = getattr(key, "name", "") or ""
+        char = getattr(key, "char", None) or ""
+        vk = getattr(key, "vk", None)
+        if char and ord(char[0]) < 32 and vk and 65 <= vk <= 90:   # Ctrl+letter arrives as a control character
+            char = chr(vk).lower()
+        for prefix, mod in (("ctrl", "ctrl"), ("alt", "alt"), ("shift", "shift"), ("cmd", "win")):
+            if name.startswith(prefix):                   # ctrl_l, alt_gr, shift_r, cmd…
+                return mod, ""
+        return name, char
+
+    def on_press(key):
+        name, char = key_of(key)
+        if name in ("ctrl", "alt", "shift", "win"):
+            held.add(name)
+            return
+        title, _ = teach_front()
+        stop = rec.key(name, char if not jarvis_window.is_app_title(title) or name == "f9" else "", tuple(sorted(held)))
+        if stop:
+            threading.Thread(target=teach_stop, kwargs={"announce": True}, daemon=True).start()
+
+    def on_release(key):
+        name, _ = key_of(key)
+        held.discard(name)
+
+    ml = mouse.Listener(on_click=on_click, on_scroll=on_scroll)
+    kl = keyboard.Listener(on_press=on_press, on_release=on_release)
+    ml.start()
+    kl.start()
+    TEACH.update(rec=rec, listeners=[ml, kl], result=None)
+
+    def watch():
+        while not rec.done:
+            try:
+                TEACH["map"] = screen_map_now()
+            except Exception:
+                pass
+            for _ in range(15):
+                if rec.done or time.time() - rec.started > teach_module.MAX_SECONDS:
+                    break
+                time.sleep(0.1)
+            if time.time() - rec.started > teach_module.MAX_SECONDS and TEACH["rec"] is rec:
+                teach_stop(announce=True)
+                return
+    threading.Thread(target=watch, daemon=True).start()
+    ov = autopilot_overlay()
+    if ov:
+        try:
+            ov.begin(f"Jarvis is watching how you {task[:60]} · Ctrl+Shift+F9 when you are done", lambda: threading.Thread(target=teach_stop, kwargs={"announce": True}, daemon=True).start())
+        except Exception:
+            pass
+    return (f"Go ahead, sir: I am watching how you {task}. Do it the way you normally would; I note your clicks, typing and keys "
+            "(never passwords). Press Ctrl+Shift+F9 or say “stop recording” when you are done.")
+
+
+def teach_stop(cancel: bool = False, announce: bool = False) -> dict:
+    rec = TEACH["rec"]
+    if rec is None:
+        return {"task": "", "steps": []}
+    for listener in TEACH["listeners"]:
+        try:
+            listener.stop()
+        except Exception:
+            pass
+    TEACH["listeners"] = []
+    steps = rec.finish()
+    TEACH["rec"] = None
+    ov = autopilot_overlay()
+    if ov:
+        try:
+            ov.end()
+        except Exception:
+            pass
+    result = {"task": rec.task, "steps": steps, "saved": False}
+    if not cancel and steps:
+        procedures.remember(learned_path(), rec.task, steps, taught=True)
+        PROC_HINTS.clear()
+        result["saved"] = True
+    TEACH["result"] = result
+    if announce:
+        publish_event({"type": "proactive", "id": "teach-" + secrets.token_hex(4), "text": teach_summary(result), "chat": True, "speak": False})
+    return result
+
+
+def teach_summary(result: dict) -> str:
+    if not result["steps"]:
+        return "I did not see any clicks or typing, sir, so there is nothing to learn. Try again with “watch me …”."
+    if not result["saved"]:
+        return "Recording cancelled, sir. Nothing was kept."
+    return (f"Learned, sir: how to {result['task']}, in {len(result['steps'])} steps:\n" + "\n".join(f"{n + 1}. {s}" for n, s in enumerate(result["steps"][:20]))
+            + f"\nNext time you ask me to {result['task']} (with Autopilot), I will follow this way. You can delete it in Settings > Computer control.")
 
 
 def learned_path() -> Path:
@@ -6586,6 +6747,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/awareness":
             self.send_json(200, awareness_obj().public())
             return
+        if path == "/api/teach":
+            self.send_json(200, teach_status())
+            return
         if path == "/api/call":
             obj = calls_obj()
             with SUBSCRIBERS_LOCK:
@@ -7590,6 +7754,11 @@ class Handler(BaseHTTPRequestHandler):
                                 threading.Thread(target=install_playwright, daemon=True).start()
                                 time.sleep(0.2)
                             self.send_json(200, control_public())
+                        elif payload.get("install_recording"):
+                            if not INSTALL["running"] and not teach_ready():
+                                threading.Thread(target=install_playwright, args=("pynput>=1.7",), daemon=True).start()
+                                time.sleep(0.2)
+                            self.send_json(200, control_public())
                         elif payload.get("forget"):
                             procedures.delete(learned_path(), str(payload["forget"]))
                             PROC_HINTS.clear()
@@ -7614,6 +7783,18 @@ class Handler(BaseHTTPRequestHandler):
                 self.coach_post(payload)
             elif path == "/api/transport":
                 self.transport_post(payload)
+            elif path == "/api/teach":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Showing Autopilot how to do something works at the PC only."})
+                elif payload.get("start") is not None:
+                    try:
+                        reply = teach_start(str(payload["start"]))
+                        self.send_json(200, {**teach_status(), "reply": reply})
+                    except ValueError as exc:
+                        self.send_json(400, {"error": str(exc)})
+                else:
+                    result = teach_stop(cancel=bool(payload.get("cancel")))
+                    self.send_json(200, {**teach_status(), "reply": teach_summary(result)})
             elif path == "/api/awareness":
                 if self._from_phone and (payload.get("on") or "skip" in payload or "every" in payload or "keep" in payload):
                     self.send_json(403, {"error": "Screen awareness is set up at the PC."})
@@ -8462,6 +8643,20 @@ class Handler(BaseHTTPRequestHandler):
         if french_command:                      # a French request for a built-in command: run the English one, answer in French
             debugtrace.step("french", f"French rewritten as: “{french_command}” (the answer is translated back)")
             latest, self._reply_lang = french_command, "fr"
+        if TEACH["rec"] is not None and teach_module.STOP.fullmatch(latest.strip()):
+            result = teach_stop(cancel=latest.strip().lower().startswith("cancel"))
+            self.send_json(200, {"reply": teach_summary(result), "action": None})
+            return
+        teach_m = teach_module.START.fullmatch(latest.strip())
+        if teach_m:
+            if self._offsite:
+                self.send_json(200, {"reply": "Showing me how to do something works at the PC only, sir.", "action": None})
+            else:
+                try:
+                    self.send_json(200, {"reply": teach_start(teach_m.group("task")), "action": None})
+                except ValueError as exc:
+                    self.send_json(200, {"reply": str(exc), "action": None})
+            return
         aware_req = awareness_module.control(latest)
         if aware_req is not None:
             if self._offsite and not aware_req.get("ask") and not (aware_req.get("on") is False or "pause_minutes" in aware_req):

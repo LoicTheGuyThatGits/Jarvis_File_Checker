@@ -803,6 +803,14 @@
 "Selected text": "Texte sélectionné",
 "@patterns": [
 [
+"^· (\\d+) steps · shown by you$",
+"· $1 étapes · montré par vous"
+],
+[
+"^· (\\d+) steps · shown by you · reused (\\d+)×$",
+"· $1 étapes · montré par vous · réutilisé $2×"
+],
+[
 "^1 month$",
 "1 mois"
 ],
@@ -1034,5 +1042,17 @@
 "Paused until": "En pause jusqu'à",
 "Resume now": "Reprendre maintenant",
 "On.": "Activée.",
-"Moments in memory:": "Moments en mémoire :"
+"Moments in memory:": "Moments en mémoire :",
+"Show Autopilot how": "Montrer à l'Autopilote",
+"Do a task once yourself while Jarvis watches, and Autopilot does it your way the next time you ask. Write what you are going to show, press Start, then do it as you normally would in the other windows. Jarvis notes where you click (the button or box under the mouse), what you type and the shortcuts you press. Typing in password boxes, or in windows about passwords or private browsing, is never kept. Press Ctrl+Shift+F9 when you are done. In chat: “watch me export a report as a PDF”, then “stop recording”.": "Faites une tâche une fois vous-même pendant que Jarvis regarde, et l'Autopilote la fera à votre façon la prochaine fois que vous la demandez. Écrivez ce que vous allez montrer, appuyez sur Démarrer, puis faites-le comme d'habitude dans les autres fenêtres. Jarvis note où vous cliquez (le bouton ou la case sous la souris), ce que vous tapez et les raccourcis que vous utilisez. Ce qui est tapé dans les cases de mot de passe, ou dans les fenêtres de mots de passe ou de navigation privée, n'est jamais gardé. Appuyez sur Ctrl+Maj+F9 quand vous avez fini. Dans le chat : « regarde-moi faire un export PDF du rapport », puis « arrête l'enregistrement ».",
+"e.g. export my report as a PDF": "ex. exporter mon rapport en PDF",
+"What you are going to show": "Ce que vous allez montrer",
+"I'm done": "J'ai fini",
+"Install recording": "Installer l'enregistrement",
+"Installing recording… (under a minute)": "Installation de l'enregistrement… (moins d'une minute)",
+"Recording what you do needs a small extra package (pynput).": "Enregistrer ce que vous faites demande un petit paquet en plus (pynput).",
+"Watching you… Press Ctrl+Shift+F9 when you are done.": "Je vous regarde… Appuyez sur Ctrl+Maj+F9 quand vous avez fini.",
+"Learned. Autopilot will do it this way next time.": "Appris. L'Autopilote le fera de cette façon la prochaine fois.",
+"Nothing was kept.": "Rien n'a été gardé.",
+"Write first what you are going to show.": "Écrivez d'abord ce que vous allez montrer."
 }

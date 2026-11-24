@@ -691,13 +691,17 @@
         : p.error ? p.error : (p.status === 'success' ? (window.JarvisI18n ? window.JarvisI18n.t('Downloaded. Autopilot uses it now.') : 'Downloaded. Autopilot uses it now.') : (d.has_recommended ? (window.JarvisI18n ? window.JarvisI18n.t('qwen3-vl is installed.') : 'qwen3-vl is installed.')
           : d.slow_model ? (window.JarvisI18n ? window.JarvisI18n.t('The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.') : 'The model Autopilot uses now thinks for a long time before each step. Download the instruct version for quick steps.') : ''));
       var inst = d.install || {};
+      var forBrowser = (inst.package || 'playwright') === 'playwright';
       $('ctl-install').classList.toggle('hidden', !!d.browser_ready || !!inst.running);
-      $('ctl-browser-status').textContent = d.browser_ready ? 'Browser control is ready.' : inst.running ? 'Installing browser control… (a minute or two)' : inst.error ? inst.error : 'Browser control needs a small extra package (Playwright).';
+      $('ctl-browser-status').textContent = d.browser_ready ? 'Browser control is ready.' : inst.running && forBrowser ? 'Installing browser control… (a minute or two)' : inst.error && forBrowser ? inst.error : 'Browser control needs a small extra package (Playwright).';
+      $('teach-install').classList.toggle('hidden', !!d.recording_ready || !!inst.running);
+      if (!teachState.recording && (!d.recording_ready || teachState.needed)) $('teach-status').textContent = d.recording_ready ? '' : inst.running && !forBrowser ? 'Installing recording… (under a minute)' : inst.error && !forBrowser ? inst.error : 'Recording what you do needs a small extra package (pynput).';
+      $('teach-start').disabled = !d.recording_ready; teachState.needed = !d.recording_ready;
       var learned = $('ctl-learned'); learned.textContent = '';
       (d.learned || []).forEach(function (it) {
         var li = document.createElement('li'), t = document.createElement('span'), n = document.createElement('span'), x = document.createElement('button');
         t.className = 'ctl-task'; t.setAttribute('data-no-i18n', ''); t.textContent = it.task;
-        n.className = 'ctl-steps'; n.textContent = ' · ' + it.steps + ' steps' + (it.uses ? ' · reused ' + it.uses + '×' : '');
+        n.className = 'ctl-steps'; n.textContent = ' · ' + it.steps + ' steps' + (it.taught ? ' · shown by you' : '') + (it.uses ? ' · reused ' + it.uses + '×' : '');
         x.type = 'button'; x.className = 'settings-action'; x.textContent = 'Forget';
         x.addEventListener('click', function () { ctlSave({ forget: it.id }); });
         li.append(t, n, ' ', x); learned.append(li);
@@ -709,6 +713,28 @@
     };
     var ctlTimer = 0;
     var ctlState = { folders: [] };
+    var teachState = { recording: false }, teachTimer = 0;
+    var teachShow = function (d) {
+      teachState = d;
+      $('teach-start').classList.toggle('hidden', !!d.recording); $('teach-task').disabled = !!d.recording;
+      $('teach-stop').classList.toggle('hidden', !d.recording); $('teach-cancel').classList.toggle('hidden', !d.recording);
+      var steps = d.recording ? d.steps : (d.result && d.result.steps) || [], ol = $('teach-steps'); ol.textContent = '';
+      steps.forEach(function (s) { var li = document.createElement('li'); li.textContent = s; ol.append(li); });
+      if (d.recording) $('teach-status').textContent = (window.JarvisI18n ? window.JarvisI18n.t('Watching you… Press Ctrl+Shift+F9 when you are done.') : 'Watching you… Press Ctrl+Shift+F9 when you are done.');
+      else if (d.result) $('teach-status').textContent = d.result.saved ? (window.JarvisI18n ? window.JarvisI18n.t('Learned. Autopilot will do it this way next time.') : 'Learned. Autopilot will do it this way next time.')
+        : (window.JarvisI18n ? window.JarvisI18n.t('Nothing was kept.') : 'Nothing was kept.');
+      clearTimeout(teachTimer);
+      if (d.recording) teachTimer = setTimeout(function () { api('/api/teach').then(function (n) { teachShow(n); if (!n.recording) api('/api/control').then(ctlShow).catch(function () {}); }).catch(function () {}); }, 1500);
+    };
+    var teachSend = function (body) { return api('/api/teach', body).then(function (d) { teachShow(d); api('/api/control').then(ctlShow).catch(function () {}); }).catch(function (e) { $('teach-status').textContent = e.message; }); };
+    $('teach-start').addEventListener('click', function () {
+      var t = $('teach-task').value.trim();
+      if (!t) { $('teach-status').textContent = window.JarvisI18n ? window.JarvisI18n.t('Write first what you are going to show.') : 'Write first what you are going to show.'; $('teach-task').focus(); return; }
+      teachSend({ start: t });
+    });
+    $('teach-stop').addEventListener('click', function () { teachSend({ stop: true }); });
+    $('teach-cancel').addEventListener('click', function () { teachSend({ cancel: true }); });
+    $('teach-install').addEventListener('click', function () { api('/api/control', { install_recording: true }).then(ctlShow).catch(function (e) { $('teach-status').textContent = e.message; }); });
     var ctlSave = function (update) { return api('/api/control', update).then(function (d) { ctlShow(d); $('ctl-status').textContent = 'Saved.'; }).catch(function (e) { $('ctl-status').textContent = e.message; }); };
     $('ctl-sight').addEventListener('change', function () { ctlSave({ sight: $('ctl-sight').value }); });
     $('ctl-ocr').addEventListener('change', function () { ctlSave({ ocr: $('ctl-ocr').checked }); });
@@ -731,6 +757,6 @@
       var f = $('ctl-folder').value.trim(); if (!f) return;
       ctlSave({ folders: (ctlState.folders || []).concat([f]) }).then(function () { if ($('ctl-status').textContent === 'Saved.') $('ctl-folder').value = ''; });
     });
-    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'ctl-status')) api('/api/control').then(ctlShow).catch(function () {}); });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'ctl-status')) { api('/api/control').then(ctlShow).catch(function () {}); api('/api/teach').then(teachShow).catch(function () {}); } });
   }
 })();
