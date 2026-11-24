@@ -155,7 +155,6 @@
 "Open the data folder": "Ouvrir le dossier des données",
 "Copy the path": "Copier le chemin",
 "Self-check": "Auto-vérification",
-"Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.": "Essaie chaque partie de Jarvis qui dépend de ce PC (le modèle d'IA, la lecture de l'écran, la souris et le clavier, le Wi-Fi, la recherche de fichiers, la modification de documents…) et indique ce qui fonctionne. Elle ne fait que lire et mesurer ; rien n'est modifié. Jusqu'à une minute. Dans la discussion : « run a self-check ».",
 "Run the self-check": "Lancer l'auto-vérification",
 "Copy the report": "Copier le rapport",
 "Debug mode": "Mode débogage",
@@ -1054,5 +1053,11 @@
 "Watching you… Press Ctrl+Shift+F9 when you are done.": "Je vous regarde… Appuyez sur Ctrl+Maj+F9 quand vous avez fini.",
 "Learned. Autopilot will do it this way next time.": "Appris. L'Autopilote le fera de cette façon la prochaine fois.",
 "Nothing was kept.": "Rien n'a été gardé.",
-"Write first what you are going to show.": "Écrivez d'abord ce que vous allez montrer."
+"Write first what you are going to show.": "Écrivez d'abord ce que vous allez montrer.",
+"Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and the newer features (Autopilot's model and graphics card, the Jarvis browser, recording, public transport, Classroom, the study coach, memory, calls), and says what works. It only reads and measures; nothing is changed. When something can be put right, a button under the report does it. Takes up to a minute. In chat: “run a self-check”.": "Essaie chaque partie de Jarvis qui dépend de ce PC (le modèle d'IA, la lecture de l'écran, la souris et le clavier, le Wi-Fi, la recherche de fichiers, l'édition de documents…) et les nouvelles fonctions (le modèle de l'Autopilote et la carte graphique, le navigateur Jarvis, l'enregistrement, les transports publics, Classroom, le coach d'étude, la mémoire, les appels), et dit ce qui fonctionne. Il ne fait que lire et mesurer ; rien n'est modifié. Quand quelque chose peut être réparé, un bouton sous le rapport s'en charge. Prend jusqu'à une minute. Dans le chat : « lance un auto-test ».",
+"Started: the progress is in Settings > Computer control.": "Lancé : la progression est dans Réglages > Contrôle de l'ordinateur.",
+"Download qwen3-vl:8b-instruct (6 GB)": "Télécharger qwen3-vl:8b-instruct (6 Go)",
+"Set the stops": "Choisir les arrêts",
+"Check the stops": "Vérifier les arrêts",
+"Open Classroom settings": "Ouvrir les réglages Classroom"
 }

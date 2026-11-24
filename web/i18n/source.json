@@ -169,7 +169,7 @@
  "Open the data folder",
  "Copy the path",
  "Self-check",
- "Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.",
+ "Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and the newer features (Autopilot's model and graphics card, the Jarvis browser, recording, public transport, Classroom, the study coach, memory, calls), and says what works. It only reads and measures; nothing is changed. When something can be put right, a button under the report does it. Takes up to a minute. In chat: “run a self-check”.",
  "Run the self-check",
  "Copy the report",
  "Debug mode",

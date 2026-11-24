@@ -3518,7 +3518,116 @@ def self_checks() -> list:
 
     return [("Python packages", packages), ("Data folder", data_folder), ("AI model", model), ("Jarvis model", own_model), ("Picture model", vision), ("Screenshot", screenshot),
             ("Reading controls on screen", screen_controls), ("Reading text on screen (OCR)", screen_ocr), ("Windows list", windows_list), ("Mouse and keyboard", computer_control), ("Autopilot overlay", autopilot_overlay_check), ("Connected tools (MCP)", mcp_check),
-            ("Network and Wi-Fi", network), ("File search", file_search), ("Document editing", documents), ("Phone app link", phone), ("Offline voice", voice)]
+            ("Network and Wi-Fi", network), ("File search", file_search), ("Document editing", documents), ("Phone app link", phone), ("Offline voice", voice)] + feature_checks()
+
+
+def ollama_version(base: str) -> str | None:
+    try:
+        with urllib.request.urlopen(re.sub(r"/v1/?$", "", base) + "/api/version", timeout=5) as r:
+            return str(json.loads(r.read()).get("version") or "") or None
+    except Exception:
+        return None
+
+
+def version_tuple(v: str) -> tuple:
+    return tuple(int(x) for x in re.findall(r"\d+", v or "")[:3])
+
+
+def feature_checks() -> list:
+    """The newer features, each with what to do when it is not ready (a button on the self-check page)."""
+    pane = lambda name, label: {"do": "pane:" + name, "label": label}
+
+    def clock():
+        now = datetime.now().astimezone()
+        return "ok", f"Jarvis answers “what's the date / time” from this PC's clock: {clock_module.long_date(now.date())}, {now.strftime('%H:%M')} ({now.tzname()})"
+
+    def ollama():
+        ai = autopilot_ai()
+        if not ai["is_local"]:
+            return "skip", "Autopilot uses a cloud model"
+        v = ollama_version(ai_settings("vision")["base"])
+        if v is None:
+            return "warn", "Ollama does not answer: start it (or restart Jarvis, which starts it)"
+        if version_tuple(v) < (0, 12, 7):
+            return "warn", f"Ollama {v} is too old for qwen3-vl (needs 0.12.7 or newer): download the new version from ollama.com and install it over the old one"
+        return "ok", f"Ollama {v}"
+
+    def autopilot_model():
+        c = control_public()
+        if not c["local"]:
+            return "ok", f"Autopilot uses {c['model_now']} (cloud)"
+        if not c["has_recommended"]:
+            why = "the model it uses now thinks for minutes before each step" if c["slow_model"] else f"it uses {c['model_now'] or 'no model that can see'} for now"
+            return "warn", f"{AUTOPILOT_MODEL} is not installed ({why})", {"do": "pull", "label": f"Download {AUTOPILOT_MODEL} (6 GB)"}
+        share = gpu_share(ai_settings("vision")["base"], c["model_now"])
+        where = ("not loaded right now (it loads on the first step)" if share is None else "all on the graphics card" if share >= 0.95
+                 else f"{round(share * 100)} % on the graphics card, the rest on the processor: slower (close games or other models, or choose a smaller one)")
+        return ("ok" if share is None or share >= 0.95 else "warn"), f"{c['model_now']} installed, {where}"
+
+    def browser():
+        if webpilot.available():
+            return "ok", "Playwright is installed; websites open in the Jarvis browser (Edge or Chrome)"
+        return "warn", "Playwright is missing: Autopilot uses websites by looking at the screen instead (slower, less exact)", {"do": "install_browser", "label": "Install browser control"}
+
+    def recording():
+        if teach_ready():
+            return "ok", "pynput is installed: “watch me …” can record what you show"
+        return "warn", "pynput is missing, so Jarvis cannot watch how you do a task", {"do": "install_recording", "label": "Install recording"}
+
+    def awareness():
+        a = awareness_obj().public()
+        if not a["on"]:
+            return "skip", "off (Settings > Computer control > Screen awareness)"
+        if a["paused"]:
+            return "ok", "on, paused for now"
+        return "ok", f"on: every {a['every']} s, {a['moments']} moments in memory"
+
+    def transport():
+        cfg = transport_obj().settings()
+        if not cfg["home"] and not cfg["school"]:
+            return "skip", "no home or school stop set", pane("plan", "Set the stops")
+        try:
+            found = transport_station(cfg["home"] or cfg["school"])
+        except transport_module.TransportError as exc:
+            return "fail", str(exc)
+        if not found:
+            return "warn", f"the timetable knows no stop called “{cfg['home'] or cfg['school']}”", pane("plan", "Check the stops")
+        missing = "home" if not cfg["home"] else "school" if not cfg["school"] else ""
+        return ("warn" if missing else "ok"), f"transport.opendata.ch answers; stops: {cfg['home'] or '?'} → {cfg['school'] or '?'}" + (f" (no {missing} stop yet)" if missing else "") + \
+            ("; morning check on" if cfg["morning"] else "")
+
+    def classroom():
+        c = classroom_module.public(classroom_path(), classroom_redirect())
+        if not c["connected"]:
+            return "skip", "not connected (Settings > School > Google Classroom)"
+        if c["last_error"]:
+            return "warn", "connected, but the last sync failed: " + c["last_error"][:200], pane("school", "Open Classroom settings")
+        last = datetime.fromtimestamp(c["last_sync"]).strftime("%d %b %H:%M") if c.get("last_sync") else "not yet"
+        return "ok", f"connected, {len(c['courses'])} classes, last sync {last}"
+
+    def coach():
+        cfg = coach_obj().settings()
+        data = coach_obj().load()
+        return "ok", ("plans revision by itself before exams" if cfg["auto"] else "plans only when asked") + f"; study time {cfg['weekday']} on weekdays, {cfg['weekend']} at weekends; {len(data['planned'])} exams planned so far"
+
+    def memory():
+        cfg = memory_settings()
+        items = load_memory()
+        months = sorted(data_path("history").glob("*.jsonl")) if data_path("history").exists() else []
+        return "ok", (f"{len(items)} memories ({sum(1 for i in items if i.get('source') == 'learned')} learned); learning from chats " + ("on" if cfg["learn"] else "off")
+                      + "; chat history " + (f"on, {len(months)} months kept" if cfg["history"] else "off"))
+
+    def calls():
+        cfg = calls_obj().settings()
+        if not cfg["on"]:
+            return "skip", "calls are off"
+        with SUBSCRIBERS_LOCK:
+            listening = bool(PHONE_SUBSCRIBERS) or calls_obj().waiting > 0
+        return ("ok" if listening else "warn"), ("the phone app is connected" if listening else "on, but no phone app is connected right now (open the app on the phone)") + \
+            ("; missed calls go to Telegram" if cfg["telegram_fallback"] else "")
+
+    return [("PC clock", clock), ("Ollama", ollama), ("Autopilot model", autopilot_model), ("Jarvis browser", browser), ("Show Autopilot how (recording)", recording),
+            ("Screen awareness", awareness), ("Public transport", transport), ("Google Classroom", classroom), ("Study coach", coach), ("Memory between chats", memory), ("Calls", calls)]
 
 
 def run_self_check() -> dict:

@@ -261,9 +261,10 @@
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Self-check</h2>
-        <p class="settings-note">Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.</p>
+        <p class="settings-note">Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and the newer features (Autopilot's model and graphics card, the Jarvis browser, recording, public transport, Classroom, the study coach, memory, calls), and says what works. It only reads and measures; nothing is changed. When something can be put right, a button under the report does it. Takes up to a minute. In chat: “run a self-check”.</p>
         <div class="inline-form"><button type="button" id="selftest-run">Run the self-check</button><button type="button" id="selftest-copy" disabled>Copy the report</button></div>
         <pre class="settings-note" id="selftest-report" role="status" style="white-space:pre-wrap"></pre>
+        <div class="inline-form selftest-fixes hidden" id="selftest-fixes"></div>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">Debug mode</h2>

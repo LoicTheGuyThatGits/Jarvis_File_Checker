@@ -153,7 +153,6 @@
 "Open the data folder": "Datenordner öffnen",
 "Copy the path": "Pfad kopieren",
 "Self-check": "Selbsttest",
-"Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.": "Prüft jeden Teil von Jarvis, der von diesem PC abhängt (KI-Modell, Bildschirm lesen, Maus und Tastatur, WLAN, Dateisuche, Dokumente bearbeiten…) und sagt, was funktioniert. Es wird nur gelesen und gemessen, nichts wird verändert. Dauert bis zu einer Minute. Im Chat: „run a self-check“.",
 "Run the self-check": "Selbsttest starten",
 "Copy the report": "Bericht kopieren",
 "Debug mode": "Debug-Modus",
@@ -1057,5 +1056,11 @@
 "Watching you… Press Ctrl+Shift+F9 when you are done.": "Ich schaue zu… Drück Strg+Umschalt+F9, wenn du fertig bist.",
 "Learned. Autopilot will do it this way next time.": "Gelernt. Der Autopilot macht es nächstes Mal so.",
 "Nothing was kept.": "Nichts wurde gespeichert.",
-"Write first what you are going to show.": "Schreib zuerst, was du zeigen willst."
+"Write first what you are going to show.": "Schreib zuerst, was du zeigen willst.",
+"Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and the newer features (Autopilot's model and graphics card, the Jarvis browser, recording, public transport, Classroom, the study coach, memory, calls), and says what works. It only reads and measures; nothing is changed. When something can be put right, a button under the report does it. Takes up to a minute. In chat: “run a self-check”.": "Prüft jeden Teil von Jarvis, der von diesem PC abhängt (das KI-Modell, das Lesen des Bildschirms, Maus und Tastatur, WLAN, Dateisuche, Dokumentbearbeitung…) und die neueren Funktionen (Modell und Grafikkarte des Autopiloten, den Jarvis-Browser, die Aufzeichnung, den öffentlichen Verkehr, Classroom, den Lerncoach, das Gedächtnis, Anrufe), und sagt, was funktioniert. Es wird nur gelesen und gemessen; nichts wird geändert. Wenn sich etwas beheben lässt, erledigt das eine Schaltfläche unter dem Bericht. Dauert bis zu einer Minute. Im Chat: „run a self-check“.",
+"Started: the progress is in Settings > Computer control.": "Gestartet: den Fortschritt siehst du unter Einstellungen > Computersteuerung.",
+"Download qwen3-vl:8b-instruct (6 GB)": "qwen3-vl:8b-instruct herunterladen (6 GB)",
+"Set the stops": "Haltestellen festlegen",
+"Check the stops": "Haltestellen prüfen",
+"Open Classroom settings": "Classroom-Einstellungen öffnen"
 }

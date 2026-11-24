@@ -1,6 +1,7 @@
 """Self-check: tries each part of Jarvis that depends on this PC and says what works.
 
-    run(checks, timeout)   checks = [(name, function)]; each function returns (status, detail) with status "ok" | "warn" | "fail" | "skip"
+    run(checks, timeout)   checks = [(name, function)]; each function returns (status, detail) with status "ok" | "warn" | "fail" | "skip",
+                           or (status, detail, fix) where fix = {"label", "do"}: a button the page offers to put it right
     report(results, info)  the text to read or send on
 
 A check that raises fails with the error; a check that takes too long fails with "took too long". Nothing is changed
@@ -14,7 +15,7 @@ import time
 MARK = {"ok": "✓", "warn": "⚠", "fail": "✗", "skip": "–"}
 
 
-def run_one(fn, timeout: float) -> tuple[str, str, float]:
+def run_one(fn, timeout: float) -> tuple[str, str, float, dict | None]:
     box: dict = {}
 
     def work():
@@ -28,18 +29,20 @@ def run_one(fn, timeout: float) -> tuple[str, str, float]:
     t.join(timeout)
     took = time.monotonic() - started
     if t.is_alive():
-        return "fail", f"took too long (over {timeout:.0f} s)", took
+        return "fail", f"took too long (over {timeout:.0f} s)", took, None
     if "error" in box:
-        return "fail", box["error"][:300], took
-    status, detail = box.get("result") or ("fail", "no answer")
-    return (status if status in MARK else "fail"), str(detail)[:400], took
+        return "fail", box["error"][:300], took, None
+    result = tuple(box.get("result") or ("fail", "no answer"))
+    status, detail = result[0], result[1]
+    fix = result[2] if len(result) > 2 and isinstance(result[2], dict) and result[2].get("do") else None
+    return (status if status in MARK else "fail"), str(detail)[:400], took, fix
 
 
 def run(checks: list, timeout: float = 45.0, progress=None) -> list[dict]:
     results = []
     for n, (name, fn) in enumerate(checks, 1):
-        status, detail, took = run_one(fn, timeout)
-        results.append({"name": name, "status": status, "detail": detail, "seconds": round(took, 1)})
+        status, detail, took, fix = run_one(fn, timeout)
+        results.append({"name": name, "status": status, "detail": detail, "seconds": round(took, 1), **({"fix": fix} if fix else {})})
         if progress:
             progress(n, len(checks), name)
     return results
@@ -50,5 +53,5 @@ def report(results: list[dict], info: dict) -> str:
     head = [f"Jarvis self-check, {info.get('when', '')}",
             f"Folder: {info.get('folder', '?')} · Windows: {info.get('windows', '?')} · Python {info.get('python', '?')}",
             f"{counts['ok']} working, {counts['warn']} with a warning, {counts['fail']} not working, {counts['skip']} skipped.", ""]
-    lines = [f"{MARK[r['status']]} {r['name']}: {r['detail']}" + (f" ({r['seconds']} s)" if r["seconds"] >= 2 else "") for r in results]
+    lines = [f"{MARK[r['status']]} {r['name']}: {r['detail']}" + (f" ({r['seconds']} s)" if r["seconds"] >= 2 else "") + (f" → {r['fix']['label']}" if r.get("fix") else "") for r in results]
     return "\n".join(head + lines)

@@ -156,7 +156,6 @@
 "Open the data folder": "Apri la cartella dei dati",
 "Copy the path": "Copia il percorso",
 "Self-check": "Autoverifica",
-"Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and says what works. It only reads and measures; nothing is changed. Takes up to a minute. In chat: “run a self-check”.": "Prova ogni parte di Jarvis che dipende da questo PC (il modello di IA, la lettura dello schermo, mouse e tastiera, il Wi-Fi, la ricerca di file, la modifica di documenti…) e dice cosa funziona. Legge e misura soltanto; non cambia nulla. Richiede fino a un minuto. In chat: «run a self-check».",
 "Run the self-check": "Avvia l'autoverifica",
 "Copy the report": "Copia il rapporto",
 "Debug mode": "Modalità debug",
@@ -1063,5 +1062,11 @@
 "Watching you… Press Ctrl+Shift+F9 when you are done.": "Ti sto guardando… Premi Ctrl+Maiusc+F9 quando hai finito.",
 "Learned. Autopilot will do it this way next time.": "Imparato. L'Autopilota lo farà così la prossima volta.",
 "Nothing was kept.": "Non è stato conservato nulla.",
-"Write first what you are going to show.": "Scrivi prima cosa stai per mostrare."
+"Write first what you are going to show.": "Scrivi prima cosa stai per mostrare.",
+"Tries each part of Jarvis that depends on this PC (the AI model, reading the screen, mouse and keyboard, Wi-Fi, file search, document editing…) and the newer features (Autopilot's model and graphics card, the Jarvis browser, recording, public transport, Classroom, the study coach, memory, calls), and says what works. It only reads and measures; nothing is changed. When something can be put right, a button under the report does it. Takes up to a minute. In chat: “run a self-check”.": "Prova ogni parte di Jarvis che dipende da questo PC (il modello di IA, la lettura dello schermo, mouse e tastiera, il Wi-Fi, la ricerca di file, la modifica dei documenti…) e le funzioni più recenti (il modello e la scheda grafica dell'Autopilota, il browser di Jarvis, la registrazione, i trasporti pubblici, Classroom, il coach di studio, la memoria, le chiamate), e dice cosa funziona. Legge e misura soltanto; non cambia nulla. Quando qualcosa si può sistemare, lo fa un pulsante sotto il rapporto. Richiede fino a un minuto. In chat: “run a self-check”.",
+"Started: the progress is in Settings > Computer control.": "Avviato: l'avanzamento è in Impostazioni > Controllo del computer.",
+"Download qwen3-vl:8b-instruct (6 GB)": "Scarica qwen3-vl:8b-instruct (6 GB)",
+"Set the stops": "Imposta le fermate",
+"Check the stops": "Controlla le fermate",
+"Open Classroom settings": "Apri le impostazioni di Classroom"
 }

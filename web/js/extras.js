@@ -650,10 +650,28 @@
     window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'install-folder')) installLoad(); });
     installLoad();
   }
+  var selftestFixes = function (results) {
+    var box = $('selftest-fixes'), tr = function (t) { return window.JarvisI18n ? window.JarvisI18n.t(t) : t; };
+    results.filter(function (r) { return r.fix; }).forEach(function (r) {
+      var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = tr(r.fix.label); btn.title = r.name; btn.setAttribute('data-fix', r.fix.do);
+      btn.addEventListener('click', function () {
+        var how = r.fix.do;
+        if (how.indexOf('pane:') === 0) { window.JarvisUI.openPane(how.slice(5)); return; }
+        var body = how === 'pull' ? { pull: 'qwen3-vl:8b-instruct' } : how === 'install_browser' ? { install_browser: true } : how === 'install_recording' ? { install_recording: true } : null;
+        if (!body) return;
+        btn.disabled = true;
+        api('/api/control', body).then(function () { btn.textContent = tr('Started: the progress is in Settings > Computer control.'); window.JarvisUI.openPane('control'); })
+          .catch(function (e) { btn.disabled = false; btn.textContent = e.message; });
+      });
+      box.append(btn);
+    });
+    box.classList.toggle('hidden', !box.children.length);
+  };
   if ($('selftest-run')) {
     $('selftest-run').addEventListener('click', function () {
       var b = $('selftest-run'); b.disabled = true; $('selftest-copy').disabled = true; $('selftest-report').textContent = 'Checking… (up to a minute)';
-      api('/api/selftest', {}).then(function (d) { $('selftest-report').textContent = d.text; $('selftest-copy').disabled = false; })
+      $('selftest-fixes').textContent = ''; $('selftest-fixes').classList.add('hidden');
+      api('/api/selftest', {}).then(function (d) { $('selftest-report').textContent = d.text; $('selftest-copy').disabled = false; selftestFixes(d.results || []); })
         .catch(function (e) { $('selftest-report').textContent = e.message; }).then(function () { b.disabled = false; });
     });
     $('selftest-copy').addEventListener('click', function () {
