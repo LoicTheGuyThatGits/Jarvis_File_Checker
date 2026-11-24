@@ -52,7 +52,7 @@ r = chat("what time is it?"); t = datetime.now()
 assert r in (f"It is {t.strftime('%H:%M')}, sir.", f"It is {(t - timedelta(minutes=1)).strftime('%H:%M')}, sir."), r
 assert chat("what's the date") == f"Today is {C.long_date(datetime.now().date())}, sir."
 assert len(seen) == before, "the model was not asked"
-assert chat("quelle heure est-il ?") == "Il est 12 h 45, monsieur.", "French: the PC's answer, translated"
+r = chat("quelle heure est-il ?"); assert r.startswith("Il est ") and r.endswith(", monsieur.") and len(seen) == before, ("French: the PC's answer, in French without asking the model", r)
 chat("how old is someone born in 2010?")
 system = seen[-1]["messages"][0]["content"]
 assert f"{C.long_date(datetime.now().date())}" in system and "never assume another date" in system, "the model gets the real date for everything else"

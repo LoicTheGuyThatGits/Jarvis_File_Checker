@@ -113,7 +113,7 @@ chat = lambda text: call("POST", "/api/chat", {"messages": [{"role": "user", "co
 for l in ("add maths every monday and thursday from 8:15 to 9:00 in B12", "add physics every wednesday from 10:15 to 11:00"):
     assert chat(l).startswith("Added")
 r = chat("maths homework: worksheet 3, for next lesson"); assert r.startswith("Noted, sir: Maths: worksheet 3, due "), r
-assert chat("devoirs de physique : finir le rapport pour le prochain cours").startswith("Noted, sir: Physics: finir le rapport")
+assert chat("devoirs de physique : finir le rapport pour le prochain cours").startswith("C'est noté, monsieur : Physics: finir le rapport")
 st, d = call("GET", "/api/homework"); assert st == 200 and len(d["items"]) == 2 and "Physics" in d["subjects"] and not d["classroom"]["connected"], d
 # the evening note lists homework due tomorrow (it is a planner task)
 due = d["items"][0]["due"]; day = datetime.fromtimestamp(due).date()

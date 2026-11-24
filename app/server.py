@@ -1028,6 +1028,7 @@ import coach as coach_module
 import recall as recall_module
 import clock as clock_module
 import transport as transport_module
+import replies as replies_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -5611,6 +5612,12 @@ def _event_for(item: dict, missed: bool = False) -> dict:
 
 
 def publish_event(event: dict) -> None:
+    if event.get("type") == "proactive" and isinstance(event.get("text"), str):
+        try:
+            if current_language() == "fr":              # Jarvis speaks French: its own messages (reminders, coach, bus…) too, when they are known
+                event = {**event, "text": replies_module.to_french(event["text"]) or event["text"]}
+        except Exception:
+            pass
     with SUBSCRIBERS_LOCK:
         for q in list(SUBSCRIBERS) + list(PHONE_SUBSCRIBERS):
             q.put(event)
@@ -6376,7 +6383,9 @@ class Handler(BaseHTTPRequestHandler):
         if isinstance(obj, dict) and isinstance(obj.get("reply"), str):
             obj = {**obj, "reply": personalize(obj["reply"])}
             if getattr(self, "_reply_lang", None) and status == 200 and obj["reply"].strip():
-                obj["reply"] = ai_translate(obj["reply"], self._reply_lang) or obj["reply"]
+                native = replies_module.to_french(obj["reply"]) if self._reply_lang == "fr" else None   # the usual answers, written in French: instant
+                obj["reply"] = native or ai_translate(obj["reply"], self._reply_lang) or obj["reply"]
+                debugtrace.step("french", "Answered in French " + ("directly" if native else "through the AI model"), obj["reply"][:300])
                 self._reply_lang = None
             if getattr(self, "_doc_sources", None) is not None and "sources" not in obj and not obj.get("cancelled"):
                 obj["sources"] = self._doc_sources

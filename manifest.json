@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "1a861b0f7c04d0ace4439a60df2cc926cc418c0eab325e08e4ac7a8a18ac87c2",
-   "size": 89983
+   "sha256": "5f337319f8b0144c003d1ab256b0e104dcec7aa4f44558eb6faa2ec90a95ad3f",
+   "size": 90672
   },
   {
    "path": "app/backup.py",
@@ -39,8 +39,8 @@
   },
   {
    "path": "app/coach.py",
-   "sha256": "adb9cfda0979feb5278e910271a5708381e6bcbc57663b0662a121af666bda47",
-   "size": 38106
+   "sha256": "9387f6f2db69159e663c836225d74fff2b8165997cc2f36f5fb440e7c78336e6",
+   "size": 38127
   },
   {
    "path": "app/countdowns.py",
@@ -188,6 +188,11 @@
    "size": 5759
   },
   {
+   "path": "app/replies.py",
+   "sha256": "53f6df2d51847fb308c60bb5207f4ad6e3920f0378bac66ebc21d5dba7129306",
+   "size": 24975
+  },
+  {
    "path": "app/screenmap.py",
    "sha256": "163e211389ff49b1f41478fbc4d779bcd5454350d52d8b69a90edf4654c22a88",
    "size": 19479
@@ -204,8 +209,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "077883ef8a9c1fd598c426e07a900286f664fbc152a03e715cd76a6fdbffc177",
-   "size": 543695
+   "sha256": "e465272bfdd8849bc344133bd0b48f9b753ba38021fc75fec4bb6278ca208ce8",
+   "size": 544413
   },
   {
    "path": "app/set-address.py",

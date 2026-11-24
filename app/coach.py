@@ -355,7 +355,8 @@ def plan_text(planner, now: datetime, subject: str = "") -> str:
                 "No revision is planned, sir. When a test is in your calendar (“my physics test is on Friday at 8am”), I plan it by myself.")
     lines = [f"Your revision plan, sir ({len(items)} session{'s' if len(items) != 1 else ''}):"]
     for t in items[:20]:
-        lines.append(f"• {when_text(datetime.fromtimestamp(t['due']), now).capitalize()}: {t['coach']['subject']}, {t['coach']['minutes']} min "
+        w = when_text(datetime.fromtimestamp(t['due']), now)
+        lines.append(f"• {w[:1].upper() + w[1:]}: {t['coach']['subject']}, {t['coach']['minutes']} min "
                      f"(for the {t['coach']['exam_title']} {_exam_day_text(t['coach']['exam_at'], now)})")
     return "\n".join(lines)
 
