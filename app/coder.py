@@ -84,6 +84,10 @@ class CoderError(Exception):
     pass
 
 
+class UnknownStep(Exception):
+    pass
+
+
 # ---------------- the project folder ----------------
 def safe_path(root: Path, rel: str, write: bool = False) -> Path:
     rel = str(rel or "").strip().strip("`'\"").replace("\\", "/")
@@ -600,11 +604,13 @@ class BrowserWorker:
             except Exception as exc:
                 errors.append(f"The page did not load: {str(exc).splitlines()[0][:200]}")
             page.wait_for_timeout(700)
-            done, step_errors = [], []
+            done, step_errors, skipped = [], [], []
             for step in steps[:12]:
                 try:
                     self._step(page, step)
                     done.append(step)
+                except UnknownStep:
+                    skipped.append(step)                          # not a fault of the page: told as a note, not an error
                 except Exception as exc:
                     why = str(exc).splitlines()[0][:200]
                     if "Timeout" in why:
@@ -631,7 +637,7 @@ class BrowserWorker:
                 return out
             errors, warnings, failed = once(errors), once(warnings), once(failed)
             return {"url": url, "title": info.get("title") or "", "errors": errors, "warnings": warnings, "failed": failed[:15], "steps": done,
-                    "step_errors": step_errors, "text": text[:2000], "blank": not text and not info.get("things"), "wide": bool(info.get("wide")), "shot": shot}
+                    "step_errors": step_errors, "skipped": skipped, "text": text[:2000], "blank": not text and not info.get("things"), "wide": bool(info.get("wide")), "shot": shot}
         finally:
             try:
                 ctx.close()
@@ -662,7 +668,7 @@ class BrowserWorker:
         elif word == "scroll":
             page.mouse.wheel(0, int(re.sub(r"[^\d-]", "", rest) or 600))
         else:
-            raise CoderError("unknown step (use click, press, type, wait or scroll)")
+            raise UnknownStep(step)
 
 
 def check_text(c: dict, page: str) -> str:
@@ -671,6 +677,8 @@ def check_text(c: dict, page: str) -> str:
         out.append("Did: " + "; ".join(c["steps"]))
     problems = c["errors"] + c["failed"] + c.get("step_errors", [])
     out.append(("Errors:\n- " + "\n- ".join(problems)) if problems else "No errors.")
+    if c.get("skipped"):
+        out.append("Steps the checker cannot do (it only knows click, press, type, wait and scroll; read the visible text and screenshot instead): " + "; ".join(c["skipped"]))
     if c["warnings"]:
         out.append("Warnings:\n- " + "\n- ".join(c["warnings"][:8]))
     if c.get("blank"):

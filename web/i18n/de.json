@@ -1112,5 +1112,6 @@
 "Jarvis Code": "Jarvis Code",
 "No": "Nein",
 "Done.": "Fertig.",
-"</> Code": "</> Code"
+"</> Code": "</> Code",
+"Part of the model runs on the processor because the graphics card is full, so it writes slowly. Close games, other AI models and GPU-heavy apps, or choose a smaller model (qwen3.5:4b) in ⚙.": "Ein Teil des Modells läuft auf dem Prozessor, weil die Grafikkarte voll ist, deshalb schreibt es langsam. Schließe Spiele, andere KI-Modelle und GPU-lastige Apps oder wähle in ⚙ ein kleineres Modell (qwen3.5:4b)."
 }

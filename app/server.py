@@ -2995,7 +2995,7 @@ def control_public() -> dict:
 
 
 # ---------------- Jarvis Code: the model codes on a project and looks at it in a browser ----------------
-CODER: dict = {"session": None, "preview": None, "browser": None, "vision": {}}
+CODER: dict = {"session": None, "preview": None, "browser": None, "vision": {}, "gpu": (0.0, "", None)}
 CODER_RECOMMENDED = "qwen3.5:9b"
 CODER_PREFS = ("qwen3.5:9b", "qwen3.5", "qwen3-coder", "qwen2.5-coder", "qwen3-vl", "qwen3", "gemma3", "llama3.1")
 CODER_CTX = 16384
@@ -3193,6 +3193,15 @@ def coder_session(project: str, task: str = "", start: bool = False):
     return s
 
 
+def coder_gpu(base: str, model: str) -> float | None:
+    """How much of the model is on the graphics card right now (checked every 15 s): below 95 % it runs partly on the processor, much slower."""
+    at, name, share = CODER["gpu"]
+    if name != model or time.time() - at > 15:
+        share = gpu_share(base, model)
+        CODER["gpu"] = (time.time(), model, share)
+    return share
+
+
 def coder_public(since: int = 0, shot_at: float = 0) -> dict:
     s = CODER["session"]
     model, ai = coder_model()
@@ -3201,7 +3210,7 @@ def coder_public(since: int = 0, shot_at: float = 0) -> dict:
             "model": model, "installed": model in have or any(h.split(":")[0] == model for h in have), "recommended": CODER_RECOMMENDED,
             "has_recommended": any(h == CODER_RECOMMENDED or h.startswith(CODER_RECOMMENDED + "-") for h in have),
             "models": [m for m in have if not re.search(r"embed", m, re.I)], "pull": dict(PULL), "browser_ready": webpilot.available(),
-            "workspace": str(coder_workspace())}
+            "workspace": str(coder_workspace()), "gpu": coder_gpu(ai["base"], model)}
 
 
 # ---------------- teaching Autopilot by showing it ----------------

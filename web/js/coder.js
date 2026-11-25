@@ -70,13 +70,18 @@
 
   function showModel(d) {
     $('model-name').textContent = d.model || '?';
+    // loaded but not all on the graphics card: say so, it is the reason for slow answers
+    var g = $('model-gpu'), part = d.gpu != null && d.gpu < 0.95;
+    g.textContent = d.gpu == null ? '' : ' · ' + Math.round(d.gpu * 100) + ' % GPU';
+    $('model-chip').classList.toggle('warn', part);
+    $('model-chip').title = part ? tr('Part of the model runs on the processor because the graphics card is full, so it writes slowly. Close games, other AI models and GPU-heavy apps, or choose a smaller model (qwen3.5:4b) in ⚙.') : '';
     var pulling = d.pull && d.pull.running && d.pull.model === d.recommended;
     $('pull').classList.toggle('hidden', d.has_recommended && !pulling);
     $('pull').disabled = !!pulling;
     if (pulling) $('pull').textContent = tr('Downloading…') + (d.pull.total ? ' ' + Math.round(100 * d.pull.done / d.pull.total) + ' %' : '');
     else if (d.pull && d.pull.error && d.pull.model === d.recommended) $('pull').textContent = d.pull.error;
     else $('pull').textContent = tr('Download qwen3.5:9b (6.6 GB)');
-    $('model-chip').title = d.installed ? '' : tr('This model is not installed in Ollama.');
+    if (!d.installed) $('model-chip').title = tr('This model is not installed in Ollama.');
     var sm = $('set-model'); sm.textContent = '';
     var auto = document.createElement('option'); auto.value = ''; auto.textContent = tr('Automatic (best installed)'); sm.append(auto);
     d.models.forEach(function (m) { var o = document.createElement('option'); o.value = m; o.textContent = m; o.setAttribute('data-no-i18n', ''); sm.append(o); });

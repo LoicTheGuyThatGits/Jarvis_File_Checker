@@ -105,10 +105,11 @@ def turn3(msgs):
     last = msgs[-1]["content"]
     assert "[CHECK index.html] (automatic, after your changes)" in last and "No errors." in last, last
     assert "It now reads (lines" in last and "textContent = 'Score: ' + score;" in last
-    return "Trying the button twice.\nCHECK index.html then click #start; click #start\nWRITE tools/count.py\n```python\nimport sys\nprint('files:', len(sys.argv))\n```\nRUN tools/count.py a b"
+    return "Trying the button twice.\nCHECK index.html then click #start; click #start; check the score\nWRITE tools/count.py\n```python\nimport sys\nprint('files:', len(sys.argv))\n```\nRUN tools/count.py a b"
 def turn4(msgs):
     last = msgs[-1]["content"]
     assert "Score: 2" in last and "Ran tools/count.py (exit code 0):\nfiles: 3" in last, last
+    assert "No errors." in last and "Steps the checker cannot do (it only knows click, press, type, wait and scroll" in last and "check the score" in last, "a step it does not know is a note, not an error of the page"
     return "DONE A clicker game: press Start to add a point; the score shows under the title."
 SCRIPT[:] = [turn1, turn2, turn3, turn4]
 
@@ -127,6 +128,7 @@ assert kinds.count("write") == 4 and "edit" in kinds and kinds.count("check") ==
 first_check = next(e for e in s["log"] if e["kind"] == "check")
 assert not first_check["ok"] and "showScore is not defined" in first_check["detail"]
 assert s["summary"].startswith("A clicker game") and sorted(s["changed"]) == ["css/style.css", "index.html", "js/game.js", "tools/count.py"]
+assert "gpu" in call("GET", "/api/coder")[1], "the window shows how much of the model is on the graphics card"
 assert s["check"]["errors"] == [] and s["check"]["shot"] and s["preview"].startswith("http://127.0.0.2:"), s["check"]
 assert "document.getElementById('score').textContent = 'Score: ' + score;" in (tmp / "workspace" / "Clicker" / "js" / "game.js").read_text()
 assert SEEN[0]["options"]["num_ctx"] == S.CODER_CTX and SEEN[0]["think"] is False and SEEN[0]["stream"] is True

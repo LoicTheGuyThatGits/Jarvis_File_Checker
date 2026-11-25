@@ -49,8 +49,8 @@
   },
   {
    "path": "app/coder.py",
-   "sha256": "4cae516848cff657cdbba0d9d4d17b0d71b46e802788480769ee8a24e4775726",
-   "size": 52012
+   "sha256": "2bf0e67b5bce7c164b9d218a927a4184c40b5921066fe95bc89f88c1fe7f3953",
+   "size": 52395
   },
   {
    "path": "app/countdowns.py",
@@ -219,8 +219,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "350f93d439c9efb128a06578ea4e5baec26fa7dcc73b762fc64898dd27b606d8",
-   "size": 580759
+   "sha256": "5dfb589625857f96882f2cd582d42948404a824983d5d98f254693897b3a04c6",
+   "size": 581210
   },
   {
    "path": "app/set-address.py",
@@ -384,8 +384,8 @@
   },
   {
    "path": "web/coder.html",
-   "sha256": "e63d4fe91a2289a2c22b0933603e23275ad622be9e034e6a2653e1ad373c0881",
-   "size": 10666
+   "sha256": "d9c7be797ec76aa57b0af6cdb6059e697ec7f6ebe881804a473411969d1e2f12",
+   "size": 10764
   },
   {
    "path": "web/css/app.css",
@@ -399,23 +399,23 @@
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "5f98fd6b6465ee7ab4eb26d94c4184e6a8b3e509a37c2bbe5011237a241838b3",
-   "size": 108662
+   "sha256": "c89812a3d8154457e4f7944cb7b2d5afd8ac2ef22db56e390a2a9b309be5e7c2",
+   "size": 109078
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "d1386f9e2e8edefd2f11dd03b6cdf88bdf7738263ebc0f47fdb8f190be713c0d",
-   "size": 112585
+   "sha256": "39b3fca878a10b311041d5857b5a76b9c808f69c72b2528b9a3f958b93f79905",
+   "size": 113025
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "ccc66e5f27ef0ec8e6dc662306e37f09202fd99807fac1f00e4ad850bca0ea6a",
-   "size": 107988
+   "sha256": "a8f9bc3a9fb8d1245a3effae688ee72e56bd067fedb77a7ede6c67a89c038fb8",
+   "size": 108414
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "d08fcdfff878fff74d0497f01eb7e08908da8d505d130f771fa886eba21e09c7",
-   "size": 49351
+   "sha256": "f880599da2eaa1e6232b179b1dff2192780ecfc76df7226d2bf412e756556cf0",
+   "size": 49547
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -449,8 +449,8 @@
   },
   {
    "path": "web/js/coder.js",
-   "sha256": "1e062ffe9e2f0608d67ebc0b9c6d0ef6caabe6be53057213caef5319c5d7e7cd",
-   "size": 13990
+   "sha256": "cd3d03696e26932238482b74601bbf36886f157d364848dc651129943cfbbefb",
+   "size": 14522
   },
   {
    "path": "web/js/debug.js",

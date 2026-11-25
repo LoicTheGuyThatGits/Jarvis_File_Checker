@@ -24,6 +24,7 @@
   header .grow{flex:1}
   .chip{font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:3px 10px;white-space:nowrap}
   .chip b{color:var(--text);font-weight:600}
+  .chip.warn{border-color:var(--warn);color:var(--warn)}
   main{display:grid;grid-template-columns:minmax(360px,42%) 1fr;min-height:0}
   .left{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--line)}
   .task{padding:12px 14px;border-bottom:1px solid var(--line);display:grid;gap:8px}
@@ -83,7 +84,7 @@
     <button type="button" class="ghost" id="new-project">＋ New project</button>
     <button type="button" class="ghost" id="open-folder" title="Open the project folder in Windows">Open folder</button>
     <span class="grow"></span>
-    <span class="chip" id="model-chip">Model: <b id="model-name" data-no-i18n>…</b></span>
+    <span class="chip" id="model-chip">Model: <b id="model-name" data-no-i18n>…</b><span id="model-gpu" data-no-i18n></span></span>
     <button type="button" id="pull" class="hidden">Download qwen3.5:9b (6.6 GB)</button>
     <button type="button" class="ghost" id="settings-open" aria-label="Jarvis Code settings">⚙</button>
   </header>

@@ -773,6 +773,7 @@
  "Smaller",
  "Hide preview",
  "Choose a project…",
+ "Part of the model runs on the processor because the graphics card is full, so it writes slowly. Close games, other AI models and GPU-heavy apps, or choose a smaller model (qwen3.5:4b) in ⚙.",
  "Downloading…",
  "Download qwen3.5:9b (6.6 GB)",
  "This model is not installed in Ollama.",
