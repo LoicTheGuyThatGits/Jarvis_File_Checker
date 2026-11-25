@@ -27,7 +27,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Rajdhani:wght@400;500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/app.css">
-  <script>try{if((localStorage.getItem('jarvis-ui-lang')||'en')!=='en')document.documentElement.classList.add('i18n-pending')}catch(e){}</script>
+  <script>try{var l=localStorage.getItem('jarvis-ui-lang')||'en';if(l!=='en')document.documentElement.classList.add('i18n-pending');if(l==='ar'||l==='he')document.documentElement.dir='rtl'}catch(e){}</script>
 </head>
 <body>
   <div class="hud-bg" aria-hidden="true"><i></i><i></i></div>
@@ -97,7 +97,7 @@
     <form class="composer" id="composer">
       <label class="sr-only" for="message">Message Jarvis</label>
       <div class="computer-note hidden" id="computer-note">The preview stays on this PC. Frames are sent to your AI provider when a task is analyzed and as it runs; API charges may apply. Actions normally need your approval.</div>
-      <textarea id="message" rows="1" placeholder="Message Jarvis…" autocomplete="off"></textarea>
+      <textarea id="message" rows="1" placeholder="Message Jarvis…" autocomplete="off" dir="auto"></textarea>
       <div class="composer-tools">
         <span class="hint" id="voice-hint">Enter to send</span>
         <div class="button-group">

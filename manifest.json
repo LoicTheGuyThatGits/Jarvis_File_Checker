@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "31dd8a35af863c1b5917ef9c8098a62ec984e686e2de924f37df16212fa10c56",
-   "size": 100148
+   "sha256": "5f759829b0b891bf975133625ba0532c4d8f27f6b82bb8528661c9f6c56cad90",
+   "size": 100560
   },
   {
    "path": "app/advisor.py",
@@ -394,8 +394,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "be8cb58c3f086ab5907741b5fea3204bb77775db92799f4cf1360f923a09f4a4",
-   "size": 71137
+   "sha256": "569328d4532454ab34ffa73eae2c00b1e7ffdc700c45ad3e4842a559271a1ac2",
+   "size": 71818
   },
   {
    "path": "web/game.html",
@@ -403,9 +403,19 @@
    "size": 9735
   },
   {
+   "path": "web/i18n/ar.json",
+   "sha256": "ff3049e4d54a2fb1c3d434448c355cd2aa194c6a28c29725a96fe25438ff3387",
+   "size": 132208
+  },
+  {
    "path": "web/i18n/de.json",
    "sha256": "4008cba6a22eb3d0a9355952873341fe11e9076f0026b90b15b81e293b23b72e",
    "size": 113391
+  },
+  {
+   "path": "web/i18n/es.json",
+   "sha256": "4e3d02788ce1ab40eabe828dd709126b480a8defd41c19c384cd6e7f8e9460a4",
+   "size": 113374
   },
   {
    "path": "web/i18n/fr.json",
@@ -413,14 +423,49 @@
    "size": 117386
   },
   {
+   "path": "web/i18n/he.json",
+   "sha256": "e0ae35fce28c8efd2a4e2bc2bbf7f9f3de950121044a33ae8f8c08aab3505413",
+   "size": 126277
+  },
+  {
    "path": "web/i18n/it.json",
    "sha256": "643b0de23f59120b4253b241b26dd59d682f85340ec64f8a58015491c316ec83",
    "size": 112600
   },
   {
+   "path": "web/i18n/ja.json",
+   "sha256": "28e56794c6f7e677a7f12a9c730fcc0d63263d671792de00c92607cf5d745cbe",
+   "size": 125935
+  },
+  {
+   "path": "web/i18n/ko.json",
+   "sha256": "8f55c38b4147623c6155c33500f0dc21df88832603e88353a1916c30d2073550",
+   "size": 116587
+  },
+  {
+   "path": "web/i18n/nl.json",
+   "sha256": "047836be63afbae3cba913805c4df100633502d6c17859d30cb1e378542e71f5",
+   "size": 111570
+  },
+  {
+   "path": "web/i18n/pl.json",
+   "sha256": "4d423524ae712d216dde3344bc27eb59f63675f5e7f68bcf2ea8fafd59e79061",
+   "size": 112659
+  },
+  {
+   "path": "web/i18n/pt.json",
+   "sha256": "0a8609c22764ac4d02ff12956fd1f344d4a4b10973598e6351ea78fdbdc7c214",
+   "size": 112182
+  },
+  {
    "path": "web/i18n/source.json",
    "sha256": "e2e5178c6ce1330f3fa80343ed63f658721d6392b95abe9b60c6f864332985de",
    "size": 51160
+  },
+  {
+   "path": "web/i18n/zh.json",
+   "sha256": "8464636dbac94feb9524e161e390d702f00062099b78aa93fd2b0682f03e03d8",
+   "size": 106213
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -434,8 +479,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "aead4ee5d11dce29c3888214bb2a7c854632614ff7e4386bca5bd3f84a7f8a22",
-   "size": 106580
+   "sha256": "1fc0f77ac4fff5284b939e0332a1480d679772f0e002d84609843496a89381e6",
+   "size": 106654
   },
   {
    "path": "web/js/app.js",
@@ -479,8 +524,8 @@
   },
   {
    "path": "web/js/i18n.js",
-   "sha256": "ae2fd78ed00a594d8320e3e5d18751bba92adedf4735d5aded5e7a5b713228d7",
-   "size": 8532
+   "sha256": "22458035d485c43e4cb4d1fcbf97c5cbd7e68586461fa5e241481f44b3c3e584",
+   "size": 8896
   },
   {
    "path": "web/js/mail.js",

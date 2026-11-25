@@ -8,7 +8,8 @@ sys.path.insert(0, "app")
 # ---------- the translation files ----------
 TAG = re.compile(r"</?[a-z][^>]*>")
 source = json.load(open("web/i18n/source.json", encoding="utf-8"))
-for lang in ("fr", "de", "it"):
+ALL = ("fr", "de", "it", "es", "pt", "nl", "pl", "ja", "zh", "ko", "ar", "he")
+for lang in ALL:
     d = json.load(open(f"web/i18n/{lang}.json", encoding="utf-8"))
     assert len(d) > 0.95 * len(source), (lang, len(d), len(source))
     assert all(len(p) == 2 for p in d.pop("@patterns", []))
@@ -25,18 +26,20 @@ def call(method, path, body=None):
 chat = lambda text: call("POST", "/api/chat", {"messages": [{"role": "user", "content": text}], "stream": False})[1]
 # ---------- the server ----------
 st, d = call("GET", "/api/language")
-assert d["ui_setting"] == "auto" and d["ui_language"] == "en" and [l["code"] for l in d["ui_languages"]] == ["en", "de", "fr", "it"], d
+assert d["ui_setting"] == "auto" and d["ui_language"] == "en" and [l["code"] for l in d["ui_languages"]] == ["en", "ar", "de", "es", "fr", "he", "it", "ja", "ko", "nl", "pl", "pt", "zh"], d
 st, d = call("GET", "/i18n/fr.json"); assert st == 200 and d["Settings"] == "Réglages"
 assert call("GET", "/i18n/xx.json")[0] == 404 and call("GET", "/i18n/../server.json")[0] == 404
-st, d = call("POST", "/api/language", {"ui": "ja"}); assert st == 400
+st, d = call("POST", "/api/language", {"ui": "ru"}); assert st == 400
 st, d = call("POST", "/api/language", {"language": "fr"}); assert d["ui_language"] == "fr", "auto follows the language Jarvis speaks"
-st, d = call("POST", "/api/language", {"language": "ja"}); assert d["ui_language"] == "en", "no Japanese menus: English"
-st, d = call("POST", "/api/language", {"ui": "de"}); assert d["ui_setting"] == "de" and d["ui_language"] == "de" and d["language"] == "ja"
+st, d = call("POST", "/api/language", {"language": "ru"}); assert d["ui_language"] == "en", "no Russian menus: English"
+st, d = call("POST", "/api/language", {"ui": "de"}); assert d["ui_setting"] == "de" and d["ui_language"] == "de" and d["language"] == "ru"
 call("POST", "/api/language", {"language": "en"}); call("POST", "/api/language", {"ui": "auto"})
 r = chat("switch the menus to German"); assert r["reply"] == "Done, sir: the menus are now in German." and r["ui_language"] == "de", r
-r = chat("change the interface language to Japanese"); assert "not translated into Japanese" in r["reply"] and "English, German, French, Italian" in r["reply"], r
+r = chat("change the interface language to Russian"); assert "not translated into Russian" in r["reply"] and "Japanese" in r["reply"], r
 assert chat("switch to French")["ui_language"] == "de", "a chosen menu language stays"
 call("POST", "/api/language", {"language": "en"}); call("POST", "/api/language", {"ui": "auto"})
+r = chat("switch the menus to Japanese"); assert r["ui_language"] == "ja", r
+call("POST", "/api/language", {"ui": "auto"})
 
 # ---------- the page ----------
 from playwright.sync_api import sync_playwright
@@ -77,9 +80,18 @@ with sync_playwright() as pw:
     pg.select_option("#ui-lang-select", "auto"); pg.wait_for_function("document.documentElement.lang === 'en'")
     pg.wait_for_timeout(300)
     assert pg.text_content("#tab-voice") == "Voice & language" and pg.inner_html("#calls-section .settings-note").startswith("Talk with Jarvis hands-free")
+    # other scripts, and right to left
+    for lang, tab in (("ja", "音声と言語"), ("zh", "语音和语言"), ("ar", "الصوت واللغة"), ("he", "קול ושפה")):
+        pg.select_option("#ui-lang-select", lang); pg.wait_for_function(f"document.documentElement.lang === '{lang}'"); pg.wait_for_timeout(200)
+        assert pg.text_content("#tab-voice") == tab, (lang, pg.text_content("#tab-voice"))
+        assert pg.evaluate("document.documentElement.dir") == ("rtl" if lang in ("ar", "he") else "ltr"), lang
+    assert pg.get_attribute("#message", "placeholder") == "הודעה ל-Jarvis…"
+    pg.select_option("#ui-lang-select", "auto"); pg.wait_for_function("document.documentElement.lang === 'en'"); pg.wait_for_timeout(300)
+    assert pg.text_content("#tab-voice") == "Voice & language" and pg.get_attribute("#message", "placeholder") == "Message Jarvis…", "back from Hebrew to English"
+    assert pg.evaluate("document.documentElement.dir") == "ltr" and pg.text_content("#tab-plan") == "Planner"
     # nearly everything on the page has a translation (a new feature shows up here until it is translated)
     collected = set(pg.evaluate("window.JarvisI18n.collect()"))
-    for lang in ("fr", "de", "it"):
+    for lang in ALL:
         d = json.load(open(f"web/i18n/{lang}.json", encoding="utf-8"))
         missing = [t for t in collected if t in source and t not in d and not re.fullmatch(r"[^a-z]*|Jarvis|.*\d.*", t)]
         assert len(missing) < 0.04 * len(collected), (lang, missing[:20])

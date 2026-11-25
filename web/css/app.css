@@ -832,3 +832,11 @@ html.i18n-pending body{visibility:hidden}   /* a moment while the menus load in 
 .message-row.assistant{flex-wrap:wrap}
 .msg-speed{flex-basis:100%;margin:2px 0 0 46px;font:11px var(--mono);color:var(--muted);opacity:.75;letter-spacing:.02em}
 .msg-speed.slow{color:var(--warn,#ffbf63);opacity:.9}
+
+/* menus in Arabic or Hebrew: the page reads right to left; chats and typed text take the direction of their own words */
+.bubble,#message{unicode-bidi:plaintext;text-align:start}
+html[dir="rtl"] .assistant .bubble{padding:6px 14px 6px 4px;border-left:0;border-right:2px solid var(--a65)}
+html[dir="rtl"] .user .bubble{border-right:1px solid var(--a30);border-left:2px solid var(--accent)}
+html[dir="rtl"] .msg-speed{margin:2px 46px 0 0}
+html[lang="ar"] *,html[lang="he"] *{letter-spacing:0!important}   /* spacing between letters breaks joined Arabic script */
+html[lang="ko"] body{word-break:keep-all}                           /* Korean wraps between words, not inside them */

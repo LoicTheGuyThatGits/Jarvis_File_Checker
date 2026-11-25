@@ -10,6 +10,7 @@
   var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, PRE: 1, CANVAS: 1, TEMPLATE: 1, NOSCRIPT: 1, INPUT: 1, svg: 1, SVG: 1, IFRAME: 1, VIDEO: 1, IMG: 1 };
   var ATTRS = ['title', 'placeholder', 'aria-label'];
   var EXCLUDE = '#conversation, #chat-list, [data-no-i18n], [contenteditable="true"], .code-block, .debug-trace';
+  var RTL = { ar: 1, he: 1, fa: 1, ur: 1 };
   var dict = null, code = 'en', blocks = new WeakMap(), texts = new WeakMap(), attrs = new WeakMap(), observer = null, collecting = null;
 
   function norm(s) { return String(s).replace(/\s+/g, ' ').trim(); }
@@ -46,8 +47,9 @@
   }
   function doText(node) {
     var cur = node.nodeValue, n = norm(cur);
-    if (!wordy(n)) return;
-    var rec = texts.get(node), src = rec && rec.applied === cur ? rec.src : n;
+    var rec = texts.get(node);
+    if (!wordy(n) && !rec) return;                              // a translation in another script (日本語, العربية) still knows its English
+    var src = rec && rec.applied === cur ? rec.src : n;
     if (collecting) { collecting.push(src); return; }
     var want = code === 'en' ? src : (lookup(src) || src);
     if (want !== n) node.nodeValue = cur.match(/^\s*/)[0] + want + cur.match(/\s*$/)[0];
@@ -58,8 +60,9 @@
     if (el.tagName === 'INPUT' && /^(button|submit|reset)$/i.test(el.type)) list = ATTRS.concat(['value']);
     for (var i = 0; i < list.length; i++) {
       var name = list[i], cur = el.getAttribute(name);
-      if (!cur || !wordy(cur)) continue;
-      var all = attrs.get(el) || {}, rec = all[name], src = rec && rec.applied === cur ? rec.src : norm(cur);
+      var all = attrs.get(el) || {}, rec = all[name];
+      if (!cur || (!wordy(cur) && !rec)) continue;
+      var src = rec && rec.applied === cur ? rec.src : norm(cur);
       if (collecting) { collecting.push(src); continue; }
       var want = code === 'en' ? src : (lookup(src) || src);
       if (want !== cur) el.setAttribute(name, want);
@@ -74,7 +77,7 @@
     }
     if (node.closest(EXCLUDE)) return;
     doAttrs(node);
-    if (node.firstChild && wordy(node.textContent) && inlineOnly(node)) { doBlock(node); return; }
+    if (node.firstChild && (wordy(node.textContent) || blocks.has(node)) && inlineOnly(node)) { doBlock(node); return; }
     for (var c = node.firstChild; c; c = c.nextSibling) walk(c);
   }
   function run(root) {
@@ -116,6 +119,7 @@
       patterns = [];
       ((d && d['@patterns']) || []).forEach(function (p) { try { patterns.push([new RegExp(p[0]), p[1]]); } catch (e) {} });
       document.documentElement.lang = code;
+      document.documentElement.dir = RTL[code] ? 'rtl' : 'ltr';     // Arabic and Hebrew read from right to left
       try { localStorage.setItem('jarvis-ui-lang', code); } catch (e) {}
       if (!observer) { observer = new MutationObserver(changed); }
       run(document.body);
@@ -137,7 +141,7 @@
   ['toLocaleDateString', 'toLocaleTimeString', 'toLocaleString'].forEach(function (name) {
     var native = Date.prototype[name];
     Date.prototype[name] = function (locales, options) {
-      if (code !== 'en' && (locales === undefined || (Array.isArray(locales) && !locales.length))) locales = code + (code === 'de' || code === 'fr' || code === 'it' ? '-CH' : '');
+      if (code !== 'en' && (locales === undefined || (Array.isArray(locales) && !locales.length))) locales = code === 'ar' ? 'ar-u-nu-latn' : code + (code === 'de' || code === 'fr' || code === 'it' ? '-CH' : '');
       return native.call(this, locales, options);
     };
   });
