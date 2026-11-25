@@ -6,6 +6,67 @@
     var opts = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined;
     return fetch(path, opts).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); });
   }
+  if ($('adv-roles')) {
+    var advTimer = 0, tr = function (t) { return window.JarvisI18n ? window.JarvisI18n.t(t) : t; };
+    var WHERE = { gpu: 'all on the graphics card', split: 'partly on the processor (slow)', cpu: 'on the processor', no: 'too big for this PC' };
+    var ROLE = { chat: ['Chat', 'Answers you in chat and by voice; it should feel instant.'], vision: ['Pictures', 'Looks at photos and screenshots you send.'],
+      autopilot: ['Autopilot', 'Sees the screen and works the mouse and keyboard.'], code: ['Jarvis Code', 'Writes and fixes code; bigger makes fewer mistakes.'] };
+    var speed = function (m) { return m.where === 'no' ? tr('too big for this PC') : '~' + Math.round(m.tps) + ' ' + tr('words/s') + ', ' + tr(WHERE[m.where]) + (m.measured ? ' ' + tr('(measured)') : ''); };
+    var advShow = function (d) {
+      var pc = d.pc;
+      $('adv-pc').textContent = (pc.gpu || tr('No graphics card for AI')) + ' · ' + Math.round(pc.ram_gb) + ' GB RAM · ' + (pc.cpu || '') + ' · ' + Math.round(pc.disk_free_gb) + ' GB ' + tr('free on the disk') + ' · ' + pc.vram_free_gb.toFixed(1) + ' GB ' + tr('free for models on the card');
+      var box = $('adv-roles'); box.textContent = '';
+      var busy = d.pull && d.pull.running;
+      d.roles.forEach(function (r) {
+        var card = document.createElement('div'), b = r.best;
+        card.className = 'adv-role' + (r.same ? ' ok' : '');
+        var h = document.createElement('h3'); h.textContent = tr(ROLE[r.role][0]);
+        var why = document.createElement('div'); why.className = 'adv-why'; why.textContent = tr(ROLE[r.role][1]);
+        var pick = document.createElement('div'); pick.className = 'adv-pick'; pick.setAttribute('data-no-i18n', '');
+        pick.textContent = b ? (r.same ? b.name : b.name + (r.current ? '   (' + tr('now') + ': ' + r.current + ')' : '')) : tr('Nothing suitable runs here.');
+        var sp = document.createElement('div'); sp.className = 'adv-speed'; if (b) sp.textContent = speed(b);
+        card.append(h, why, pick, sp);
+        if (r.note) { var n = document.createElement('div'); n.className = 'adv-note'; n.setAttribute('data-no-i18n', ''); n.textContent = r.note; card.append(n); }
+        if (b && !r.same) {
+          var btn = document.createElement('button'); btn.type = 'button';
+          btn.textContent = b.installed ? tr('Use it') : tr('Download') + ' (' + b.size_gb.toFixed(1) + ' GB)';
+          btn.disabled = !b.installed && busy;
+          btn.addEventListener('click', function () {
+            btn.disabled = true;
+            api('/api/advisor', b.installed ? { apply: { role: r.role, model: b.name } } : { pull: b.name }).then(function (n) { advShow(n); $('adv-status').textContent = n.message || tr('Downloading… the button changes to “Use it” when it is done.'); })
+              .catch(function (e) { btn.disabled = false; $('adv-status').textContent = e.message; });
+          });
+          card.append(btn);
+        }
+        box.append(card);
+      });
+      var adv = $('adv-advice'); adv.textContent = '';
+      d.advice.forEach(function (t) { var li = document.createElement('li'); li.setAttribute('data-no-i18n', ''); li.textContent = t; adv.append(li); });
+      var tb = $('adv-models').tBodies[0]; tb.textContent = '';
+      d.models.forEach(function (m) {
+        var tr2 = document.createElement('tr'); if (m.where === 'no') tr2.className = 'no';
+        [m.name + (m.installed ? '' : '  ↓'), m.size_gb.toFixed(1) + ' GB', tr(m.where === 'no' ? 'no' : m.where === 'split' ? 'slow' : 'yes'), m.where === 'no' ? '—' : '~' + Math.round(m.tps) + ' ' + tr('words/s') + (m.measured ? ' ✓' : '')].forEach(function (t, i) {
+          var td = document.createElement('td'); td.textContent = t; if (i === 0) td.setAttribute('data-no-i18n', ''); tr2.append(td);
+        });
+        tb.append(tr2);
+      });
+      var fl = $('adv-features'); fl.textContent = '';
+      d.features.forEach(function (f) { var li = document.createElement('li'); li.className = f.ok ? '' : 'no'; li.setAttribute('data-no-i18n', ''); li.textContent = (f.ok ? '✓ ' : '✕ ') + f.name + ': ' + f.detail; fl.append(li); });
+      var ms = d.measure;
+      $('adv-measure').disabled = ms.running;
+      if (ms.running) $('adv-status').textContent = tr('Measuring') + ' ' + ms.model + ' (' + (ms.done.length + 1) + ' / ' + ms.total + ')…';
+      else if (d.pull && d.pull.running) $('adv-status').textContent = tr('Downloading') + ' ' + d.pull.model + (d.pull.total ? ': ' + Math.round(100 * d.pull.done / d.pull.total) + ' %' : '…');
+      clearTimeout(advTimer);
+      if (ms.running || (d.pull && d.pull.running)) advTimer = setTimeout(advLoad, 2500);
+    };
+    var advLoad = function () { $('adv-refresh').disabled = true; return api('/api/advisor').then(advShow).catch(function (e) { $('adv-status').textContent = e.message; }).then(function () { $('adv-refresh').disabled = false; }); };
+    $('adv-refresh').addEventListener('click', function () { $('adv-status').textContent = ''; advLoad(); });
+    $('adv-measure').addEventListener('click', function () {
+      if (!window.confirm('Try each installed model with a short answer to measure its real speed? It takes about 20 seconds per model, and chat is slower meanwhile.')) return;
+      api('/api/advisor', { measure: true }).then(advShow).catch(function (e) { $('adv-status').textContent = e.message; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'adv-roles')) advLoad(); });
+  }
   if ($('spotify-status')) {
     var polling = null;
     var show = function (d) {

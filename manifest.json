@@ -9,8 +9,13 @@
   },
   {
    "path": "README.md",
-   "sha256": "df6910f9513d094f5a3e20d1ba3f8b1576b9eddd5e51149e2988fa664f73937d",
-   "size": 96542
+   "sha256": "68df1559fdc54f6bc11619521a54b7d4e717ca8fd2e150fada540ae0deda5823",
+   "size": 98655
+  },
+  {
+   "path": "app/advisor.py",
+   "sha256": "28921fe62988ad1e7e0c3e16556d3ae408137bb41f9c582064afa27743e35591",
+   "size": 17544
   },
   {
    "path": "app/awareness.py",
@@ -219,8 +224,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "5dfb589625857f96882f2cd582d42948404a824983d5d98f254693897b3a04c6",
-   "size": 581210
+   "sha256": "3c1333073357b46cccdd46f1daa48ed7a7abb840779b242531cf043d5e93f3f6",
+   "size": 592845
   },
   {
    "path": "app/set-address.py",
@@ -389,8 +394,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "bca7e81ab3c9d8f6f06b4ccc466a6c6867da83ddc27c565ef58976dde862a807",
-   "size": 69412
+   "sha256": "08c0431049de63044b293cabb77458d7bbbc475a4322042abe1c589892647aa3",
+   "size": 70888
   },
   {
    "path": "web/game.html",
@@ -399,23 +404,23 @@
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "c89812a3d8154457e4f7944cb7b2d5afd8ac2ef22db56e390a2a9b309be5e7c2",
-   "size": 109078
+   "sha256": "cf32a7cf214dbef80d102547449b0797aa72e1e9556619abb40983f590b09868",
+   "size": 111700
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "39b3fca878a10b311041d5857b5a76b9c808f69c72b2528b9a3f958b93f79905",
-   "size": 113025
+   "sha256": "f295919620451662861eb7ada56c84d64bb62077c82b7a1e234382e5f1e9f3cc",
+   "size": 115656
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "a8f9bc3a9fb8d1245a3effae688ee72e56bd067fedb77a7ede6c67a89c038fb8",
-   "size": 108414
+   "sha256": "f556840f00fd585e17c92a94b249393378ae8018e8decd7d9f883249447cd4a9",
+   "size": 110900
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "f880599da2eaa1e6232b179b1dff2192780ecfc76df7226d2bf412e756556cf0",
-   "size": 49547
+   "sha256": "bbc84513ed217d4bfbed90f54d335c081a87f83eca7e0191a5becf3bdc6985fe",
+   "size": 50421
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -429,8 +434,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "7a581051bb943979a7b41e7431252932c904cf6d2ffb9bb1d5e93b58287fc977",
-   "size": 104491
+   "sha256": "6ee058e45cb63d97ca47f01364dd9e201603a109e7ce4734af436e2ff694795e",
+   "size": 105683
   },
   {
    "path": "web/js/app.js",
@@ -464,8 +469,8 @@
   },
   {
    "path": "web/js/extras.js",
-   "sha256": "237cb687c85b58f11fce45404dab44ae4fc85c0a8797c6302bca29ac71c2e9b1",
-   "size": 70492
+   "sha256": "294ca5cfba0dcb798f3ad15b043162e52008124189dfd2dfcaaaade74b6d8ed7",
+   "size": 76031
   },
   {
    "path": "web/js/features.js",

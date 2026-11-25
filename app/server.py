@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 import mimetypes
+import platform
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -1033,6 +1034,7 @@ import replies as replies_module
 import awareness as awareness_module
 import teach as teach_module
 import coder as coder_module
+import advisor as advisor_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -2994,6 +2996,193 @@ def control_public() -> dict:
                         for i in reversed(procedures.load(learned_path()))]}
 
 
+# ---------------- the PC advisor: which models suit this PC ----------------
+ADVISOR: dict = {"caps": {}, "measure": {"running": False, "model": "", "done": [], "error": "", "total": 0}}
+ADVISOR_PROMPT = "Describe a sunrise over the sea in four calm sentences."
+
+
+def ollama_root() -> str:
+    return re.sub(r"/v1/?$", "", ai_settings("chat", "local")["base"])
+
+
+def ollama_json(path: str, body: dict | None = None, timeout: float = 8) -> dict:
+    req = urllib.request.Request(ollama_root() + path, data=json.dumps(body).encode() if body is not None else None,
+                                 headers={"Content-Type": "application/json"}, method="POST" if body is not None else "GET")
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def advisor_gpu() -> dict | None:
+    """The graphics card the models can use: NVIDIA through nvidia-smi; AMD and Intel Arc through what Windows records."""
+    g = _gpu_snapshot()
+    if g and g.get("mem_total_mb"):
+        return {"name": g["name"], "vram_gb": round(g["mem_total_mb"] * 1.048576 / 1000, 2), "used_gb": round((g.get("mem_used_mb") or 0) * 1.048576 / 1000, 2)}
+    if os.name != "nt":
+        return None
+    try:
+        import winreg
+        best = None
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}")
+        for i in range(20):
+            try:
+                sub = winreg.OpenKey(key, f"{i:04d}")
+            except OSError:
+                break
+            try:
+                name = str(winreg.QueryValueEx(sub, "DriverDesc")[0])
+                mem = int(winreg.QueryValueEx(sub, "HardwareInformation.qwMemorySize")[0])
+            except OSError:
+                continue
+            if re.search(r"intel", name, re.I) and not re.search(r"\barc\b", name, re.I):
+                continue                                  # built-in Intel graphics share the system memory: not used for models
+            if mem > 1.5e9 and (not best or mem > best["vram_gb"] * 1e9):
+                best = {"name": name, "vram_gb": round(mem / 1e9, 2), "used_gb": None}
+        return best
+    except Exception:
+        return None
+
+
+def advisor_cpu() -> str:
+    if os.name == "nt":
+        try:
+            import winreg
+            k = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+            return " ".join(str(winreg.QueryValueEx(k, "ProcessorNameString")[0]).split())
+        except Exception:
+            pass
+    return platform.processor() or platform.machine()
+
+
+def advisor_hardware() -> dict:
+    hw = {"gpu": advisor_gpu(), "cpu": advisor_cpu(), "cores": os.cpu_count() or 1, "ollama_vram_gb": 0.0, "ollama_ram_gb": 0.0}
+    if psutil:
+        vm = psutil.virtual_memory()
+        hw["ram_gb"], hw["ram_free_gb"] = round(vm.total / 1e9, 1), round(vm.available / 1e9, 1)
+    else:
+        mem = _windows_memory() if os.name == "nt" else None
+        hw["ram_gb"] = mem["total_gb"] if mem else 0.0
+        hw["ram_free_gb"] = round(mem["total_gb"] - mem["used_gb"], 1) if mem else 0.0
+    models_dir = Path(os.environ.get("OLLAMA_MODELS") or (Path.home() / ".ollama" / "models"))
+    probe = models_dir if models_dir.exists() else Path.home()
+    try:
+        hw["disk_free_gb"] = round(shutil.disk_usage(probe).free / 1e9, 1)
+    except OSError:
+        hw["disk_free_gb"] = 0.0
+    hw["battery"] = _windows_battery() if os.name == "nt" else None
+    try:
+        for m in ollama_json("/api/ps", timeout=4).get("models", []):
+            hw["ollama_vram_gb"] += float(m.get("size_vram") or 0) / 1e9
+            hw["ollama_ram_gb"] += max(0.0, float(m.get("size") or 0) - float(m.get("size_vram") or 0)) / 1e9
+    except Exception:
+        pass
+    return hw
+
+
+def advisor_installed() -> list[dict]:
+    out = []
+    try:
+        tags = ollama_json("/api/tags", timeout=5).get("models", [])
+    except Exception:
+        return out
+    for t in tags:
+        name = str(t.get("name") or t.get("model") or "")
+        key = name + "|" + str(t.get("digest") or t.get("modified_at") or "")
+        if key not in ADVISOR["caps"]:
+            try:
+                ADVISOR["caps"][key] = list(ollama_json("/api/show", {"model": name}, timeout=8).get("capabilities") or [])
+            except Exception:
+                ADVISOR["caps"][key] = []
+        out.append({"name": name, "size_gb": round(float(t.get("size") or 0) / 1e9, 2), "caps": ADVISOR["caps"][key]})
+    return out
+
+
+def advisor_measured() -> dict:
+    try:
+        d = json.loads(data_path("advisor.json").read_text(encoding="utf-8"))
+        return d.get("measured", {}) if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def advisor_current() -> dict:
+    chat = ai_settings("chat")
+    cur = {"chat": chat["model"] if chat["is_local"] else "", "autopilot": autopilot_ai()["model"], "code": coder_model()[0]}
+    try:
+        cur["vision"] = vision_model_for(ai_settings("chat", "local"))
+    except Exception:
+        cur["vision"] = ""
+    return cur
+
+
+def advisor_report() -> dict:
+    import importlib.util as iu
+    piper_exe, _voices = piper_setup()
+    extras = {"ollama_version": ollama_version(ai_settings("chat", "local")["base"]), "playwright": webpilot.available(), "pynput": teach_ready(),
+              "piper": bool(piper_exe), "whisper": iu.find_spec("faster_whisper") is not None}
+    r = advisor_module.report(advisor_hardware(), advisor_installed(), advisor_measured(), advisor_current(), extras)
+    r["measure"] = dict(ADVISOR["measure"])
+    r["pull"] = dict(PULL)
+    return r
+
+
+def advisor_measure(models: list[str]) -> None:
+    """Asks each model for a short answer and records how fast it really writes here and how much of it sat on the card.
+    Afterwards the chat model is loaded again, so the next chat answer is not slowed by the test."""
+    st = ADVISOR["measure"]
+    st.update(running=True, done=[], error="", total=len(models), model="")
+    measured = advisor_measured()
+    try:
+        for name in models:
+            st["model"] = name
+            body = {"model": name, "prompt": ADVISOR_PROMPT, "stream": False, "keep_alive": "1m",
+                    "options": {"num_predict": 96, "num_ctx": 4096, "temperature": 0}}
+            if re.search(r"qwen3|deepseek-r1|gpt-oss|magistral", name, re.I):
+                body["think"] = False
+            try:
+                d = ollama_json("/api/generate", body, timeout=600)
+            except Exception as exc:
+                st["done"].append({"name": name, "error": str(exc)[:200]})
+                continue
+            tps = (d.get("eval_count") or 0) / max(1e-9, (d.get("eval_duration") or 0) / 1e9) if d.get("eval_duration") else 0
+            share = gpu_share(ai_settings("chat", "local")["base"], name)
+            measured[name] = {"tps": round(tps, 1), "load_s": round((d.get("load_duration") or 0) / 1e9, 1), "gpu": share,
+                              "first_s": round(((d.get("load_duration") or 0) + (d.get("prompt_eval_duration") or 0)) / 1e9, 1), "at": time.time()}
+            st["done"].append({"name": name, **measured[name]})
+            data_path("advisor.json").write_text(json.dumps({"measured": measured}, indent=1), encoding="utf-8")
+    finally:
+        chat = ai_settings("chat")
+        if chat["is_local"]:
+            try:
+                ollama_json("/api/generate", {"model": chat["model"], "keep_alive": "30m"}, timeout=120)
+            except Exception:
+                pass
+        st.update(running=False, model="")
+
+
+def advisor_apply(role: str, model: str) -> str:
+    if not MODEL_NAME_RE.fullmatch(model or ""):
+        raise ValueError("That model name is not valid.")
+    if model not in {m["name"] for m in advisor_installed()}:
+        raise ValueError(f"{model} is not installed yet: download it first.")
+    load_settings()
+    if role == "chat":
+        with SETTINGS_LOCK:
+            SETTINGS.setdefault("models", {})
+            SETTINGS["models"]["local"] = model
+        save_settings()
+    elif role == "vision":
+        with SETTINGS_LOCK:
+            SETTINGS["vision_model"] = model
+        save_settings()
+    elif role == "autopilot":
+        projects.save_config(control_config_path(), {"model": model})
+    elif role == "code":
+        coder_settings({"model": model})
+    else:
+        raise ValueError("Unknown job.")
+    return f"{advisor_module.ROLES[role]['label']} now uses {model}."
+
+
 # ---------------- Jarvis Code: the model codes on a project and looks at it in a browser ----------------
 CODER: dict = {"session": None, "preview": None, "browser": None, "vision": {}, "gpu": (0.0, "", None)}
 CODER_RECOMMENDED = "qwen3.5:9b"
@@ -3863,7 +4052,16 @@ def feature_checks() -> list:
         where = "" if share is None else f", {round(share * 100)} % on the graphics card"
         return "ok", f"{model}{where}; pages are previewed at {base}{sealed}"
 
-    return [("PC clock", clock), ("Ollama", ollama), ("Autopilot model", autopilot_model), ("Jarvis Code", code), ("Jarvis browser", browser), ("Show Autopilot how (recording)", recording),
+    def best_models():
+        r = advisor_report()
+        off = [x for x in r["roles"] if x["best"] and not x["same"] and x["current"]]
+        slow = [x for x in r["roles"] if x["note"]]
+        if not off and not slow:
+            return "ok", "the models in use are the best this PC can run"
+        what = "; ".join(f"{x['label']}: {x['best']['name']} would suit better" + (f" ({x['note']})" if x["note"] else "") for x in (off or slow)[:3])
+        return "warn", what, pane("ai", "See what this PC can run")
+
+    return [("PC clock", clock), ("Ollama", ollama), ("Best models for this PC", best_models), ("Autopilot model", autopilot_model), ("Jarvis Code", code), ("Jarvis browser", browser), ("Show Autopilot how (recording)", recording),
             ("Screen awareness", awareness), ("Public transport", transport), ("Google Classroom", classroom), ("Study coach", coach), ("Memory between chats", memory), ("Calls", calls)]
 
 
@@ -5089,7 +5287,7 @@ def transcribe_audio(data: bytes, ext: str = "ogg") -> tuple[str, str]:
     return " ".join(segment.text.strip() for segment in segments).strip(), "local"
 
 
-VISION_HINTS = ("llama3.2-vision", "llama4", "qwen3-vl", "qwen2.5vl", "qwen2-vl", "gemma3", "minicpm-v", "llava", "vision", "moondream", "bakllava", "mistral-small3")
+VISION_HINTS = ("llama3.2-vision", "llama4", "qwen3-vl", "qwen3.5", "qwen2.5vl", "qwen2-vl", "gemma3", "minicpm-v", "llava", "vision", "moondream", "bakllava", "mistral-small3")
 VISION_PULL_HELP = ("I need a vision model for that. Install a small one with Ollama: ollama pull moondream "
                     "(about 1.7 GB, light on memory). For better results with more memory free: ollama pull gemma3:4b (about 3.3 GB).")
 
@@ -5098,7 +5296,7 @@ def vision_model_for(ai: dict) -> str:
     """The model that will look at a picture: the cloud chat model, or an installed local vision model."""
     if not ai["is_local"] and ai["provider"] == "cloud":
         return ai_settings("vision")["model"]
-    forced = os.environ.get("JARVIS_LOCAL_VISION_MODEL") or os.environ.get("OPENAI_VISION_MODEL")
+    forced = os.environ.get("JARVIS_LOCAL_VISION_MODEL") or os.environ.get("OPENAI_VISION_MODEL") or str(load_settings().get("vision_model") or "")
     if forced:
         return forced
     ids: list[str] = []
@@ -7096,6 +7294,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/teach":
             self.send_json(200, teach_status())
             return
+        if path == "/api/advisor":
+            self.send_json(200, advisor_report())
+            return
         if path.startswith("/api/coder"):
             if self._from_phone:
                 self.send_json(403, {"error": "Jarvis Code works at the PC only."})
@@ -8158,6 +8359,35 @@ class Handler(BaseHTTPRequestHandler):
                 self.coach_post(payload)
             elif path == "/api/transport":
                 self.transport_post(payload)
+            elif path == "/api/advisor":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Changing models works at the PC only."})
+                    return
+                try:
+                    msg = ""
+                    if payload.get("measure"):
+                        if ADVISOR["measure"]["running"]:
+                            raise ValueError("A speed test is already running.")
+                        have = [m["name"] for m in advisor_installed() if advisor_module.model_info(m)["q"]]
+                        wanted = payload["measure"] if isinstance(payload["measure"], list) else have
+                        models = [m for m in wanted if m in have][:8]
+                        if not models:
+                            raise ValueError("There is no installed model to measure.")
+                        threading.Thread(target=advisor_measure, args=(models,), daemon=True).start()
+                        time.sleep(0.2)
+                    elif isinstance(payload.get("apply"), dict):
+                        msg = advisor_apply(str(payload["apply"].get("role") or ""), str(payload["apply"].get("model") or ""))
+                    elif payload.get("pull"):
+                        name = str(payload["pull"])
+                        if not MODEL_NAME_RE.fullmatch(name) or name not in {c["name"] for c in advisor_module.CATALOG}:
+                            raise ValueError("Jarvis downloads only the models it recommends from here.")
+                        if PULL["running"]:
+                            raise ValueError(f"{PULL['model']} is still downloading.")
+                        threading.Thread(target=pull_model, args=(name,), daemon=True).start()
+                        time.sleep(0.2)
+                    self.send_json(200, {**advisor_report(), "message": msg})
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path == "/api/coder":
                 if self._from_phone:
                     self.send_json(403, {"error": "Jarvis Code works at the PC only."})
@@ -9067,6 +9297,12 @@ class Handler(BaseHTTPRequestHandler):
         if french_command:                      # a French request for a built-in command: run the English one, answer in French
             debugtrace.step("french", f"French rewritten as: “{french_command}” (the answer is translated back)")
             latest, self._reply_lang = french_command, "fr"
+        if advisor_module.ASK.search(latest):
+            try:
+                self.send_json(200, {"reply": advisor_report()["text"] + "\nSettings > AI model > What this PC can run shows it all, with buttons to switch.", "action": None})
+            except Exception as exc:
+                self.send_json(200, {"reply": f"I could not look at this PC's hardware just now ({str(exc)[:120]}).", "action": None})
+            return
         if CODER_OPEN.fullmatch(latest.strip()):
             if self._offsite:
                 self.send_json(200, {"reply": "Jarvis Code opens at the PC only, sir.", "action": None})

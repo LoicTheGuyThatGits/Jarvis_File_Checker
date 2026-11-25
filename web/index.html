@@ -308,6 +308,19 @@
         <p class="settings-note" id="ai-note"></p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">What this PC can run</h2>
+        <p class="settings-note">Jarvis looks at this PC's graphics card, memory and disk and at the models you have, and says which model is best for each job and how fast it will write. A model is fast only when all of it fits on the graphics card; what does not fit runs on the processor, many times slower.</p>
+        <p class="settings-note adv-pc" id="adv-pc" data-no-i18n></p>
+        <div class="adv-roles" id="adv-roles"></div>
+        <ul class="adv-list" id="adv-advice"></ul>
+        <details class="adv-more"><summary>Every model, and what this PC can and cannot use</summary>
+          <table class="adv-table" id="adv-models"><thead><tr><th>Model</th><th>Size</th><th>Here</th><th>Speed</th></tr></thead><tbody></tbody></table>
+          <ul class="adv-list" id="adv-features"></ul>
+        </details>
+        <div class="inline-form"><button type="button" id="adv-refresh" class="settings-action">↻ Check again</button><button type="button" id="adv-measure">Measure real speed</button></div>
+        <p class="settings-note" id="adv-status" role="status"></p>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Jarvis model</h2>
         <p class="settings-note">A local model with Jarvis's settings and manner built in, made by Ollama from <code>model\Modelfile</code>. To move to another base model, change the FROM line there and rebuild. The first build downloads the base model (qwen2.5:7b is about 4.7 GB). When it is ready it becomes the local model. In chat: “build the Jarvis model”.</p>
         <dl class="install-info">
