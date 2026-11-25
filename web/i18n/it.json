@@ -1152,5 +1152,14 @@
 "yes": "sì",
 "no": "no",
 "slow": "lento",
-"See what this PC can run": "Vedi cosa può far girare questo PC"
+"See what this PC can run": "Vedi cosa può far girare questo PC",
+"Keep the chat model ready on the graphics card": "Tieni pronto il modello della chat sulla scheda grafica",
+"Loading a model takes 5 to 10 seconds. With this on, Jarvis keeps the chat model loaded, and loads it again after Jarvis Code, Autopilot or a speed test used another model. When a game or another model needs the room, Ollama still makes it.": "Caricare un modello richiede da 5 a 10 secondi. Con questa opzione, Jarvis tiene caricato il modello della chat e lo ricarica dopo che Jarvis Code, l'Autopilota o un test di velocità hanno usato un altro modello. Se un gioco o un altro modello ha bisogno di spazio, Ollama lo libera comunque.",
+"Show under each answer how fast it came": "Mostra sotto ogni risposta quanto è stata veloce",
+"Turn them on and restart Ollama": "Attivale e riavvia Ollama",
+"Ollama’s speed settings are on: flash attention and an 8-bit working memory, so more of a model fits on the graphics card.": "Le impostazioni di velocità di Ollama sono attive: flash attention e memoria di lavoro a 8 bit, così una parte maggiore del modello sta sulla scheda grafica.",
+"Ollama’s speed settings are off. Turning them on (flash attention and an 8-bit working memory) lets more of a model fit on the graphics card, at the same quality. Ollama restarts for it (a few seconds).": "Le impostazioni di velocità di Ollama sono disattivate. Attivarle (flash attention e memoria di lavoro a 8 bit) fa stare una parte maggiore del modello sulla scheda grafica, con la stessa qualità. Ollama si riavvia per questo (pochi secondi).",
+"Restarting Ollama…": "Riavvio di Ollama…",
+"to the first word": "fino alla prima parola",
+"on the graphics card": "sulla scheda grafica"
 }

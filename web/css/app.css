@@ -827,3 +827,8 @@ html.i18n-pending body{visibility:hidden}   /* a moment while the menus load in 
 .adv-table td:first-child{font-family:var(--mono);overflow-wrap:anywhere}
 .adv-table tr.no td{color:var(--muted)}
 @media (max-width:620px){.adv-table th:nth-child(2),.adv-table td:nth-child(2){display:none}}
+
+/* answer speed under a reply */
+.message-row.assistant{flex-wrap:wrap}
+.msg-speed{flex-basis:100%;margin:2px 0 0 46px;font:11px var(--mono);color:var(--muted);opacity:.75;letter-spacing:.02em}
+.msg-speed.slow{color:var(--warn,#ffbf63);opacity:.9}

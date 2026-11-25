@@ -143,8 +143,8 @@ chat("call me"); th.join(5); assert got["calls"] and got["calls"][0]["state"] ==
 clear()
 # on a call, the model is told to talk, not to write
 asked.clear(); r = chat("tell me a joke", source="call"); assert r.startswith("Why did the robot")
-assert "live voice call" in asked[-1]["messages"][0]["content"]
-asked.clear(); chat("tell me a joke"); assert "live voice call" not in asked[-1]["messages"][0]["content"]
+assert "live voice call" in "\n".join(m["content"] for m in asked[-1]["messages"] if isinstance(m["content"], str))
+asked.clear(); chat("tell me a joke"); assert "live voice call" not in "\n".join(m["content"] for m in asked[-1]["messages"] if isinstance(m["content"], str))
 
 # ---------- the page ----------
 FAKES = """

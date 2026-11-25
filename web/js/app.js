@@ -177,6 +177,18 @@ function addMessage(role, text) {
   if (role === 'assistant') { const avatar = document.createElement('div'); avatar.className='avatar'; avatar.textContent='J'; row.append(avatar); }
   const bubble = document.createElement('div'); bubble.className='bubble'; if(role==='assistant')renderBubble(bubble,text); else bubble.textContent=text; row.append(bubble); conversation.append(row); scrollDown(); return row;
 }
+// how fast the model answered, under the reply (Settings > AI model > Speed can hide it)
+function addSpeedLine(row, sp) {
+  let show='on'; try{show=localStorage.getItem('jarvis-show-speed')||'on'}catch{}
+  if(show==='off'||!sp||sp.first_s==null)return;
+  const tr=t=>window.JarvisI18n?window.JarvisI18n.t(t):t;
+  const line=document.createElement('div');line.className='msg-speed';line.setAttribute('data-no-i18n','');
+  const parts=[sp.first_s.toFixed(1)+' s '+tr('to the first word')];
+  if(sp.wps)parts.push(Math.round(sp.wps)+' '+tr('words/s'));
+  if(sp.gpu!=null&&sp.gpu<0.95){parts.push(Math.round(sp.gpu*100)+' % '+tr('on the graphics card'));line.classList.add('slow')}
+  line.textContent=parts.join(' · ');line.title=sp.model||'';
+  (row.querySelector('.bubble')||row).after(line);
+}
 function addDownloadCard(dl, after=null) {
   if(!dl||!dl.url)return null;
   const card=document.createElement('section');card.className='file-results download-card';
@@ -307,6 +319,7 @@ async function sendMessage(text) {
     let replyRow=live.row;
     if(live.row&&!data.cancelled)renderBubble(live.bubble,reply);else replyRow=addMessage('assistant',reply);
     if(data.debug&&window.JarvisDebug)window.JarvisDebug.attach(data.debug,replyRow);
+    if(data.speed&&replyRow)addSpeedLine(replyRow,data.speed);
     history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.open==='/coder.html')window.JarvisOpenCode&&window.JarvisOpenCode();if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);if(data.ui_language&&window.JarvisI18n&&data.ui_language!==window.JarvisI18n.code())window.JarvisI18n.set(data.ui_language);
   } catch(error) {
     if(error.name==='AbortError'){

@@ -48,7 +48,7 @@ class Fake(BaseHTTPRequestHandler):
     def log_message(self, *a): pass
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"]))); seen.append(body)
-        system = body["messages"][0]["content"]
+        system = "\n".join(m["content"] for m in body["messages"] if isinstance(m["content"], str))
         if not body.get("stream"):
             text = ("My friend Luca recommended the game Outer Wilds.\nMy PIN is 481357." if system.startswith("You keep a personal assistant's long-term memory") else "ok")
             raw = json.dumps({"choices": [{"message": {"content": text}}]}).encode()
@@ -86,7 +86,7 @@ chat("set a timer for 5 minutes"); assert S.history_obj().stats()["count"] == 2
 chat("what time is it", source="routine"); assert S.history_obj().stats()["count"] == 2
 # a new chat: what was that game?
 r = chat("what was that game Luca recommended?")
-system = seen[-1]["messages"][0]["content"]
+system = "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
 assert r == "It was Outer Wilds, sir: Luca recommended it." and "My friend Luca recommended Outer Wilds, I think I'll try it" in system, system
 assert "picked up about the user in earlier chats" in system and "My friend Luca recommended the game Outer Wilds." in system
 r = chat("search my chats for Outer Wilds"); assert r.startswith("In our chats about “Outer Wilds”, sir:") and "Today you said: “My friend Luca" in r, r

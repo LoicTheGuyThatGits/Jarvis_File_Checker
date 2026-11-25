@@ -75,10 +75,10 @@ def chat(q,use=True):
     return [json.loads(l) for l in r]
 ev=chat("What is the refund window?"); f=ev[-1]
 assert f["type"]=="final" and "30 days" in f["reply"] and f["sources"][0]["name"]=="policy.docx", f
-b=seen[-1]; sysmsg=b["messages"][0]["content"]; assert "DOCUMENTS:" in sysmsg and "refund window is 30 days" in sysmsg and "response_format" not in b
+b=seen[-1]; sysmsg="\n".join(m["content"] for m in b["messages"] if isinstance(m["content"], str)); assert "DOCUMENTS:" in sysmsg and "refund window is 30 days" in sysmsg and "response_format" not in b
 assert not cloud_hits; print("chat ok: routed to local only, passages in prompt, sources returned, cloud untouched")
 n=len(seen); ev=chat("hello there",use=False); assert "sources" not in ev[-1] and len(seen)==n and len(cloud_hits)==1, (len(seen),n,cloud_hits)  # docs off: normal (cloud) path
-ev=chat("zzzzqqq nothing"); assert ev[-1]["sources"]==[] and "could not find" in seen[-1]["messages"][0]["content"].lower() or "no passage matched" in seen[-1]["messages"][0]["content"]
+ev=chat("zzzzqqq nothing"); assert ev[-1]["sources"]==[] and "could not find" in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str)).lower() or "no passage matched" in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
 # --- replace + delete
 st,j=up("policy.docx",docx_bytes); assert len(j["items"])==5
 ids=[i["id"] for i in j["items"]]; d=js("/api/documents/delete",{"id":ids[0]}); assert len(d["items"])==4 and not (tmp/"documents"/f"{ids[0]}.json").exists()
@@ -100,7 +100,7 @@ with sync_playwright() as p:
     pg.fill("#message","When is the launch party?"); pg.keyboard.press("Enter")
     pg.wait_for_selector(".doc-sources .doc-chip",timeout=8000)
     chip=pg.inner_text(".doc-chip"); assert "notes.md" in chip, chip
-    assert "launch party" in seen[-1]["messages"][0]["content"]
+    assert "launch party" in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
     pg.screenshot(path="shots/docs_chat.png")
     assert not errs, errs
     br.close()

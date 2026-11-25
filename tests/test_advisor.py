@@ -85,7 +85,10 @@ for _ in range(50):
     if not S.ADVISOR["measure"]["running"]: break
     time.sleep(0.1)
 m = S.advisor_measured(); assert m["jarvis:latest"]["tps"] == 40.0 and m["jarvis:latest"]["gpu"] == 1.0 and m["jarvis:latest"]["load_s"] == 3.0, m
-assert GEN[1]["think"] is False and "think" not in GEN[0] and GEN[-1] == {"model": "jarvis:latest", "keep_alive": "30m"}, "the chat model is loaded back after the test"
+for _ in range(30):
+    if {"model": "jarvis:latest", "keep_alive": "-1"} in GEN: break
+    time.sleep(0.1)
+assert GEN[1]["think"] is False and "think" not in GEN[0] and GEN[-1] == {"model": "jarvis:latest", "keep_alive": "-1"}, "the chat model is loaded back after the test"
 # chat, phone, self-check
 st, d = call("POST", "/api/chat", {"messages": [{"role": "user", "content": "what models can my pc run?"}], "stream": False})
 assert d["reply"].startswith("This PC: NVIDIA GeForce RTX 4060 Laptop GPU (9 GB)") and "Autopilot" in d["reply"], d["reply"]

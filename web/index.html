@@ -308,6 +308,15 @@
         <p class="settings-note" id="ai-note"></p>
       </div>
       <div class="settings-section">
+        <h2 class="settings-heading">Speed</h2>
+        <label class="settings-check"><input type="checkbox" id="speed-keep"> Keep the chat model ready on the graphics card</label>
+        <p class="settings-note">Loading a model takes 5 to 10 seconds. With this on, Jarvis keeps the chat model loaded, and loads it again after Jarvis Code, Autopilot or a speed test used another model. When a game or another model needs the room, Ollama still makes it.</p>
+        <label class="settings-check"><input type="checkbox" id="speed-show"> Show under each answer how fast it came</label>
+        <p class="settings-note" id="speed-fast-note"></p>
+        <div class="inline-form"><button type="button" id="speed-fast" class="hidden">Turn them on and restart Ollama</button></div>
+        <p class="settings-note" id="speed-status" role="status"></p>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">What this PC can run</h2>
         <p class="settings-note">Jarvis looks at this PC's graphics card, memory and disk and at the models you have, and says which model is best for each job and how fast it will write. A model is fast only when all of it fits on the graphics card; what does not fit runs on the processor, many times slower.</p>
         <p class="settings-note adv-pc" id="adv-pc" data-no-i18n></p>

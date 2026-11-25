@@ -90,7 +90,7 @@ n=len(tg["sent"]); push("let me in",user=222); assert len(tg["sent"])==n      # 
 print("pairing ok")
 # 3. chat
 push("What is 2+2?"); assert last()["text"].startswith("Four") and last()["chat_id"]==111
-assert seen[-1]["messages"][-1]["content"]=="What is 2+2?" and "response_format" not in seen[-1]
+assert seen[-1]["messages"][-1]["content"].endswith("\n\nWhat is 2+2?") and "response_format" not in seen[-1]
 push("/help"); assert "/docs" in last()["text"]
 push("/new"); assert bot.history==[]
 # 3b. a slow answer keeps "typing…" alive, and connections are reused
@@ -135,7 +135,7 @@ srv.Handler.run_routine_steps=orig; print("routine approval ok")
 push(None,document={"file_id":"f1","file_name":"policy.txt","file_size":80}); assert "Added policy.txt" in last()["text"], last()
 push("/docs on"); assert bot.load()["docs"] is True
 mode["v"]="docs"; push("What is the refund window?"); t=last()["text"]; assert "30 days" in t and "From your documents: policy.txt" in t, t
-assert "DOCUMENTS:" in seen[-1]["messages"][0]["content"]
+assert "DOCUMENTS:" in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
 push("/docs off"); push("/status"); assert "Documents: 1 saved, off" in last()["text"]
 print("documents ok")
 # 7. reminders mirrored
@@ -163,7 +163,7 @@ tg["files"]["voice/a.oga"]=b"OggS\x00fakeopus"; tg["files"]["photos/p.jpg"]=BIG
 tg["fileids"]={"v1":"voice/a.oga","p1":"photos/p.jpg","p2":"photos/p.jpg","notimg":"docs/policy.txt"}
 n=len(tg["sent"]); push(None,voice={"file_id":"v1","mime_type":"audio/ogg","duration":3,"file_size":900})
 assert tg["sent"][n]["text"]=="🎤 “What is 2+2?”", tg["sent"][n:]
-assert last()["text"].startswith("Four") and seen[-1]["messages"][-1]["content"]=="What is 2+2?", last()
+assert last()["text"].startswith("Four") and seen[-1]["messages"][-1]["content"].endswith("What is 2+2?"), last()
 assert _WM.made==[("base","cpu","int8")]
 push(None,voice={"file_id":"v1","mime_type":"audio/ogg","file_size":900}); assert len(_WM.made)==1, "model loaded once"
 push(None,voice={"file_id":"v1","file_size":99*1024*1024}); assert "20 MB" in last()["text"]

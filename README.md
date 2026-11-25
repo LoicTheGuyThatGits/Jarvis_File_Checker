@@ -387,6 +387,13 @@ The **</> Code** button at the top (or “open Jarvis Code” in chat) opens a c
 
 The model: a local one through Ollama. `qwen3.5:9b` (6.6 GB) is recommended for an 8 GB graphics card: it codes well and can see the screenshots. The window offers to download it, and the ⚙ button lets you choose another installed model, the number of steps per task (30 by default), and whether programs in this project may run without asking. A small local model makes more mistakes than a big cloud model; the browser checks are what let it notice and fix them. The self-check reports the model, how much of it fits on the graphics card, and the page preview.
 
+## Speed
+Settings > AI model > **Speed**:
+- **Keep the chat model ready** (on by default): loading a model takes 5 to 10 seconds, so Jarvis asks Ollama to keep the chat model loaded with no time limit (also when the Ollama app was started before Jarvis, which would unload it after 5 idle minutes), and loads it again as soon as Jarvis Code, Autopilot or a speed test has used another model. When a game or another model needs the room, Ollama still makes it.
+- **Ollama's speed settings:** flash attention and an 8-bit working memory (`OLLAMA_FLASH_ATTENTION=1`, `OLLAMA_KV_CACHE_TYPE=q8_0`) let more of a model fit on the graphics card at the same quality. Jarvis uses them whenever it starts Ollama itself; *Turn them on and restart Ollama* saves them for your Windows account (so the Ollama app uses them too) and restarts it (refused while a model downloads or works).
+- **How fast each answer came** is shown under it in small letters: seconds to the first word, words a second, and, in orange, how much of the model sat on the graphics card when part of it ran on the processor. It can be hidden there.
+- What changes from one message to the next (the time, the memories and earlier-chat excerpts that match the message, the screen, documents, web pages) now goes with your latest message instead of at the top of the instructions, so Ollama reuses its work on the instructions and the earlier conversation from one answer to the next: in a long chat the first word comes much sooner.
+
 ## What this PC can run
 Settings > AI model > **What this PC can run** (or ask “what models can my PC run?”) looks at the graphics card (its memory, what other programs already use there), the PC's memory, processor and free disk space, Ollama and the models you have, and tells you for each job (chat, pictures, Autopilot, Jarvis Code) which model is best here, how fast it will write and whether it fits whole on the graphics card. A model is fast only when all of it fits on the card; what does not fit runs on the processor, many times slower; what does not fit in the PC's memory either cannot run at all.
 

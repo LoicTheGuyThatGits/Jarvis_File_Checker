@@ -2996,6 +2996,39 @@ def control_public() -> dict:
                         for i in reversed(procedures.load(learned_path()))]}
 
 
+# ---------------- keeping the chat model ready ----------------
+WARM: dict = {"at": 0.0}
+
+
+def keep_loaded_on() -> bool:
+    return load_settings().get("keep_loaded", True) is not False
+
+
+def chat_model_warm(force: bool = False) -> None:
+    """Asks Ollama to load the chat model (or keep it loaded) with no time limit, so the next answer does not wait for a
+    load (5 to 10 seconds). Done after a chat answer (at most every 10 minutes) and after Jarvis Code, Autopilot or a
+    speed test used the graphics card for another model. Ollama still makes room when another model needs it."""
+    if not keep_loaded_on():
+        return
+    chat = ai_settings("chat")
+    if not chat["is_local"] or (not force and time.time() - WARM["at"] < 600):
+        return
+    WARM["at"] = time.time()
+
+    def go():
+        try:
+            ps = ollama_json("/api/ps", timeout=4)
+            if "models" not in ps:
+                return                                    # not Ollama: nothing to keep loaded
+            here = next((m for m in ps["models"] if chat["model"] in (m.get("name"), m.get("model"))), None)
+            if here and str(here.get("expires_at", ""))[:4].isdigit() and int(str(here["expires_at"])[:4]) > datetime.now().year + 50:
+                return                                    # already loaded with no time limit
+            ollama_json("/api/generate", {"model": chat["model"], "keep_alive": "-1"}, timeout=180)
+        except Exception:
+            WARM["at"] = 0.0
+    threading.Thread(target=go, daemon=True).start()
+
+
 # ---------------- the PC advisor: which models suit this PC ----------------
 ADVISOR: dict = {"caps": {}, "measure": {"running": False, "model": "", "done": [], "error": "", "total": 0}}
 ADVISOR_PROMPT = "Describe a sunrise over the sea in four calm sentences."
@@ -3118,7 +3151,7 @@ def advisor_report() -> dict:
     import importlib.util as iu
     piper_exe, _voices = piper_setup()
     extras = {"ollama_version": ollama_version(ai_settings("chat", "local")["base"]), "playwright": webpilot.available(), "pynput": teach_ready(),
-              "piper": bool(piper_exe), "whisper": iu.find_spec("faster_whisper") is not None}
+              "piper": bool(piper_exe), "whisper": iu.find_spec("faster_whisper") is not None, "ollama_fast": ollama_fast_on()}
     r = advisor_module.report(advisor_hardware(), advisor_installed(), advisor_measured(), advisor_current(), extras)
     r["measure"] = dict(ADVISOR["measure"])
     r["pull"] = dict(PULL)
@@ -3150,13 +3183,8 @@ def advisor_measure(models: list[str]) -> None:
             st["done"].append({"name": name, **measured[name]})
             data_path("advisor.json").write_text(json.dumps({"measured": measured}, indent=1), encoding="utf-8")
     finally:
-        chat = ai_settings("chat")
-        if chat["is_local"]:
-            try:
-                ollama_json("/api/generate", {"model": chat["model"], "keep_alive": "30m"}, timeout=120)
-            except Exception:
-                pass
         st.update(running=False, model="")
+        chat_model_warm(force=True)
 
 
 def advisor_apply(role: str, model: str) -> str:
@@ -3352,6 +3380,8 @@ def coder_parts():
 
 
 def coder_notify(kind: str, text: str) -> None:
+    if kind == "end":
+        chat_model_warm(force=True)                      # the coding model filled the card: the chat model comes back
     title = "Jarvis Code: "
     publish_event({"type": "proactive", "id": "coder-" + secrets.token_hex(4), "text": title + text, "chat": kind == "end", "speak": False})
 
@@ -5098,6 +5128,64 @@ def ollama_program() -> tuple[str | None, list[str]]:
     return (exe, ["serve"]) if exe else (None, [])
 
 
+# flash attention (less memory, faster on long prompts; recent Ollama turns it on by itself only for newer models) and a
+# working memory stored in 8 bits (half the room, quality kept), so more of a model fits on the graphics card
+OLLAMA_FAST_ENV = {"OLLAMA_FLASH_ATTENTION": "1", "OLLAMA_KV_CACHE_TYPE": "q8_0"}
+
+
+def ollama_fast_saved() -> dict:
+    """The speed settings as Windows keeps them for the user (what the Ollama app reads when it starts)."""
+    out = {}
+    if os.name == "nt":
+        try:
+            import winreg
+            k = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment")
+            for name in OLLAMA_FAST_ENV:
+                try:
+                    out[name] = str(winreg.QueryValueEx(k, name)[0])
+                except OSError:
+                    pass
+        except OSError:
+            pass
+    for name in OLLAMA_FAST_ENV:
+        out.setdefault(name, os.environ.get(name, ""))
+    return out
+
+
+def speed_public() -> dict:
+    return {"keep_loaded": keep_loaded_on(), "ollama_fast": ollama_fast_on(), "windows": os.name == "nt"}
+
+
+def ollama_fast_on() -> bool:
+    saved = ollama_fast_saved()
+    return all(saved.get(k) == v for k, v in OLLAMA_FAST_ENV.items())
+
+
+def ollama_fast_apply() -> str:
+    """Saves the speed settings for the user (setx) and restarts Ollama so it uses them. Refused while a model is busy."""
+    if os.name != "nt":
+        raise ValueError("This works on Windows only.")
+    if PULL["running"]:
+        raise ValueError(f"{PULL['model']} is still downloading: try again when it is done.")
+    if (CODER["session"] and CODER["session"].status in ("working", "waiting")) or ADVISOR["measure"]["running"] or AUTONOMOUS_RUNS:
+        raise ValueError("A model is busy (Jarvis Code, Autopilot or a speed test): try again when it is done.")
+    flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+    for name, value in OLLAMA_FAST_ENV.items():
+        subprocess.run(["setx", name, value], capture_output=True, timeout=20, creationflags=flags)
+        os.environ[name] = value
+    audit("Ollama speed settings saved: " + ", ".join(f"{k}={v}" for k, v in OLLAMA_FAST_ENV.items()))
+    for image in ("ollama app.exe", "ollama.exe"):
+        subprocess.run(["taskkill", "/F", "/IM", image], capture_output=True, timeout=20, creationflags=flags)
+    time.sleep(1.5)
+    OLLAMA_STATE["ok_at"] = 0.0
+    OLLAMA_STATE["tried_at"] = 0.0
+    base = ai_settings("chat", "local")["base"]
+    if not ensure_ollama(base, wait=40):
+        raise ValueError("Ollama did not start again: open it from the Start menu.")
+    chat_model_warm(force=True)
+    return "Ollama restarted with the speed settings on (flash attention, 8-bit working memory)."
+
+
 def ensure_ollama(base: str, wait: float = 25.0) -> bool:
     """When the local model server is not running, start it and wait for it. True when it is up."""
     if not is_loopback_url(base):
@@ -5117,7 +5205,8 @@ def ensure_ollama(base: str, wait: float = 25.0) -> bool:
             return False
         print(f"[jarvis] Ollama is not running; starting {Path(exe).name}")
         try:
-            subprocess.Popen([exe, *args], env={**os.environ, "OLLAMA_KEEP_ALIVE": os.environ.get("OLLAMA_KEEP_ALIVE", "-1")}, stdin=subprocess.DEVNULL,
+            subprocess.Popen([exe, *args], env={**os.environ, **OLLAMA_FAST_ENV, **{k: os.environ[k] for k in OLLAMA_FAST_ENV if k in os.environ},
+                                                "OLLAMA_KEEP_ALIVE": os.environ.get("OLLAMA_KEEP_ALIVE", "-1")}, stdin=subprocess.DEVNULL,
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, creationflags=(getattr(subprocess, "CREATE_NO_WINDOW", 0) if args else 0))
         except Exception as exc:
             print(f"[jarvis] could not start Ollama: {exc}")
@@ -6953,6 +7042,7 @@ def explicit_assistant_command(text: str) -> str | None:
 class Handler(BaseHTTPRequestHandler):
     server_version = "JarvisLocal/0.1"
     _stream_started = False  # True once a chat reply has started streaming to the browser
+    _speed = None            # how fast the model answered this request (shown under the reply)
     _reply_lang = None       # "fr" while a French request for a built-in command is being answered
     _stream_dead = False     # True if the browser went away mid-stream
 
@@ -7159,6 +7249,8 @@ class Handler(BaseHTTPRequestHandler):
             return False
 
     def send_json(self, status: int, obj: object) -> None:
+        if status == 200 and self._speed and isinstance(obj, dict) and "reply" in obj and "speed" not in obj:
+            obj["speed"] = self._speed
         if debugtrace.active() is not None and isinstance(obj, dict) and getattr(self, "_debug_owner", False):
             self._debug_owner = False
             trace = debugtrace.active()
@@ -7296,6 +7388,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if path == "/api/advisor":
             self.send_json(200, advisor_report())
+            return
+        if path == "/api/speed":
+            self.send_json(200, speed_public())
             return
         if path.startswith("/api/coder"):
             if self._from_phone:
@@ -8359,6 +8454,24 @@ class Handler(BaseHTTPRequestHandler):
                 self.coach_post(payload)
             elif path == "/api/transport":
                 self.transport_post(payload)
+            elif path == "/api/speed":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Speed settings change at the PC only."})
+                    return
+                try:
+                    msg = ""
+                    if isinstance(payload.get("keep_loaded"), bool):
+                        load_settings()
+                        with SETTINGS_LOCK:
+                            SETTINGS["keep_loaded"] = payload["keep_loaded"]
+                        save_settings()
+                        if payload["keep_loaded"]:
+                            chat_model_warm(force=True)
+                    if payload.get("ollama_fast"):
+                        msg = ollama_fast_apply()
+                    self.send_json(200, {**speed_public(), "message": msg})
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
             elif path == "/api/advisor":
                 if self._from_phone:
                     self.send_json(403, {"error": "Changing models works at the PC only."})
@@ -9625,19 +9738,23 @@ class Handler(BaseHTTPRequestHandler):
                 "You are Jarvis, a personal assistant on the user's Windows PC. Address the user as '" + current_address() + "'. " + ANSWER_STYLE + " " + PERSONA + " "
                 "Answer in plain text; never reply with JSON."
             )
-        instructions += "\n\n" + clock_module.prompt_line()
+        # What changes from one message to the next (the time, memories and excerpts that match this message, the screen,
+        # documents, web pages) goes with the latest message, not at the top: the model keeps its work on the instructions and
+        # the earlier conversation from one answer to the next (Ollama reuses it when the start of the text is unchanged), so a
+        # long chat does not have to be read again before every answer.
+        context: list[str] = [clock_module.prompt_line()]
         memory_block = memory_prompt_block(is_local_provider, latest)
         if memory_block:
-            instructions += "\n\n" + memory_block
+            context.append(memory_block)
             debugtrace.step("memory", "Your long-term memory was added to the instructions", memory_block)
         if not getattr(self, "_offsite", False):         # the screen is shown only to questions asked at the PC
             screen_block = awareness_context(latest)
             if screen_block:
-                instructions += "\n\n" + screen_block
+                context.append(screen_block)
                 debugtrace.step("screen", "What screen awareness saw was added", screen_block[:600])
         earlier_block = recall_block(latest)
         if earlier_block:
-            instructions += "\n\n" + earlier_block
+            context.append(earlier_block)
             debugtrace.step("memory", "Matching excerpts of earlier chats were added", earlier_block)
         instructions += language_instruction()
         if payload.get("source") == "call":
@@ -9645,13 +9762,21 @@ class Handler(BaseHTTPRequestHandler):
                              "natural spoken sentences. No lists, no headings, no markdown, no code, no links, no emoji. If something needs a long "
                              "answer, give the gist and offer to put the details in the chat.")
         if doc_hits is not None:
-            instructions += "\n\n" + docs_prompt(doc_hits)
+            context.append(docs_prompt(doc_hits))
         if web_result is not None:
-            instructions += "\n\n" + web_research.prompt_block(web_result)
+            context.append(web_research.prompt_block(web_result))
         model = ai["model"]
+        model_messages = [dict(m) for m in safe_messages]
+        context_text = "\n\n".join(context)
+        if model_messages and model_messages[-1]["role"] == "user":
+            model_messages[-1]["content"] = ("[Context from Jarvis for this message; the user did not write it]\n" + context_text
+                                             + "\n[End of context]\n\n" + model_messages[-1]["content"])
+        else:
+            instructions += "\n\n" + context_text
+            context_text = ""
         body = {
             "model": model,
-            "messages": [{"role": "system", "content": instructions}, *safe_messages],
+            "messages": [{"role": "system", "content": instructions}, *model_messages],
             "stream": True,
         }
         if not is_local_provider and web_result is None:
@@ -9662,7 +9787,7 @@ class Handler(BaseHTTPRequestHandler):
         print(f"[jarvis] chat -> {model} @ {urlparse(base).netloc} | prompt ~{sum(len(m['content']) for m in body['messages'])} chars, {len(safe_messages)} history messages")
         debugtrace.answered("the AI model")
         debugtrace.step("model", f"Asking {model} at {urlparse(base).netloc}: ~{sum(len(m['content']) for m in body['messages'])} characters, {len(safe_messages)} message{'s' if len(safe_messages) != 1 else ''} of history",
-                        "SYSTEM:\n" + instructions + "\n\n" + "\n\n".join(f"{m['role'].upper()}:\n{m['content']}" for m in safe_messages))
+                        "SYSTEM:\n" + instructions + "\n\n" + "\n\n".join(f"{m['role'].upper()}:\n{m['content']}" for m in model_messages))
         thinker = debugtrace.ThinkSplitter()
         reasoning: list[str] = []
         req = urllib.request.Request(
@@ -9738,6 +9863,13 @@ class Handler(BaseHTTPRequestHandler):
             result = {"choices": [{"message": {"content": "".join(streamed_content)}}]}
             done_at = time.time()
             first = f"{first_token_at - started_at:.1f}s" if first_token_at else "none"
+            answer_text = "".join(streamed_content)
+            words = len(re.findall(r"\w+", answer_text))
+            self._speed = {"model": model, "first_s": round((first_token_at or done_at) - started_at, 1), "total_s": round(done_at - started_at, 1),
+                           "wps": round(words / max(0.05, done_at - (first_token_at or started_at)), 1) if words > 3 else None,
+                           "gpu": gpu_share(base, model) if is_local_provider else None}
+            if is_local_provider:
+                chat_model_warm()
             print(f"[jarvis] chat done: first token {first}, total {done_at - started_at:.1f}s, {len(''.join(streamed_content))} chars")
             thought = ("".join(reasoning) + ("\n\n" if reasoning and thinker.thought() else "") + thinker.thought()).strip()
             if thought:
@@ -9790,7 +9922,7 @@ class Handler(BaseHTTPRequestHandler):
                 raise ValueError("the model did not return a JSON object")
             # Saved with the exact prompt, so good answers can later train a model made just to be Jarvis.
             exchange_id = None if payload.get("source") == "routine" else training_log("research" if web_result is not None else "documents" if doc_hits is not None else "chat",
-                                                                                     model, ai["provider"], instructions, safe_messages, raw_answer)
+                                                                                     model, ai["provider"], instructions + ("\n\n" + context_text if context_text else ""), safe_messages, raw_answer)
             reply = str(parsed.get("reply", ""))[:30000]
             action = parsed.get("action")
             if isinstance(action, dict):
@@ -10390,6 +10522,8 @@ class Handler(BaseHTTPRequestHandler):
             if task_id:
                 with AUTONOMOUS_LOCK:
                     AUTONOMOUS_RUNS.pop(task_id, None)
+            if not AUTONOMOUS_RUNS and autopilot_ai()["model"] != ai_settings("chat")["model"]:
+                chat_model_warm(force=True)                   # Autopilot's model filled the card: the chat model comes back
 
     def run_autonomous_task(self, task: str, screen: dict, stop_event: threading.Event, conversation_context: list[dict[str, str]]) -> None:
         completed_actions: list[str] = []

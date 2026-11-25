@@ -6,6 +6,23 @@
     var opts = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined;
     return fetch(path, opts).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); });
   }
+  if ($('speed-keep')) {
+    var spTr = function (t) { return window.JarvisI18n ? window.JarvisI18n.t(t) : t; };
+    var spShow = function (d) {
+      $('speed-keep').checked = !!d.keep_loaded;
+      $('speed-fast-note').textContent = d.ollama_fast ? spTr('Ollama’s speed settings are on: flash attention and an 8-bit working memory, so more of a model fits on the graphics card.')
+        : spTr('Ollama’s speed settings are off. Turning them on (flash attention and an 8-bit working memory) lets more of a model fit on the graphics card, at the same quality. Ollama restarts for it (a few seconds).');
+      $('speed-fast').classList.toggle('hidden', !!d.ollama_fast || !d.windows);
+    };
+    try { $('speed-show').checked = (localStorage.getItem('jarvis-show-speed') || 'on') !== 'off'; } catch (e) { $('speed-show').checked = true; }
+    $('speed-show').addEventListener('change', function () { try { localStorage.setItem('jarvis-show-speed', this.checked ? 'on' : 'off'); } catch (e) {} });
+    $('speed-keep').addEventListener('change', function () { api('/api/speed', { keep_loaded: this.checked }).then(spShow).catch(function (e) { $('speed-status').textContent = e.message; }); });
+    $('speed-fast').addEventListener('click', function () {
+      var b = this; b.disabled = true; $('speed-status').textContent = spTr('Restarting Ollama…');
+      api('/api/speed', { ollama_fast: true }).then(function (d) { spShow(d); $('speed-status').textContent = d.message || ''; }).catch(function (e) { $('speed-status').textContent = e.message; }).then(function () { b.disabled = false; });
+    });
+    window.addEventListener('jarvis:pane', function (e) { if (e.detail && paneHas(e.detail.pane, 'speed-keep')) api('/api/speed').then(spShow).catch(function () {}); });
+  }
   if ($('adv-roles')) {
     var advTimer = 0, tr = function (t) { return window.JarvisI18n ? window.JarvisI18n.t(t) : t; };
     var WHERE = { gpu: 'all on the graphics card', split: 'partly on the processor (slow)', cpu: 'on the processor', no: 'too big for this PC' };

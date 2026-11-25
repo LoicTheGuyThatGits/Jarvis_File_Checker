@@ -54,6 +54,6 @@ assert chat("what's the date") == f"Today is {C.long_date(datetime.now().date())
 assert len(seen) == before, "the model was not asked"
 r = chat("quelle heure est-il ?"); assert r.startswith("Il est ") and r.endswith(", monsieur.") and len(seen) == before, ("French: the PC's answer, in French without asking the model", r)
 chat("how old is someone born in 2010?")
-system = seen[-1]["messages"][0]["content"]
+system = "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
 assert f"{C.long_date(datetime.now().date())}" in system and "never assume another date" in system, "the model gets the real date for everything else"
 print("clock ok"); os._exit(0)

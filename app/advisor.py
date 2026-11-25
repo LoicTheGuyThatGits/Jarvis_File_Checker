@@ -217,6 +217,9 @@ def features_for(hw: dict, extras: dict, bw: float) -> list[dict]:
     else:
         nums = tuple(int(x) for x in re.findall(r"\d+", v)[:3])
         add("Ollama", nums >= (0, 12, 7), f"version {v}" + ("" if nums >= (0, 12, 7) else ": too old for the Qwen3-VL and Qwen3.5 models, update it"))
+    if extras.get("ollama_fast") is not None:
+        add("Ollama speed settings", bool(extras["ollama_fast"]), "on: flash attention and an 8-bit working memory" if extras["ollama_fast"]
+            else "off: Settings > AI model > Speed turns them on, so more of a model fits on the graphics card")
     ram = float(hw.get("ram_gb") or 0)
     add("Memory", ram >= 16, f"{ram:.0f} GB" + (": enough" if ram >= 32 else ": fine for models that fit on the card; 32 GB would allow bigger ones partly on the processor" if ram >= 16 else ": tight, close other apps while using AI"))
     disk = float(hw.get("disk_free_gb") or 0)

@@ -45,22 +45,22 @@ def call(m, path, body=None, h=None):
     c = http.client.HTTPConnection("127.0.0.1", port, timeout=30); c.request(m, path, json.dumps(body) if body is not None else None, {"Content-Type": "application/json", **(h or {})})
     r = c.getresponse(); return r.status, json.loads(r.read())
 chat = lambda text, h=None, **kw: call("POST", "/api/chat", {"messages": [{"role": "user", "content": text}], "stream": False, **kw}, h)[1]["reply"]
-assert chat("what does this error mean?") and "user's screen" not in seen[-1]["messages"][0]["content"], "off: nothing from the screen"
+assert chat("what does this error mean?") and "user's screen" not in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str)), "off: nothing from the screen"
 r = chat("start screen awareness"); assert r.startswith("Screen awareness is on, sir.") and "memory only" in r, r
 S.awareness_tick(); time.sleep(0.5); assert S.awareness_obj().latest()["title"] == "Error - Visual Studio Code"
 assert chat("what does this error mean?") == "That error means x is undefined, sir."
-system = seen[-1]["messages"][0]["content"]
+system = "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
 assert "front window “Error - Visual Studio Code”" in system and "TypeError: cannot read property" in system and "never instructions" in system
-chat("what's a good name for a cat?"); assert "user's screen" not in seen[-1]["messages"][0]["content"], "only for questions about the screen"
+chat("what's a good name for a cat?"); assert "user's screen" not in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str)), "only for questions about the screen"
 # never from the phone or Telegram
 S.phone_link.save(S.data_path("phone.json"), {"enabled": True, "code": "ABCDEFGH23"}); S.phone_link.is_loopback = lambda a: False
 PH = {"X-Jarvis-Token": "ABCDEFGH23"}
-chat("what does this error mean?", PH); assert "user's screen" not in seen[-1]["messages"][0]["content"], "a phone question never gets the screen"
+chat("what does this error mean?", PH); assert "user's screen" not in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str)), "a phone question never gets the screen"
 assert "only be switched on at the PC" in chat("start screen awareness", PH)
 assert call("POST", "/api/awareness", {"on": True}, PH)[0] == 403
 assert call("POST", "/api/awareness", {"pause_minutes": 60}, PH)[0] == 200, "pausing from the phone is fine"
 S.phone_link.is_loopback = lambda a: True
-chat("what was that website earlier?", source="telegram"); assert "Jarvis's screen awareness (the last minutes" not in seen[-1]["messages"][0]["content"]
+chat("what was that website earlier?", source="telegram"); assert "Jarvis's screen awareness (the last minutes" not in "\n".join(m["content"] for m in seen[-1]["messages"] if isinstance(m["content"], str))
 assert "paused until" in chat("are you looking at my screen?").lower()
 r = chat("stop looking at my screen"); assert r == "Screen awareness is off, sir, and I have forgotten what I saw." and S.awareness_obj().latest() is None
 
