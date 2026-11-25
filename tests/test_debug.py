@@ -84,7 +84,7 @@ assert tr["answered_by"] == "the AI model" and tr["message"] == "tell me a joke"
 think = next(s for s in tr["steps"] if s["kind"] == "thinking")
 assert "Reasoning first." in think["detail"] and "A joke about robots fits." in think["detail"], think
 asked = next(s for s in tr["steps"] if s["kind"] == "model" and s["text"].startswith("Asking thinker:1b"))
-assert "SYSTEM:" in asked["detail"] and "USER:\ntell me a joke" in asked["detail"]
+assert "SYSTEM:" in asked["detail"] and "[End of context]\n\ntell me a joke" in asked["detail"]
 raw = [s for s in tr["steps"] if s["kind"] == "model" and s["text"].startswith("Answer:")][0]
 assert "<think>" not in raw["detail"] and '"reply"' in raw["detail"]
 # streamed: the thinking never reaches the page, and the final event carries the trace

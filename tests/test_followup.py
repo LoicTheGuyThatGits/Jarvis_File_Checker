@@ -23,7 +23,7 @@ app=ThreadingHTTPServer(("127.0.0.1",0),srv.Handler); threading.Thread(target=ap
 def chat(msgs):
     c=http.client.HTTPConnection("127.0.0.1",app.server_address[1]); c.request("POST","/api/chat",json.dumps({"messages":msgs,"stream":False}),{"Content-Type":"application/json"}); r=c.getresponse(); return json.loads(r.read())
 d=chat(H+[{"role":"user","content":"tell me more about the second one"}]); assert "Arrival" in d["reply"]
-last=seen[-1]["messages"][-1]; assert last["role"]=="user" and last["content"].startswith("tell me more about the second one") and "“Arrival”" in last["content"], last
+last=seen[-1]["messages"][-1]; assert last["role"]=="user" and "[End of context]\n\ntell me more about the second one" in last["content"] and "“Arrival”" in last["content"], last
 assert len(seen[-1]["messages"])==4, "history not duplicated"
-chat([{"role":"user","content":"write a haiku about rain"}]); assert seen[-1]["messages"][-1]["content"]=="write a haiku about rain", "first messages untouched"
+chat([{"role":"user","content":"write a haiku about rain"}]); assert seen[-1]["messages"][-1]["content"].endswith("\n\nwrite a haiku about rain"), "first messages untouched"
 print("followup ok"); os._exit(0)

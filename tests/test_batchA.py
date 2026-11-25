@@ -35,12 +35,12 @@ st,m=call("/api/models?provider=cloud"); assert m["models"]==[] and "API key" in
 assert call("/api/models?provider=nope")[0]==400
 st,o=call("/api/ai",{"model":"qwen2.5:7b"}); assert o["model"]=="qwen2.5:7b" and json.loads((tmp/"data"/"settings.json").read_text())["models"]["local"]=="qwen2.5:7b"
 assert call("/api/ai",{"provider":"cloud"})[0]==400 and call("/api/ai",{"model":"bad name!"})[0]==400
-call("/api/chat",{"messages":[{"role":"user","content":"hi"}]}); assert seen[-1][:2]==("POST","qwen2.5:7b"), seen[-1]
+call("/api/chat",{"messages":[{"role":"user","content":"hi"}]}); posts=[x for x in seen if x[0]=="POST"]; assert posts[-1][:2]==("POST","qwen2.5:7b"), seen[-3:]
 srv.SETTINGS_LOADED_FROM=None; assert call("/api/ai")[1]["model"]=="qwen2.5:7b"; print("local switch + persistence ok")
 os.environ["JARVIS_CLOUD_API_KEY"]="sk-test"
 st,m=call("/api/models?provider=cloud"); assert m["models"]==["gpt-6-luna","gpt-6-pro"] and seen[-1][2]=="Bearer sk-test", (m,seen[-1])
 st,o=call("/api/ai",{"provider":"cloud"}); assert o["provider"]=="cloud" and o["model"]=="gpt-6-luna"
-call("/api/chat",{"messages":[{"role":"user","content":"hi"}]}); assert seen[-1]==("POST","gpt-6-luna","Bearer sk-test"), seen[-1]
+call("/api/chat",{"messages":[{"role":"user","content":"hi"}]}); assert [x for x in seen if x[0]=="POST"][-1]==("POST","gpt-6-luna","Bearer sk-test"), seen[-3:]
 call("/api/ai",{"provider":"local"}); print("cloud switch ok")
 # legacy launcher env still works
 saved_env={k:os.environ.pop(k) for k in ("JARVIS_LOCAL_BASE_URL","JARVIS_CLOUD_BASE_URL")}
