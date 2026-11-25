@@ -538,9 +538,10 @@ class BrowserWorker:
             raise CoderError("Looking at pages needs Playwright: Settings > Computer control > Install browser control.")
         self.pw = sync_playwright().start()
         last = None
-        for channel in ("msedge", "chrome", None):
+        # Windows: the Edge that is already installed (nothing to download); elsewhere Playwright's own Chromium first
+        for channel in (("msedge", "chrome", None) if os.name == "nt" else (None, "chrome", "msedge")):
             try:
-                self.browser = self.pw.chromium.launch(headless=True, **({"channel": channel} if channel else {}))
+                self.browser = self.pw.chromium.launch(headless=True, timeout=30000, **({"channel": channel} if channel else {}))
                 return
             except Exception as exc:
                 last = exc

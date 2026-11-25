@@ -1,4 +1,5 @@
 import json, os, sys, tempfile, threading, time, http.client, importlib.util
+os.environ["TZ"] = "Europe/Zurich"; time.tzset()          # the sample timetable is in Swiss time, like the user's PC
 from datetime import datetime
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer

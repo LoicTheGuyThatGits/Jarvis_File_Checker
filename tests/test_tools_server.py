@@ -82,7 +82,7 @@ threading.Thread(target=_burn,daemon=True).start()
 _vals=[]
 for _ in range(4): time.sleep(1.1); _vals.append(call("/api/system")[1]["cpu"])
 _stop[0]=True
-assert max(v for v in _vals if v is not None)>30, _vals
+assert max(v for v in _vals if v is not None)>min(30, 60/(os.cpu_count() or 1)), _vals      # one busy thread is 25 % on a 4-core machine
 print("cpu under load via per-request threads:",_vals)
 srv.psutil=None; srv.SYSTEM_CACHE["data"]=None; st,fb=call("/api/system"); assert st==200 and fb["source"]=="windows"; print("fallback path returns cleanly off Windows")
 st,o=call("/api/memory/clear",{}); assert o["items"]==[]; st,o=call("/api/memory",{"text":"  I live in Geneva  "}); assert o["added"] and o["items"][0]["text"]=="I live in Geneva"

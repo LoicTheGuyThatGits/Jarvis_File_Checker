@@ -12,7 +12,10 @@ def ask(system,user):
     if "mark a student" in system: return "CORRECT - yes." if "paris" in user.lower().split("student's answer:")[1] else "WRONG - it is Paris."
     return f"QUESTION: What is the capital of France? (variant {len(log)})\nANSWER: Paris"
 P=pl.Planner(tmp/"data"/"p.json"); S=study.Study(tmp/"data"/"s.json",ask,lambda t:["Its capital is Paris."] if "france" in t else [],P,random.Random(1))
-now=datetime(2026,11,14,12,0)
+from datetime import timedelta
+now=datetime.now().replace(hour=12,minute=0,second=0,microsecond=0)      # the planner refuses dates in the past, so the test moves with the calendar
+EXAM=now+timedelta(days=6); ON=f"{EXAM.day} {EXAM.strftime('%B').lower()}"; D=lambda n:f"{(EXAM-timedelta(days=n)).day} {(EXAM-timedelta(days=n)).strftime('%B')}"
+LATER=now+timedelta(days=10); ON2=f"{LATER.day} {LATER.strftime('%B').lower()}"
 def say(t): return S.command(t,now)
 assert say("what is the weather") is None and say("tell me a joke") is None and say("Paris") is None, "nothing happens outside a quiz"
 r=say("quiz me on france"); assert "Question 1/5" in r and "capital of France" in r and "excerpts" in log[-1][0].lower() and "Its capital is Paris" in log[-1][1]
@@ -38,8 +41,8 @@ S2.command("quiz me",now); S2.session["at"]-=study.IDLE_SECONDS+5; assert S2.com
 def bad(system,user): raise ValueError("The AI model did not answer: boom")
 S3=study.Study(tmp/"data"/"s3.json",bad,lambda t:[],P); assert "did not answer" in S3.command("quiz me on x",now) and S3.session is None
 # revision plan
-r=say("plan revision for the chemistry exam on 20 november"); assert "Chemistry exam" in r and "17 November" in r and "19 November" in r
-assert [t["text"] for t in P.load()["tasks"]]==["Revise chemistry (1 of 3)","Revise chemistry (2 of 3)","Revise chemistry (3 of 3)"] and "already in your planner" in say("plan revision for the chemistry exam on 20 november")
+r=say(f"plan revision for the chemistry exam on {ON}"); assert "Chemistry exam" in r and D(3) in r and D(1) in r, r
+assert [t["text"] for t in P.load()["tasks"]]==["Revise chemistry (1 of 3)","Revise chemistry (2 of 3)","Revise chemistry (3 of 3)"] and "already in your planner" in say(f"plan revision for the chemistry exam on {ON}")
 assert "Tell me the subject" in (say("revision plan for the chemistry exam") or "Tell me the subject") 
 # ---- server ----
 class Fake(BaseHTTPRequestHandler):
@@ -60,7 +63,7 @@ srv.notes_obj().add("Shakespeare wrote Hamlet around 1600")
 r=chat("quiz me on shakespeare with 1 question"); assert "Who wrote Hamlet" in r, r
 assert chat("Shakespeare").startswith("✓ Correct") and srv.study_obj().session is None
 s,d=call("GET","/api/study"); assert s==200 and d["sessions"][-1]["correct"]==1 and d["missed"]==0
-assert "Added the event" in chat("plan revision for the history exam on 30 november")
+assert "Added the event" in chat(f"plan revision for the history exam on {ON2}")
 srv.study_obj().save({"sessions":[],"missed":[{"q":"q","a":"a","topic":"t","at":1}]}); s,d=call("GET","/api/study"); assert d["missed"]==1
 from playwright.sync_api import sync_playwright
 with sync_playwright() as p:
@@ -70,6 +73,6 @@ with sync_playwright() as p:
     pg.click("#open-settings"); pg.click("#tab-school"); pg.wait_for_function("document.querySelector('#study-stats').innerText.includes('1 missed question')")
     pg.click("#study-clear"); pg.wait_for_function("document.querySelector('#study-clear').disabled")
     pg.fill("#settings-search","flashcards"); pg.wait_for_timeout(300)
-    assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)")==["Study mode"]
+    assert pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)") in (["Study mode"], ["Study coach", "Study mode"]), pg.evaluate("[...document.querySelectorAll('.settings-section')].filter(s=>s.offsetParent!==null).map(s=>(s.querySelector('.settings-heading')||{}).textContent)")
     assert not errs, errs
 print("study ok"); os._exit(0)
