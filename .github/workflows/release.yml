@@ -12,6 +12,10 @@ jobs:
   installer:
     runs-on: windows-latest
     steps:
+      - name: Files exactly as in the repository (no Windows line endings), so they match the file list the updater checks
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
