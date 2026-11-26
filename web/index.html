@@ -247,10 +247,21 @@
     </div>
     <div class="settings-pane hidden" id="pane-system" role="tabpanel" aria-labelledby="tab-system">
       <div class="pane-intro"><h2 class="pane-title">Jarvis &amp; updates</h2><p>Where this Jarvis runs from, whether everything works, updates and backups.</p></div>
-      <div class="settings-section" id="setup-section">
+      <div class="settings-section" id="updates-section">
+        <h2 class="settings-heading">Updates</h2>
+        <div class="upd-head"><div class="upd-label">Version</div><div class="upd-version" id="upd-version">…</div></div>
+        <p class="settings-note upd-status" id="upd-status" role="status" aria-live="polite"></p>
+        <div class="upd-progress hidden" id="upd-progress"><i></i></div>
+        <div class="upd-notes hidden" id="upd-notes-box"><div class="settings-subheading">What's new</div><ul class="upd-notes-list" id="upd-notes" data-no-i18n></ul></div>
+        <div class="inline-form"><button type="button" id="upd-check">Check now</button><button type="button" id="upd-install" class="primary hidden">Update and restart</button></div>
+        <p class="settings-note upd-error hidden" id="upd-error" role="alert"></p>
+        <label class="settings-check"><input type="checkbox" id="files-auto" checked> Tell me when a new version is out</label>
+        <div class="settings-field"><label for="files-channel">Updates come from</label><select id="files-channel"><option value="releases">Releases: tested versions (recommended)</option><option value="main">Every change on GitHub, as soon as it is made</option></select></div>
+      </div>
+      <div class="settings-section setup-callout" id="setup-section">
         <h2 class="settings-heading">Setup</h2>
-        <p class="settings-note">The short guide from the first start: language, how Jarvis addresses you, your town, the AI model and voice.</p>
-        <button type="button" id="setup-again" class="settings-action">Run the setup again</button>
+        <p class="settings-note">The short guide from the first start: language, how Jarvis addresses you, your town, the AI model and voice. Run it again any time; what you already set stays until you change it.</p>
+        <button type="button" id="setup-again" class="settings-action primary">▶ Run the first-start setup again</button>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">This Jarvis</h2>
@@ -285,8 +296,6 @@
         <h2 class="settings-heading">File check</h2>
         <p class="settings-note">Checks that every file Jarvis needs is in this folder, using the list in the GitHub repository (github.com/LoicTheGuyThatGits/Jarvis_File_Checker). Missing files can be downloaded again; each one is verified against its fingerprint first. You can also ask “check my files”. Your data, settings and passwords are never touched.</p>
         <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button><button type="button" id="files-update">Check for updates</button><button type="button" id="files-install" disabled>Install updates</button><button type="button" id="files-restart" class="hidden">Restart Jarvis now</button></div>
-        <div class="settings-field"><label for="files-channel">Updates come from</label><select id="files-channel"><option value="releases">Releases: tested versions (recommended)</option><option value="main">Every change on GitHub, as soon as it is made</option></select></div>
-        <label class="settings-check"><input type="checkbox" id="files-auto" checked> Tell me when the repository has an update</label>
         <label class="settings-check"><input type="checkbox" id="files-changed"> Also replace files that differ from the repository (the old copy is kept in data/file-backups)</label>
         <pre class="settings-note" id="files-report" style="white-space:pre-wrap" role="status"></pre>
       </div>
@@ -952,6 +961,17 @@
     </footer>
   </section>
 
+  <div id="update-banner" class="update-banner hidden" role="status" aria-live="polite">
+    <div class="ub-main">
+      <span class="ub-dot" aria-hidden="true"></span>
+      <div class="ub-text"><div class="ub-title" id="ub-title">A new version of Jarvis is ready.</div><div class="ub-sub" id="ub-sub" data-no-i18n></div></div>
+      <button type="button" id="ub-notes" class="ub-btn">What's new</button>
+      <button type="button" id="ub-install" class="ub-btn primary">Update and restart</button>
+      <button type="button" id="ub-later" class="ub-btn ub-close" aria-label="Later">Later</button>
+    </div>
+    <div class="ub-progress hidden" id="ub-progress"><i></i></div>
+    <ul class="ub-notes hidden" id="ub-list" data-no-i18n></ul>
+  </div>
   <div id="alerts" class="alerts" role="alert" aria-live="assertive"></div>
 
   <div id="boot" class="boot" aria-label="Jarvis starting up">
@@ -1027,5 +1047,6 @@
   <script src="/js/phone.js"></script>
   <script src="/js/call.js"></script>
   <script src="/js/setup.js"></script>
+  <script src="/js/updates.js"></script>
 </body>
 </html>

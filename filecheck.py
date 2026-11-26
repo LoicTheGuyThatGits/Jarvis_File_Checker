@@ -328,6 +328,69 @@ def config(root: Path) -> dict:
 
 CHANNELS = ("releases", "main")
 LATEST: dict = {}
+RELEASE_NOTES: dict = {}
+SHAS: dict = {}
+
+
+def api_ok() -> bool:
+    """GitHub's API is asked only when the files come from GitHub too (tests point the files at a local copy)."""
+    return API_BASE != "https://api.github.com" or RAW_BASE == "https://raw.githubusercontent.com"
+
+
+def commit_sha(ref: str, repo: str | None = None) -> str:
+    """The commit a branch or tag points at now ("" when GitHub cannot be asked). Cached for a minute."""
+    if re.fullmatch(r"[0-9a-f]{40}", ref or ""):
+        return ref
+    if not api_ok():
+        return ""
+    key = (repo or REPO, ref)
+    hit = SHAS.get(key)
+    if hit and time.time() - hit[1] < 60:
+        return hit[0]
+    try:
+        req = urllib.request.Request(f"{API_BASE}/repos/{repo or REPO}/commits/{urllib.parse.quote(ref, safe='')}",
+                                     headers={"User-Agent": "Jarvis-file-checker", "Accept": "application/vnd.github.sha"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            sha = r.read(100).decode("ascii", "replace").strip()
+    except Exception:
+        return ""
+    sha = sha if re.fullmatch(r"[0-9a-f]{40}", sha) else ""
+    SHAS[key] = (sha, time.time())
+    return sha
+
+
+def whats_new(root: Path, ref: str, limit: int = 12) -> dict:
+    """What an update brings, in words: the release notes for a release, or the titles of the changes since this copy's
+    last update for main. {"title": ..., "lines": [...]}; empty lines when GitHub cannot tell."""
+    if re.fullmatch(r"v?\d[\w.+-]{0,39}", ref or ""):
+        info = RELEASE_NOTES.get(REPO) or {}
+        if info.get("tag") != ref:
+            latest_release()
+            info = RELEASE_NOTES.get(REPO) or {}
+        lines = [re.sub(r"^\s*(?:[-*•]|#+)\s*", "", l).strip() for l in (info.get("body") or "").splitlines()]
+        lines = [re.sub(r"\s*(?:by @\S+ )?in https://github\.com/\S+$", "", l) for l in lines if l and not l.lstrip("*_ ").lower().startswith(("full changelog", "what's changed", "new contributors"))]
+        return {"title": info.get("title") or ref, "lines": lines[:limit]}
+    if not api_ok():
+        return {"title": "", "lines": []}
+    old = installed_state(root).get("commit") or ""
+    new = commit_sha(ref)
+    try:
+        if old and new and old != new:
+            url = f"{API_BASE}/repos/{REPO}/compare/{old}...{new}"
+        else:
+            url = f"{API_BASE}/repos/{REPO}/commits?sha={urllib.parse.quote(ref, safe='')}&per_page={limit}"
+        req = urllib.request.Request(url, headers={"User-Agent": "Jarvis-file-checker", "Accept": "application/vnd.github+json"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read(2_000_000).decode("utf-8", "replace"))
+    except Exception:
+        return {"title": "", "lines": []}
+    commits = data.get("commits", []) if isinstance(data, dict) else data
+    titles = []
+    for c in reversed(commits) if isinstance(data, dict) else commits:      # newest first
+        msg = str(((c or {}).get("commit") or {}).get("message") or "").split("\n", 1)[0].strip()
+        if msg and "[skip ci]" not in msg and not msg.startswith(("Update manifest", "Merge ")):
+            titles.append(msg[:160])
+    return {"title": "", "lines": titles[:limit]}
 
 
 def channel_for(root: Path) -> str:
@@ -346,9 +409,12 @@ def latest_release(repo: str | None = None) -> str | None:
     try:
         req = urllib.request.Request(f"{API_BASE}/repos/{key}/releases/latest", headers={"User-Agent": "Jarvis-file-checker", "Accept": "application/vnd.github+json"})
         with urllib.request.urlopen(req, timeout=10) as r:
-            name = json.loads(r.read(200_000).decode("utf-8", "replace")).get("tag_name")
+            info = json.loads(r.read(200_000).decode("utf-8", "replace"))
+        name = info.get("tag_name")
         if isinstance(name, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,60}", name):
             tag = name
+            RELEASE_NOTES[key] = {"tag": name, "title": str(info.get("name") or name)[:120], "body": str(info.get("body") or "")[:6000],
+                                  "published": str(info.get("published_at") or "")[:30]}
     except Exception:
         return hit[0] if hit else None
     LATEST[key] = (tag, time.time())
@@ -366,22 +432,35 @@ def ref_for(root: Path) -> str:
     return REF
 
 
+def installed_state(root: Path) -> dict:
+    try:
+        d = json.loads((Path(root) / "data" / "version.json").read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
 def installed_version(root: Path) -> str:
     """The release this Jarvis is on (written by the installer and by each update from a release), or "" for a copy that follows main."""
-    try:
-        v = json.loads((Path(root) / "data" / "version.json").read_text(encoding="utf-8")).get("version")
-        return v if isinstance(v, str) and re.fullmatch(r"[A-Za-z0-9._+-]{1,40}", v) else ""
-    except (OSError, ValueError, AttributeError):
-        return ""
+    v = installed_state(root).get("version")
+    return v if isinstance(v, str) and re.fullmatch(r"[A-Za-z0-9._+-]{1,40}", v) else ""
 
 
-def record_version(root: Path, ref: str) -> None:
-    if not re.fullmatch(r"v?\d[\w.+-]{0,39}", ref or ""):
-        return                                             # a branch or a commit is not a version
+def record_version(root: Path, ref: str, commit: str = "") -> None:
+    """After a complete update: the release it brought (a branch or a commit is not a version) and the commit, for “what's new” next time."""
+    is_release = bool(re.fullmatch(r"v?\d[\w.+-]{0,39}", ref or ""))
+    if not is_release and not commit:
+        return
+    st = installed_state(root) if not is_release else {}
+    if is_release:
+        st.update(version=ref[1:] if ref.startswith("v") else ref, tag=ref)
+    if commit:
+        st["commit"] = commit
+    st["at"] = time.time()
     path = Path(root) / "data" / "version.json"
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"version": ref[1:] if ref.startswith("v") else ref, "tag": ref, "at": time.time()}), encoding="utf-8")
+        path.write_text(json.dumps(st), encoding="utf-8")
     except OSError:
         pass
 
@@ -394,7 +473,7 @@ def apply_update(root: Path, manifest: dict, paths: list[str], ref: str) -> dict
     if not out["failed"]:
         plan = classify(root, manifest)
         if not plan["missing"] and not plan["updates"]:
-            record_version(root, ref)
+            record_version(root, ref, commit_sha(ref))
     return out
 
 

@@ -1,5 +1,6 @@
 import os, shutil
 os.environ.setdefault("JARVIS_NO_SETUP", "1")      # the first-run guide would cover the page in every other test
+os.environ.setdefault("JARVIS_NO_UPDATE_CHECK", "1")   # nor should a look at GitHub put an update banner over it
 from pathlib import Path
 SRC = Path("web")
 def stage(tmp):

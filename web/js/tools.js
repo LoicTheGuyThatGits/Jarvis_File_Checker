@@ -398,7 +398,7 @@
   function connect() {
     if (!window.EventSource) return;
     source = new EventSource('/api/events');
-    source.onmessage = function (e) { try { var ev = JSON.parse(e.data); if (ev.type === 'reminder') showAlert(ev); else if (ev.type === 'proactive') showProactive(ev); else if (ev.type === 'call') window.dispatchEvent(new CustomEvent('jarvis:call', { detail: ev })); } catch (err) {} };
+    source.onmessage = function (e) { try { var ev = JSON.parse(e.data); if (ev.type === 'reminder') showAlert(ev); else if (ev.type === 'proactive') showProactive(ev); else if (ev.type === 'call') window.dispatchEvent(new CustomEvent('jarvis:call', { detail: ev })); else if (ev.type === 'update') window.dispatchEvent(new CustomEvent('jarvis:update', { detail: ev })); } catch (err) {} };
   }
   connect();
 

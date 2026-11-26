@@ -70,7 +70,7 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS), "/js/updates.js": ("js/updates.js", JS),
     "/game.html": ("game.html", "text/html; charset=utf-8"),
     "/coder.html": ("coder.html", "text/html; charset=utf-8"), "/js/coder.js": ("js/coder.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
@@ -1103,7 +1103,10 @@ def backup_state() -> dict:
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))                    # filecheck.py lives in the Jarvis folder itself so it still works when app/ is damaged
 import filecheck
-UPDATE_STATE: dict = {"at": time.time() - 11.5 * 3600, "running": False, "todo": 0}     # first look about 30 minutes after start, then every 12 hours
+UPDATE_STATE: dict = {"at": time.time() - 6 * 3600 + 120, "running": False, "todo": 0,     # first look two minutes after start, then every 6 hours
+                      "ref": "", "source": "", "files": [], "notes": {"title": "", "lines": []}, "checked": 0.0, "error": "",
+                      "install": "", "install_error": ""}       # install: "" | downloading | packages | restarting | failed
+UPDATE_EVERY = 6 * 3600
 
 
 def filecheck_config() -> dict:
@@ -1160,35 +1163,90 @@ def restart_jarvis() -> None:
     threading.Thread(target=later, daemon=True).start()
 
 
+def update_check(force: bool = False) -> dict:
+    """Asks GitHub whether a newer Jarvis is out (the newest release, or main). Remembers the answer in UPDATE_STATE."""
+    ref = filecheck.ref_for(ROOT)
+    manifest, source = filecheck.load_manifest(ROOT, ref)
+    if "GitHub" not in source:
+        raise filecheck.CheckError(source)
+    plan = filecheck.classify(ROOT, manifest)
+    todo = plan["updates"] + plan["missing"]
+    notes = filecheck.whats_new(ROOT, ref) if todo else {"title": "", "lines": []}
+    UPDATE_STATE.update(ref=ref, source=source, files=todo, todo=len(todo), notes=notes, checked=time.time(), error="")
+    return UPDATE_STATE
+
+
+def update_signature() -> str:
+    return hashlib.sha256(("|".join(sorted(UPDATE_STATE["files"])) + UPDATE_STATE["ref"]).encode()).hexdigest()[:16]
+
+
+def updates_public() -> dict:
+    st = UPDATE_STATE
+    ref = st["ref"]
+    new_version = (ref[1:] if ref.startswith("v") else ref) if re.fullmatch(r"v?\d[\w.+-]{0,39}", ref or "") else ""
+    done = None
+    try:
+        done = json.loads(data_path("update-done.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        pass
+    return {"version": filecheck.installed_version(ROOT), "channel": filecheck.channel_for(ROOT), "ref": ref, "new_version": new_version,
+            "available": bool(st["files"]), "count": len(st["files"]), "notes": st["notes"], "checked": st["checked"], "checking": st["running"],
+            "error": st["error"], "install": st["install"], "install_error": st["install_error"], "packages": dict(PACKAGES),
+            "auto": filecheck_config().get("auto", True), "signature": update_signature() if st["files"] else "", "started": int(STARTED_AT), "updated": done}
+
+
 def update_check_in_background(force: bool = False) -> None:
-    """Looks at the GitHub repository now and then and says once when files there have changed. Runs on its own thread."""
-    if UPDATE_STATE["running"] or (not force and (not filecheck_config().get("auto", True) or time.time() - UPDATE_STATE["at"] < 12 * 3600)):
+    """Looks at GitHub now and then; when a new version is out the page shows a banner (once per version) with “Update and restart”."""
+    if UPDATE_STATE["running"] or (not force and (os.environ.get("JARVIS_NO_UPDATE_CHECK") or not filecheck_config().get("auto", True) or time.time() - UPDATE_STATE["at"] < UPDATE_EVERY)):
         return
     UPDATE_STATE["running"], UPDATE_STATE["at"] = True, time.time()
 
     def work():
         try:
-            manifest, source = filecheck.load_manifest(ROOT, filecheck.ref_for(ROOT))
-            if "GitHub" not in source:
-                return
-            plan = filecheck.classify(ROOT, manifest)
-            todo = plan["updates"] + plan["missing"]
-            UPDATE_STATE["todo"] = len(todo)
-            if not todo:
-                return
-            by = {f["path"]: f["sha256"] for f in manifest["files"]}
-            signature = hashlib.sha256("|".join(sorted(p + by[p] for p in todo)).encode()).hexdigest()[:16]
-            cfg = filecheck_config()
-            if cfg.get("notified") == signature:
-                return
-            cfg["notified"] = signature
-            filecheck_save(cfg)
-            publish_event({"type": "proactive", "id": "update-" + signature, "text": f"An update for Jarvis is available ({len(todo)} file{'s' if len(todo) != 1 else ''}). Say “update Jarvis”, or open Settings > Daily > File check.",
-                           "chat": True, "speak": False, "urgent": False, "at": time.time()})
-        except Exception:
-            pass
+            update_check()
+            if UPDATE_STATE["files"]:
+                cfg, signature = filecheck_config(), update_signature()
+                if cfg.get("notified") != signature:              # each new version is announced once; the page asks again when it opens
+                    cfg["notified"] = signature
+                    filecheck_save(cfg)
+                    publish_event({"type": "update", **updates_public()})
+        except Exception as exc:
+            UPDATE_STATE["error"] = str(exc)[:300]
         finally:
             UPDATE_STATE["running"] = False
+    threading.Thread(target=work, daemon=True).start()
+
+
+def update_install_in_background() -> None:
+    """Update and restart: download the changed files, install new Python packages when requirements.txt changed, then restart.
+    Your own edits are left alone (only files you did not change are replaced); the old copies go to data/file-backups."""
+    if UPDATE_STATE["install"] in ("downloading", "packages", "restarting"):
+        return
+    UPDATE_STATE.update(install="downloading", install_error="")
+
+    def work():
+        try:
+            ref = UPDATE_STATE["ref"] or filecheck.ref_for(ROOT)
+            notes = UPDATE_STATE["notes"]
+            manifest, _ = filecheck.load_manifest(ROOT, ref)
+            plan = filecheck.classify(ROOT, manifest)
+            out = filecheck.apply_update(ROOT, manifest, plan["missing"] + plan["updates"], ref)
+            if out["failed"]:
+                raise RuntimeError("; ".join(f"{p}: {why}" for p, why in out["failed"][:3]))
+            if out["packages"]:
+                UPDATE_STATE["install"] = "packages"
+                packages_install_in_background()
+                while PACKAGES["state"] == "installing":
+                    time.sleep(1)
+                if PACKAGES["state"] == "failed":
+                    raise RuntimeError("The new Python packages did not install: " + PACKAGES["error"][-200:])
+            data_path("update-done.json").write_text(json.dumps({"version": filecheck.installed_version(ROOT), "ref": ref, "files": len(out["done"]),
+                                                                "notes": notes, "at": time.time()}), encoding="utf-8")
+            UPDATE_STATE.update(install="restarting", files=[], todo=0)
+            audit(f"updated to {ref} ({len(out['done'])} files)")
+            restart_jarvis()
+        except Exception as exc:
+            UPDATE_STATE.update(install="failed", install_error=str(exc)[:400])
     threading.Thread(target=work, daemon=True).start()
 
 import spotify as spotify_module
@@ -7687,6 +7745,18 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/backup":
             self.send_json(200, backup_state())
             return
+        if path == "/api/updates":
+            q = parse_qs(urlparse(self.path).query)
+            if (q.get("check") or [""])[0] == "1" and not UPDATE_STATE["running"]:
+                UPDATE_STATE["running"] = True
+                try:
+                    update_check()
+                except Exception as exc:
+                    UPDATE_STATE["error"] = str(exc)[:300]
+                finally:
+                    UPDATE_STATE["running"], UPDATE_STATE["at"] = False, time.time()
+            self.send_json(200, updates_public())
+            return
         if path == "/api/files/update":
             try:
                 ref = filecheck.ref_for(ROOT)
@@ -8798,6 +8868,24 @@ class Handler(BaseHTTPRequestHandler):
                     cfg.pop("notified", None)
                     filecheck_save(cfg)
                     self.send_json(200, {"channel": cfg["channel"], "ref": filecheck.ref_for(ROOT)})
+            elif path == "/api/updates":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Updates are installed from the PC."})
+                elif payload.get("install") is True:
+                    if not UPDATE_STATE["files"]:
+                        self.send_json(400, {"error": "There is no update to install. Check again first."})
+                    else:
+                        update_install_in_background()
+                        time.sleep(0.2)
+                        self.send_json(200, updates_public())
+                elif payload.get("seen") is True:
+                    try:
+                        data_path("update-done.json").unlink()
+                    except OSError:
+                        pass
+                    self.send_json(200, {"ok": True})
+                else:
+                    self.send_json(400, {"error": "Nothing to do."})
             elif path == "/api/restart":
                 if self._from_phone:
                     self.send_json(403, {"error": "Jarvis can only be restarted from the PC."})

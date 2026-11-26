@@ -129,7 +129,7 @@
     });
     $('files-auto').addEventListener('change', function () { api('/api/files/auto', { on: $('files-auto').checked }).catch(function () {}); });
     $('files-channel').addEventListener('change', function () {
-      api('/api/files/channel', { channel: $('files-channel').value }).then(function () { upd = null; busyU(false); $('files-report').textContent = t('Saved. Press Check for updates.'); }).catch(function (e) { $('files-report').textContent = e.message; });
+      api('/api/files/channel', { channel: $('files-channel').value }).then(function () { upd = null; busyU(false); window.dispatchEvent(new CustomEvent('jarvis:update-recheck')); }).catch(function (e) { $('files-report').textContent = e.message; });
     });
     $('files-restart').addEventListener('click', function () {
       $('files-restart').disabled = true; $('files-report').textContent = t('Restarting Jarvis…');

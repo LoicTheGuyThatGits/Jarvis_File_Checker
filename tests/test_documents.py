@@ -1,5 +1,6 @@
 import json, os, io, tempfile, threading, time, http.client, importlib.util, datetime
 os.environ.setdefault("JARVIS_NO_SETUP", "1")
+os.environ.setdefault("JARVIS_NO_UPDATE_CHECK", "1")
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 seen=[]

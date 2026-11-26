@@ -62,9 +62,9 @@ inst_web=inst/"web"; shutil.copytree(tmp/"web",inst_web,dirs_exist_ok=True) if F
 events=[]; S.publish_event=lambda e:events.append(e)
 put(repo,"app/notes.py","v2 notes\n"); publish()
 S.update_check_in_background(force=True); time.sleep(1.5)
-assert S.UPDATE_STATE["todo"]>=1 and len(events)==1 and events[0]["type"]=="proactive" and "update for Jarvis is available" in events[0]["text"] and events[0]["speak"] is False, events
+assert S.UPDATE_STATE["todo"]>=1 and len(events)==1 and events[0]["type"]=="update" and events[0]["available"] and events[0]["count"]>=1 and events[0]["notes"]=={"title":"","lines":[]}, events
 S.UPDATE_STATE["running"]=False; S.update_check_in_background(force=True); time.sleep(1.0); assert len(events)==1, "the same update is announced once"
 put(repo,"app/ical.py","another new file\n"); publish(); S.UPDATE_STATE["running"]=False; S.update_check_in_background(force=True); time.sleep(1.0); assert len(events)==2, "a further change is announced again"
 S.filecheck_save({"auto":False}); S.UPDATE_STATE.update(at=0,running=False); S.update_check_in_background(); time.sleep(0.5); assert len(events)==2, "off means off"
-S.filecheck_save({}); S.UPDATE_STATE["at"]=time.time(); S.update_check_in_background(); time.sleep(0.5); assert len(events)==2, "not more than every 12 hours"
+S.filecheck_save({}); S.UPDATE_STATE["at"]=time.time(); S.update_check_in_background(); time.sleep(0.5); assert len(events)==2, "not more than every 6 hours"
 print("update ok"); os._exit(0)
