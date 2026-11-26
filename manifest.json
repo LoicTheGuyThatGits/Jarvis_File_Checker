@@ -369,8 +369,8 @@
   },
   {
    "path": "tools/make_manifest.py",
-   "sha256": "2bce4da355be7c58801e20d3810d1ac5e28b83d6c0928cc5c1436982af73b6a9",
-   "size": 3393
+   "sha256": "3eb7b659d361799fc83e3c5543fb1fcad01b94ed2a0373acd54cf2fcff906eb0",
+   "size": 3764
   },
   {
    "path": "tools/model_bench.py",

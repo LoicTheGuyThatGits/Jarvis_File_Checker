@@ -57,6 +57,11 @@ def main() -> int:
         except (OSError, ValueError):
             current = {}
         if current.get("files") != manifest["files"]:
+            old = {f.get("path"): f for f in current.get("files") or []}
+            new = {f["path"]: f for f in manifest["files"]}
+            for rel in sorted(set(old) | set(new)):
+                if old.get(rel) != new.get(rel):
+                    print("  differs:", rel, "(not in manifest.json)" if rel not in old else "(no such file)" if rel not in new else "")
             print("manifest.json is out of date. Run: python tools/make_manifest.py")
             return 1
         print("manifest.json is up to date (%d files)." % len(manifest["files"]))
