@@ -30,7 +30,9 @@ with sync_playwright() as pw:
     # the rules
     game.evaluate("window.JarvisGame.set([2,2,4,4, 0,0,0,0, 2,0,2,0, 0,0,0,0])")
     game.keyboard.press("ArrowLeft"); st = game.evaluate("window.JarvisGame.state()")
-    assert st["grid"][:4] == [4, 8, 0, 0] and st["grid"][8] == 4 and st["score"] == 16 and st["grid"].count(0) == 12, st
+    want = [4, 8, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0]          # plus one new 2 or 4 on any empty square
+    diff = [i for i in range(16) if st["grid"][i] != want[i]]
+    assert st["score"] == 16 and len(diff) == 1 and want[diff[0]] == 0 and st["grid"][diff[0]] in (2, 4), st
     game.evaluate("Math.random = () => 0.1; window.JarvisGame.set([2,4,2,4, 4,2,4,2, 2,4,2,4, 4,2,8,8])"); game.keyboard.press("ArrowLeft")
     game.wait_for_selector("#over:not(.hidden)"); assert game.text_content("#over-title") == "Game over" and game.evaluate("window.JarvisGame.state().grid.slice(12)") == [4, 2, 16, 2]
     game.click("#again"); assert game.evaluate("window.JarvisGame.state().score") == 0
