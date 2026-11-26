@@ -1143,6 +1143,17 @@
 "Checking this PC…": "この PC を確認しています…",
 "Start using Jarvis": "Jarvis を使い始める",
 "I could not find that place.": "その場所は見つかりませんでした。",
+"Version": "バージョン",
+"Follows every change on GitHub": "GitHub のすべての変更に追従",
+"Restart Jarvis now": "今すぐ Jarvis を再起動",
+"Updates come from": "更新の取得元",
+"Releases: tested versions (recommended)": "リリース: テスト済みのバージョン（推奨）",
+"Every change on GitHub, as soon as it is made": "GitHub のすべての変更、反映されたらすぐに",
+"Installing the new Python packages it needs…": "必要な新しい Python パッケージをインストールしています…",
+"Saved. Press Check for updates.": "保存しました。「更新を確認」を押してください。",
+"Restarting Jarvis…": "Jarvis を再起動しています…",
+"Jarvis did not come back. Start it again from the Start menu.": "Jarvis が戻りませんでした。スタートメニューから起動し直してください。",
+"Not installed from a release": "リリースからインストールされていません",
 "@patterns": [
 [
 "^· (\\d+) steps · shown by you$",

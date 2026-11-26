@@ -1143,6 +1143,17 @@
 "Checking this PC…": "Deze pc wordt gecontroleerd…",
 "Start using Jarvis": "Jarvis gaan gebruiken",
 "I could not find that place.": "Ik kon die plaats niet vinden.",
+"Version": "Versie",
+"Follows every change on GitHub": "Volgt elke wijziging op GitHub",
+"Restart Jarvis now": "Jarvis nu opnieuw starten",
+"Updates come from": "Updates komen van",
+"Releases: tested versions (recommended)": "Releases: geteste versies (aanbevolen)",
+"Every change on GitHub, as soon as it is made": "Elke wijziging op GitHub, zodra die gemaakt is",
+"Installing the new Python packages it needs…": "De nieuwe Python-pakketten worden geïnstalleerd…",
+"Saved. Press Check for updates.": "Opgeslagen. Druk op Op updates controleren.",
+"Restarting Jarvis…": "Jarvis wordt opnieuw gestart…",
+"Jarvis did not come back. Start it again from the Start menu.": "Jarvis kwam niet terug. Start het opnieuw via het Startmenu.",
+"Not installed from a release": "Niet geïnstalleerd vanaf een release",
 "@patterns": [
 [
 "^· (\\d+) steps · shown by you$",

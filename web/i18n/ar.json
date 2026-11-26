@@ -1143,6 +1143,17 @@
 "Checking this PC…": "جارٍ فحص هذا الحاسوب…",
 "Start using Jarvis": "ابدأ باستخدام Jarvis",
 "I could not find that place.": "لم أجد ذلك المكان.",
+"Version": "الإصدار",
+"Follows every change on GitHub": "يتبع كل تغيير على GitHub",
+"Restart Jarvis now": "أعد تشغيل Jarvis الآن",
+"Updates come from": "تأتي التحديثات من",
+"Releases: tested versions (recommended)": "الإصدارات المنشورة: نسخ مُختبرة (موصى به)",
+"Every change on GitHub, as soon as it is made": "كل تغيير على GitHub، فور حدوثه",
+"Installing the new Python packages it needs…": "جارٍ تثبيت حزم Python الجديدة التي يحتاجها…",
+"Saved. Press Check for updates.": "تم الحفظ. اضغط البحث عن تحديثات.",
+"Restarting Jarvis…": "جارٍ إعادة تشغيل Jarvis…",
+"Jarvis did not come back. Start it again from the Start menu.": "لم يعد Jarvis. شغّله مجددًا من قائمة ابدأ.",
+"Not installed from a release": "غير مثبّت من إصدار منشور",
 "@patterns": [
 [
 "^· (\\d+) steps · shown by you$",

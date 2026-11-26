@@ -1122,6 +1122,44 @@ def filecheck_save(cfg: dict) -> None:
     tmp.replace(path)
 
 
+PACKAGES: dict = {"state": "", "error": ""}          # pip after an update changed requirements.txt
+
+
+def packages_install_in_background() -> None:
+    """An update brought a new requirements.txt: install what it lists into Jarvis's own Python, then a restart uses it."""
+    if PACKAGES["state"] == "installing":
+        return
+    PACKAGES.update(state="installing", error="")
+
+    def work():
+        try:
+            out = subprocess.run([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", "-r", str(ROOT / "requirements.txt")],
+                                 cwd=str(ROOT), capture_output=True, text=True, timeout=900, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            if out.returncode:
+                PACKAGES.update(state="failed", error=(out.stderr or out.stdout or "pip failed")[-400:])
+            else:
+                PACKAGES["state"] = "done"
+        except Exception as exc:
+            PACKAGES.update(state="failed", error=str(exc)[:300])
+    threading.Thread(target=work, daemon=True).start()
+
+
+def restart_jarvis() -> None:
+    """Start the program again so updated files are used. Under the tray app (the usual way) the tray starts the server again by
+    itself when it ends; started from start-jarvis.bat, a new copy is started in its own window first."""
+    def later():
+        time.sleep(0.8)
+        if not os.environ.get("JARVIS_APP_WINDOW"):
+            try:
+                subprocess.Popen([sys.executable, str(ROOT / "app" / "server.py")], cwd=str(ROOT), close_fds=True,
+                                 creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0), env={**os.environ, "JARVIS_NO_BROWSER": "1"})
+            except Exception as exc:
+                print(f"[jarvis] could not start again: {exc}")
+                return
+        os._exit(3)
+    threading.Thread(target=later, daemon=True).start()
+
+
 def update_check_in_background(force: bool = False) -> None:
     """Looks at the GitHub repository now and then and says once when files there have changed. Runs on its own thread."""
     if UPDATE_STATE["running"] or (not force and (not filecheck_config().get("auto", True) or time.time() - UPDATE_STATE["at"] < 12 * 3600)):
@@ -2674,7 +2712,8 @@ def install_info() -> dict:
     python = Path(sys.executable)
     return {"folder": str(ROOT), "data": str(ROOT / "data"), "python": str(python),
             "venv": ".venv" in python.parts or sys.prefix != getattr(sys, "base_prefix", sys.prefix),
-            "pc": socket.gethostname(), "started": int(STARTED_AT), "files_changed": int(newest) if newest else None}
+            "pc": socket.gethostname(), "started": int(STARTED_AT), "files_changed": int(newest) if newest else None,
+            "version": filecheck.installed_version(ROOT), "channel": filecheck.channel_for(ROOT), "packages": dict(PACKAGES)}
 
 
 def install_text() -> str:
@@ -7653,7 +7692,8 @@ class Handler(BaseHTTPRequestHandler):
                 ref = filecheck.ref_for(ROOT)
                 manifest, source = filecheck.load_manifest(ROOT, ref)
                 plan = filecheck.classify(ROOT, manifest)
-                self.send_json(200, {**plan, "source": source, "ref": ref, "text": filecheck.describe_update(plan, source), "auto": filecheck_config().get("auto", True)})
+                self.send_json(200, {**plan, "source": source, "ref": ref, "text": filecheck.describe_update(plan, source), "auto": filecheck_config().get("auto", True),
+                                     "channel": filecheck.channel_for(ROOT), "version": filecheck.installed_version(ROOT)})
             except filecheck.CheckError as exc:
                 self.send_json(502, {"error": str(exc)})
             return
@@ -8747,6 +8787,24 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     reveal_in_explorer(target)
                     self.send_json(200, {"ok": True})
+            elif path == "/api/files/channel":
+                if self._from_phone:
+                    self.send_json(403, {"error": "This can only be changed on the PC."})
+                elif payload.get("channel") not in filecheck.CHANNELS:
+                    self.send_json(400, {"error": "Choose releases or main."})
+                else:
+                    cfg = filecheck_config()
+                    cfg["channel"] = payload["channel"]
+                    cfg.pop("notified", None)
+                    filecheck_save(cfg)
+                    self.send_json(200, {"channel": cfg["channel"], "ref": filecheck.ref_for(ROOT)})
+            elif path == "/api/restart":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Jarvis can only be restarted from the PC."})
+                else:
+                    audit("restart requested from the Jarvis page")
+                    self.send_json(200, {"ok": True})
+                    restart_jarvis()
             elif path == "/api/files/auto":
                 cfg = filecheck_config()
                 cfg["auto"] = payload.get("on") is True
@@ -8765,8 +8823,10 @@ class Handler(BaseHTTPRequestHandler):
                         else:
                             res = filecheck.check(ROOT, manifest)
                             todo = res["missing"] + (res["changed"] if payload.get("changed") is True else [])
-                        out = filecheck.repair(ROOT, manifest, todo, ref)
-                        self.send_json(200, {**out, "text": filecheck.describe_repair(out)})
+                        out = filecheck.apply_update(ROOT, manifest, todo, ref) if payload.get("mode") == "update" else filecheck.repair(ROOT, manifest, todo, ref)
+                        if out.get("packages"):
+                            packages_install_in_background()
+                        self.send_json(200, {**out, "text": filecheck.describe_repair(out), "version": filecheck.installed_version(ROOT)})
                     except filecheck.CheckError as exc:
                         self.send_json(502, {"error": str(exc)})
             elif path == "/api/spotify/connect":

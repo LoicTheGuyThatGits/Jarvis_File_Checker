@@ -256,6 +256,7 @@
         <h2 class="settings-heading">This Jarvis</h2>
         <p class="settings-note">The folder this copy of Jarvis is running from. Useful when there is more than one copy on a computer, or after moving to another PC.</p>
         <dl class="install-info">
+          <dt>Version</dt><dd id="install-version">…</dd>
           <dt>Folder</dt><dd><code id="install-folder">…</code></dd>
           <dt>Your data</dt><dd><code id="install-data">…</code></dd>
           <dt>Python</dt><dd><code id="install-python">…</code></dd>
@@ -283,7 +284,8 @@
       <div class="settings-section">
         <h2 class="settings-heading">File check</h2>
         <p class="settings-note">Checks that every file Jarvis needs is in this folder, using the list in the GitHub repository (github.com/LoicTheGuyThatGits/Jarvis_File_Checker). Missing files can be downloaded again; each one is verified against its fingerprint first. You can also ask “check my files”. Your data, settings and passwords are never touched.</p>
-        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button><button type="button" id="files-update">Check for updates</button><button type="button" id="files-install" disabled>Install updates</button></div>
+        <div class="inline-form"><button type="button" id="files-check">Check files</button><button type="button" id="files-repair" disabled>Restore missing files</button><button type="button" id="files-update">Check for updates</button><button type="button" id="files-install" disabled>Install updates</button><button type="button" id="files-restart" class="hidden">Restart Jarvis now</button></div>
+        <div class="settings-field"><label for="files-channel">Updates come from</label><select id="files-channel"><option value="releases">Releases: tested versions (recommended)</option><option value="main">Every change on GitHub, as soon as it is made</option></select></div>
         <label class="settings-check"><input type="checkbox" id="files-auto" checked> Tell me when the repository has an update</label>
         <label class="settings-check"><input type="checkbox" id="files-changed"> Also replace files that differ from the repository (the old copy is kept in data/file-backups)</label>
         <pre class="settings-note" id="files-report" style="white-space:pre-wrap" role="status"></pre>

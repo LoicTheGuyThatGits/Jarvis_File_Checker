@@ -2,6 +2,7 @@
 (function () {
   'use strict';
   function $(id) { return document.getElementById(id); }
+  function t(s) { return window.JarvisI18n ? window.JarvisI18n.t(s) : s; }
   function api(path, body) {
     var opts = body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : undefined;
     return fetch(path, opts).then(function (r) { return r.json().then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; }); });
@@ -120,9 +121,27 @@
     });
     $('files-install').addEventListener('click', function () {
       busyU(true); $('files-report').textContent = 'Downloading…';
-      api('/api/files/repair', { mode: 'update', changed: $('files-changed').checked }).then(function (d) { $('files-report').textContent = d.text; upd = null; }).catch(function (e) { $('files-report').textContent = e.message; }).then(function () { busyU(false); });
+      api('/api/files/repair', { mode: 'update', changed: $('files-changed').checked }).then(function (d) {
+        $('files-report').textContent = d.text + (d.packages ? '\n' + t('Installing the new Python packages it needs…') : ''); upd = null;
+        $('files-restart').classList.toggle('hidden', !d.restart && !d.packages);
+        if (d.version && $('install-version')) $('install-version').textContent = d.version;
+      }).catch(function (e) { $('files-report').textContent = e.message; }).then(function () { busyU(false); });
     });
     $('files-auto').addEventListener('change', function () { api('/api/files/auto', { on: $('files-auto').checked }).catch(function () {}); });
+    $('files-channel').addEventListener('change', function () {
+      api('/api/files/channel', { channel: $('files-channel').value }).then(function () { upd = null; busyU(false); $('files-report').textContent = t('Saved. Press Check for updates.'); }).catch(function (e) { $('files-report').textContent = e.message; });
+    });
+    $('files-restart').addEventListener('click', function () {
+      $('files-restart').disabled = true; $('files-report').textContent = t('Restarting Jarvis…');
+      api('/api/install').then(function (before) {
+        return api('/api/restart', {}).then(function () {
+          var n = 0, poll = setInterval(function () {
+            fetch('/api/install').then(function (r) { return r.json(); }).then(function (d) { if (d.started !== before.started) { clearInterval(poll); location.reload(); } }).catch(function () {});
+            if (++n > 60) { clearInterval(poll); $('files-report').textContent = t('Jarvis did not come back. Start it again from the Start menu.'); $('files-restart').disabled = false; }
+          }, 1000);
+        });
+      }).catch(function (e) { $('files-report').textContent = e.message; $('files-restart').disabled = false; });
+    });
     $('files-check').addEventListener('click', run);
     $('files-changed').addEventListener('change', function () { busy(false); busyU(false); });
     $('files-repair').addEventListener('click', function () {
@@ -711,6 +730,8 @@
     var installLoad = function () {
       api('/api/install').then(function (d) {
         $('install-folder').textContent = d.folder; $('install-data').textContent = d.data;
+        if ($('install-version')) $('install-version').textContent = d.version ? d.version : (d.channel === 'main' ? t('Follows every change on GitHub') : t('Not installed from a release'));
+        if ($('files-channel')) $('files-channel').value = d.channel || 'main';
         $('install-python').textContent = d.python + (d.venv ? '' : '  (not Jarvis\'s own .venv)');
         $('install-pc').textContent = d.pc;
         $('install-changed').textContent = d.files_changed ? new Date(d.files_changed * 1000).toLocaleString() : 'unknown';

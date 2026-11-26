@@ -6,6 +6,8 @@
     python filecheck.py --update        show what changed in the repository since your last update and install it (asks first)
     python filecheck.py --update --all  also replace files you changed yourself (the old copy is kept in data/file-backups)
     python filecheck.py --ref v1.2      use a tag or commit instead of the main branch
+Updates come from the main branch, or from the newest published release when data/filecheck.json says "channel": "releases"
+(the installer sets that up; Settings > Jarvis & updates > File check changes it).
     python filecheck.py --offline       compare with the manifest.json in this folder only
 
 Uses only Python's standard library, so it also works when the rest of Jarvis is broken or not installed yet.
@@ -29,7 +31,7 @@ REPO = os.environ.get("JARVIS_REPO", "LoicTheGuyThatGits/Jarvis_File_Checker")
 REF = os.environ.get("JARVIS_REPO_REF", "main")
 RAW_BASE = "https://raw.githubusercontent.com"          # tests point this at a local server
 MAX_FILE_BYTES, TIMEOUT = 8_000_000, 25
-TEXT_EXT = {".py", ".js", ".html", ".css", ".md", ".txt", ".bat", ".json", ".yml", ".yaml", ".cfg", ".ini", ".svg", ".xml", ".gitignore", ".gitattributes"}
+TEXT_EXT = {".py", ".js", ".html", ".css", ".md", ".txt", ".bat", ".ps1", ".iss", ".json", ".yml", ".yaml", ".cfg", ".ini", ".svg", ".xml", ".gitignore", ".gitattributes"}
 NEVER = ("data", ".venv", "model", ".git", "workspace", "piper")           # never listed, never written
 ALLOWED_TOP = {"app", "web", "tools", ".github"}                            # folders a manifest may write into (plus plain files in the root)
 PENDING: dict = {"at": 0.0, "paths": [], "all": False}
@@ -133,7 +135,8 @@ def load_manifest(root: Path, ref: str, offline: bool = False) -> tuple[dict, st
     """(manifest, where it came from). The repository is the truth; the manifest.json in this folder is the fallback."""
     if not offline:
         try:
-            return parse_manifest(http_get(raw_url("manifest.json", ref))), "the GitHub repository"
+            where = f"the GitHub release {ref}" if re.fullmatch(r"v?\d[\w.+-]{0,39}", ref or "") else "the GitHub repository"
+            return parse_manifest(http_get(raw_url("manifest.json", ref))), where
         except CheckError as exc:
             problem = str(exc)
         else:
@@ -315,14 +318,84 @@ def describe_repair(res: dict) -> str:
     return "\n".join(lines) or "Nothing to restore."
 
 
-def ref_for(root: Path) -> str:
+def config(root: Path) -> dict:
     try:
         cfg = json.loads((Path(root) / "data" / "filecheck.json").read_text(encoding="utf-8"))
-        if isinstance(cfg.get("ref"), str) and re.fullmatch(r"[A-Za-z0-9._/-]{1,80}", cfg["ref"]):
-            return cfg["ref"]
-    except (OSError, ValueError, AttributeError):
-        pass
+        return cfg if isinstance(cfg, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+CHANNELS = ("releases", "main")
+LATEST: dict = {}
+
+
+def channel_for(root: Path) -> str:
+    """Where updates come from: "releases" (the tested versions published on GitHub; what the installer sets up) or "main" (every change)."""
+    ch = config(root).get("channel")
+    return ch if ch in CHANNELS else "main"
+
+
+def latest_release(repo: str | None = None) -> str | None:
+    """The tag of the newest published release (cached for ten minutes). None when there is none or GitHub cannot be reached."""
+    key = repo or REPO
+    hit = LATEST.get(key)
+    if hit and time.time() - hit[1] < 600:
+        return hit[0]
+    tag = None
+    try:
+        req = urllib.request.Request(f"{API_BASE}/repos/{key}/releases/latest", headers={"User-Agent": "Jarvis-file-checker", "Accept": "application/vnd.github+json"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            name = json.loads(r.read(200_000).decode("utf-8", "replace")).get("tag_name")
+        if isinstance(name, str) and re.fullmatch(r"[A-Za-z0-9._-]{1,60}", name):
+            tag = name
+    except Exception:
+        return hit[0] if hit else None
+    LATEST[key] = (tag, time.time())
+    return tag
+
+
+def ref_for(root: Path) -> str:
+    cfg = config(root)
+    if isinstance(cfg.get("ref"), str) and re.fullmatch(r"[A-Za-z0-9._/-]{1,80}", cfg["ref"]):
+        return cfg["ref"]
+    if cfg.get("channel") == "releases":
+        tag = latest_release()
+        if tag:
+            return tag
     return REF
+
+
+def installed_version(root: Path) -> str:
+    """The release this Jarvis is on (written by the installer and by each update from a release), or "" for a copy that follows main."""
+    try:
+        v = json.loads((Path(root) / "data" / "version.json").read_text(encoding="utf-8")).get("version")
+        return v if isinstance(v, str) and re.fullmatch(r"[A-Za-z0-9._+-]{1,40}", v) else ""
+    except (OSError, ValueError, AttributeError):
+        return ""
+
+
+def record_version(root: Path, ref: str) -> None:
+    if not re.fullmatch(r"v?\d[\w.+-]{0,39}", ref or ""):
+        return                                             # a branch or a commit is not a version
+    path = Path(root) / "data" / "version.json"
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({"version": ref[1:] if ref.startswith("v") else ref, "tag": ref, "at": time.time()}), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def apply_update(root: Path, manifest: dict, paths: list[str], ref: str) -> dict:
+    """Downloads the files of an update; when all of them arrived and the source is a release, that release is now the version."""
+    out = repair(root, manifest, paths, ref)
+    out["packages"] = "requirements.txt" in out["done"]                 # new Python packages may be needed
+    out["restart"] = any(p.endswith((".py", ".js", ".html", ".css", ".json")) for p in out["done"])
+    if not out["failed"]:
+        plan = classify(root, manifest)
+        if not plan["missing"] and not plan["updates"]:
+            record_version(root, ref)
+    return out
 
 
 # ---------------- chat ----------------
@@ -347,7 +420,7 @@ def command(text: str, root: Path, remote: bool = False, now: float | None = Non
             return "For safety I only restore files when you ask at the PC itself, sir."
         try:
             manifest, _ = load_manifest(root, ref)
-            return describe_repair(repair(root, manifest, paths, ref))
+            return describe_repair(apply_update(root, manifest, paths, ref))
         except CheckError as exc:
             return "I could not restore the files: " + str(exc)
     if ASK_UPDATE.fullmatch(t):
@@ -420,8 +493,10 @@ def main(argv: list[str]) -> int:
         if not yes and input(f"\nDownload {len(todo)} file(s) from github.com/{REPO} ({ref})? [y/N] ").strip().lower() not in ("y", "yes"):
             print("Nothing was changed.")
             return 1
-        out = repair(root, manifest, todo, ref)
+        out = apply_update(root, manifest, todo, ref)
         print(describe_repair(out))
+        if out["packages"]:
+            print("requirements.txt changed: run install-jarvis.bat (or .venv\\Scripts\\python -m pip install -r requirements.txt) for the new packages.")
         return 0 if not out["failed"] else 1
     res = check(root, manifest)
     print(describe(res, source))

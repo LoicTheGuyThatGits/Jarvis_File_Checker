@@ -1,0 +1,44 @@
+name: Release
+# Builds JarvisSetup-<version>.exe with Inno Setup on Windows.
+#   A tag like v2026.11.26 publishes a GitHub release with the installer; installed copies of Jarvis update to it.
+#   "Run workflow" by hand only builds the installer, to try it (download it from the run's artifacts).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: The file list matches the files
+        run: python tools/make_manifest.py --check
+      - name: Version
+        id: v
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v="0.0.0-dev.${GITHUB_RUN_NUMBER}"; fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress | Out-Null }
+          & $iscc "/DMyAppVersion=${{ steps.v.outputs.version }}" installer\jarvis.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JarvisSetup-${{ steps.v.outputs.version }}
+          path: dist/*.exe
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.exe --title "Jarvis ${{ steps.v.outputs.version }}" --generate-notes

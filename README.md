@@ -4,7 +4,17 @@ A small Windows desktop assistant with a local web chat, push-to-talk input, clo
 
 Source: <https://github.com/LoicTheGuyThatGits/Jarvis_File_Checker> · Licence: [MIT](LICENSE)
 
-## Easiest setup (Windows)
+## Install (Windows 10 or 11)
+
+Download `JarvisSetup-<version>.exe` from the newest release on the [Releases page](https://github.com/LoicTheGuyThatGits/Jarvis_File_Checker/releases) and run it. No administrator rights are needed: Jarvis goes into `%LOCALAPPDATA%\Programs\Jarvis` for your Windows user, with a Start menu shortcut (and a desktop one if you tick it), optionally starting with Windows. The installer then sets up Python: it uses Python 3.10 to 3.13 when it is already there, or installs Python 3.12 for your user (winget, or the signed installer from python.org), makes Jarvis's own environment in `.venv` and installs the packages (optionally speech recognition too). This needs internet and takes a few minutes; `data\install.log` keeps what happened, and **Repair Jarvis** in the Start menu runs it again. When Jarvis opens, the setup guide (below) does the rest.
+
+**Updates.** An installed Jarvis updates to the newest *release*: it says when one is out, and Settings > Jarvis & updates > File check installs it (only the files that changed, each checked against its fingerprint; your own edits and your data are left alone). When an update brings new Python packages they are installed by themselves, and **Restart Jarvis now** starts the new version. That section also shows the version and lets you follow every change on GitHub instead (`main`), which is what copies from before the installer do.
+
+**Uninstall** from Windows Settings > Apps. It asks whether to delete your data (chats, memory, settings) too; by default they stay in the Jarvis folder for a later install.
+
+**Publishing a release** (for whoever maintains Jarvis): push a tag like `v2026.11.26`. The *Release* workflow builds the installer with Inno Setup (`installer/jarvis.iss`) and publishes it; running that workflow by hand only builds the installer to try it.
+
+## Setup from the folder (without the installer)
 
 1. Double-click `install-jarvis.bat` once. It checks for Python 3.10 or newer (and offers to install it with winget), creates a private environment in the `.venv` folder in the Jarvis folder, and installs PyAutoGUI, Pillow and psutil into it. Nothing is installed system-wide. If Ollama is present it can also download the `llama3.2:3b` model.
 2. Double-click `start-jarvis.bat` whenever you want to use Jarvis. It uses the `.venv` environment automatically.

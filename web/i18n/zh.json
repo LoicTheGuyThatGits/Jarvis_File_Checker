@@ -1143,6 +1143,17 @@
 "Checking this PC…": "正在检查这台电脑…",
 "Start using Jarvis": "开始使用 Jarvis",
 "I could not find that place.": "我没有找到那个地方。",
+"Version": "版本",
+"Follows every change on GitHub": "跟随 GitHub 上的每次更改",
+"Restart Jarvis now": "立即重启 Jarvis",
+"Updates come from": "更新来源",
+"Releases: tested versions (recommended)": "发布版：经过测试的版本（推荐）",
+"Every change on GitHub, as soon as it is made": "GitHub 上的每次更改，一出现就更新",
+"Installing the new Python packages it needs…": "正在安装需要的新 Python 包…",
+"Saved. Press Check for updates.": "已保存。请按“检查更新”。",
+"Restarting Jarvis…": "正在重启 Jarvis…",
+"Jarvis did not come back. Start it again from the Start menu.": "Jarvis 没有重新启动。请从开始菜单再次启动它。",
+"Not installed from a release": "不是从发布版安装的",
 "@patterns": [
 [
 "^· (\\d+) steps · shown by you$",

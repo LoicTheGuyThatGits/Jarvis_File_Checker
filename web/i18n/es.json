@@ -1143,6 +1143,17 @@
 "Checking this PC…": "Comprobando este PC…",
 "Start using Jarvis": "Empezar a usar Jarvis",
 "I could not find that place.": "No encontré ese lugar.",
+"Version": "Versión",
+"Follows every change on GitHub": "Sigue cada cambio en GitHub",
+"Restart Jarvis now": "Reiniciar Jarvis ahora",
+"Updates come from": "Las actualizaciones vienen de",
+"Releases: tested versions (recommended)": "Versiones publicadas: probadas (recomendado)",
+"Every change on GitHub, as soon as it is made": "Cada cambio en GitHub, en cuanto se hace",
+"Installing the new Python packages it needs…": "Instalando los nuevos paquetes de Python que necesita…",
+"Saved. Press Check for updates.": "Guardado. Pulsa Buscar actualizaciones.",
+"Restarting Jarvis…": "Reiniciando Jarvis…",
+"Jarvis did not come back. Start it again from the Start menu.": "Jarvis no ha vuelto. Inícialo de nuevo desde el menú Inicio.",
+"Not installed from a release": "No instalado desde una versión publicada",
 "@patterns": [
 [
 "^· (\\d+) steps · shown by you$",

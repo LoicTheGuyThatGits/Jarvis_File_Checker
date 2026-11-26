@@ -1143,6 +1143,17 @@
 "Checking this PC…": "이 PC를 확인하는 중…",
 "Start using Jarvis": "Jarvis 사용 시작",
 "I could not find that place.": "그 장소를 찾지 못했습니다.",
+"Version": "버전",
+"Follows every change on GitHub": "GitHub의 모든 변경을 따라감",
+"Restart Jarvis now": "지금 Jarvis 다시 시작",
+"Updates come from": "업데이트 받는 곳",
+"Releases: tested versions (recommended)": "릴리스: 테스트된 버전 (권장)",
+"Every change on GitHub, as soon as it is made": "GitHub의 모든 변경, 올라오는 즉시",
+"Installing the new Python packages it needs…": "필요한 새 Python 패키지를 설치하는 중…",
+"Saved. Press Check for updates.": "저장되었습니다. 업데이트 확인을 누르세요.",
+"Restarting Jarvis…": "Jarvis를 다시 시작하는 중…",
+"Jarvis did not come back. Start it again from the Start menu.": "Jarvis가 돌아오지 않았습니다. 시작 메뉴에서 다시 시작하세요.",
+"Not installed from a release": "릴리스에서 설치되지 않음",
 "@patterns": [
 [
 "^· (\\d+) steps · shown by you$",
