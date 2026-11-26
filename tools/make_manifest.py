@@ -56,9 +56,9 @@ def main() -> int:
             current = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError):
             current = {}
-        if current.get("files") != manifest["files"]:
-            old = {f.get("path"): f for f in current.get("files") or []}
-            new = {f["path"]: f for f in manifest["files"]}
+        old = {f.get("path"): f for f in current.get("files") or []}
+        new = {f["path"]: f for f in manifest["files"]}
+        if old != new:                                 # the order does not count (Windows sorts paths without case)
             for rel in sorted(set(old) | set(new)):
                 if old.get(rel) != new.get(rel):
                     print("  differs:", rel, "(not in manifest.json)" if rel not in old else "(no such file)" if rel not in new else "")

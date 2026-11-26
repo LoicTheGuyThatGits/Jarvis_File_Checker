@@ -218,9 +218,10 @@
   $('setup-back').addEventListener('click', function () { show(at - 1); });
   $('setup-skip').addEventListener('click', function () { show(at + 1); });
   $('setup-close').addEventListener('click', finish);
-  panel.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { e.preventDefault(); finish(); }
-    if (e.key === 'Enter' && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A' && e.target.id !== 'setup-place') { e.preventDefault(); next(); }
+  document.addEventListener('keydown', function (e) {             // on the page, not the panel: focus may still be outside it right after opening
+    if (!opened) return;
+    if (e.key === 'Escape') { e.preventDefault(); finish(); return; }
+    if (e.key === 'Enter' && panel.contains(e.target) && e.target.tagName !== 'BUTTON' && e.target.tagName !== 'A' && e.target.id !== 'setup-place') { e.preventDefault(); next(); }
   });
   if ($('setup-again')) $('setup-again').addEventListener('click', function () { var s = $('settings-close'); if (s) s.click(); open(false); });
 
