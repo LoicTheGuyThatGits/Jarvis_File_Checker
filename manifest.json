@@ -369,8 +369,8 @@
   },
   {
    "path": "tools/make_manifest.py",
-   "sha256": "3eb7b659d361799fc83e3c5543fb1fcad01b94ed2a0373acd54cf2fcff906eb0",
-   "size": 3764
+   "sha256": "26b29d1e8561ac71814f5ce118f7d7dc9c35c37f356c104c28e0eca79f710545",
+   "size": 3819
   },
   {
    "path": "tools/model_bench.py",
@@ -554,8 +554,8 @@
   },
   {
    "path": "web/js/setup.js",
-   "sha256": "652b01a1eb4467bc627c423eb693709c30d0a737d0406c9a6aada5ea2310dc52",
-   "size": 15118
+   "sha256": "488e543a8e0eafdc7245120976246786929798ede9877a2b9e15a7f6e43e53ec",
+   "size": 15275
   },
   {
    "path": "web/js/shortcuts.js",
