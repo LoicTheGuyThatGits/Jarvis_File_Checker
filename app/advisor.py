@@ -196,11 +196,16 @@ def report(hw: dict, installed: list[dict], measured: dict | None = None, curren
         advice.append(f"Only {hw['ram_free_gb']:.1f} GB of the PC's memory is free: closing browser tabs and apps helps, because a model that does not fit on the card spills into it.")
     if bw_source == "estimated" and gpu:
         advice.append("The speeds are estimates for this graphics card. “Measure real speed” tries your installed models to replace them with real figures.")
-    pc = {"gpu": gpu and f"{gpu['name']} ({gpu['vram_gb']:.0f} GB)", "vram_free_gb": round(room, 1), "ram_gb": hw.get("ram_gb"), "cpu": hw.get("cpu"),
+    pc = {"gpu": gpu and f"{gpu['name']} ({card_gb(gpu):.0f} GB)", "vram_free_gb": round(room, 1), "ram_gb": hw.get("ram_gb"), "cpu": hw.get("cpu"),
           "disk_free_gb": hw.get("disk_free_gb"), "bandwidth": round(bw), "bandwidth_source": bw_source}
     out = {"pc": pc, "roles": roles, "models": rows, "features": features, "advice": advice}
     out["text"] = text_of(out)
     return out
+
+
+def card_gb(gpu: dict) -> float:
+    """The size printed on the box: 8 GB cards report 8192 MiB, which is 8.6 GB in the decimal units the sums use."""
+    return float(gpu.get("vram_gb") or 0) / 1.073741824
 
 
 def features_for(hw: dict, extras: dict, bw: float) -> list[dict]:
@@ -208,7 +213,7 @@ def features_for(hw: dict, extras: dict, bw: float) -> list[dict]:
     gpu = hw.get("gpu")
     add = lambda name, ok, detail: f.append({"name": name, "ok": ok, "detail": detail})
     if gpu:
-        add("Graphics card", True, f"{gpu['name']}, {gpu['vram_gb']:.0f} GB: local AI runs on it" + (" (models up to about " + f"{usable_vram(hw) - 0.8:.0f}" + " GB fit whole)" if usable_vram(hw) > 1.5 else ""))
+        add("Graphics card", True, f"{gpu['name']}, {card_gb(gpu):.0f} GB: local AI runs on it" + (" (models up to about " + f"{usable_vram(hw) - 0.8:.0f}" + " GB fit whole)" if usable_vram(hw) > 1.5 else ""))
     else:
         add("Graphics card", False, "no graphics card Ollama can use was found: models run on the processor, so small ones (2B to 4B) are best")
     v = extras.get("ollama_version")

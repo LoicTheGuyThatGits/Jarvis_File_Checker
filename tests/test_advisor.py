@@ -91,7 +91,7 @@ for _ in range(30):
 assert GEN[1]["think"] is False and "think" not in GEN[0] and GEN[-1] == {"model": "jarvis:latest", "keep_alive": "-1"}, "the chat model is loaded back after the test"
 # chat, phone, self-check
 st, d = call("POST", "/api/chat", {"messages": [{"role": "user", "content": "what models can my pc run?"}], "stream": False})
-assert d["reply"].startswith("This PC: NVIDIA GeForce RTX 4060 Laptop GPU (9 GB)") and "Autopilot" in d["reply"], d["reply"]
+assert d["reply"].startswith("This PC: NVIDIA GeForce RTX 4060 Laptop GPU (8 GB)") and "Autopilot" in d["reply"], d["reply"]
 S.phone_link.save(S.data_path("phone.json"), {"enabled": True, "code": "ABCDEFGH23"}); S.phone_link.is_loopback = lambda a: False
 assert call("POST", "/api/advisor", {"measure": True}, {"X-Jarvis-Token": "ABCDEFGH23"})[0] == 403
 S.phone_link.is_loopback = lambda a: True

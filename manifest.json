@@ -14,8 +14,8 @@
   },
   {
    "path": "app/advisor.py",
-   "sha256": "6bbab6467314f1be453c079a123fadd8cce09010458240b1ac124c9b8436ffb8",
-   "size": 17844
+   "sha256": "f7c42c8598130f43e1c6e0cfe3e44c2a82be12550601ff610e57d3188d82fc11",
+   "size": 18049
   },
   {
    "path": "app/awareness.py",
