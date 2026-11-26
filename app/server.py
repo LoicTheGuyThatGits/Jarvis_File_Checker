@@ -727,7 +727,7 @@ def ui_language_command(text: str) -> str | None:
 
 
 # ---------------- location, weather and the startup briefing ----------------
-DEFAULT_LOCATION = {"name": "Laconnex", "region": "Geneva", "country": "Switzerland", "lat": 46.15, "lon": 6.033}
+NO_TOWN = "I do not know your town yet, sir. Say “set my town to Lyon”, or set it in Settings > Routines & timers > Startup briefing."
 WEATHER_CACHE: dict = {"key": None, "at": 0.0, "data": None}
 WEATHER_LOCK = threading.Lock()
 WMO_TEXT = {
@@ -738,11 +738,28 @@ WMO_TEXT = {
 }
 
 
-def current_location() -> dict:
+def current_location() -> dict | None:
+    """The town for the weather, set by the first-run guide, Settings or “set my town to …”. None until then."""
     saved = load_settings().get("location")
     if isinstance(saved, dict) and isinstance(saved.get("name"), str) and isinstance(saved.get("lat"), (int, float)) and isinstance(saved.get("lon"), (int, float)):
         return saved
-    return dict(DEFAULT_LOCATION)
+    return None
+
+
+def set_location(name: str) -> dict:
+    """Looks the town up and keeps it. Raises ValueError with a message for the person."""
+    try:
+        place = geocode_place(name)
+    except Exception:
+        raise ValueError("Could not reach the place search. Check your internet connection.")
+    if not place:
+        raise ValueError(f"I could not find a place called “{name}”.")
+    with SETTINGS_LOCK:
+        SETTINGS["location"] = place
+    save_settings()
+    with WEATHER_LOCK:
+        WEATHER_CACHE["data"] = None
+    return place
 
 
 def fetch_json(url: str, timeout: float = 4) -> dict:
@@ -765,6 +782,8 @@ def geocode_place(name: str) -> dict | None:
 def fetch_weather(loc: dict | None = None) -> dict | None:
     """Current conditions and today's outlook from Open-Meteo (no account or key needed). None when offline."""
     loc = loc or current_location()
+    if not loc:
+        return None
     key = (loc["lat"], loc["lon"])
     with WEATHER_LOCK:
         if WEATHER_CACHE["key"] == key and time.time() - WEATHER_CACHE["at"] < 600 and WEATHER_CACHE["data"]:
@@ -835,12 +854,14 @@ def build_briefing(weather: bool = True, reminders: bool = True, system: bool = 
     parts: list[str] = []
     forecast = fetch_weather(loc) if (weather or only_weather) else None
     if only_weather:
-        parts.append(weather_sentence(loc, forecast) if forecast else f"I cannot reach the weather service for {loc['name']} right now, {address}.")
+        parts.append(personalize(NO_TOWN) if not loc else weather_sentence(loc, forecast) if forecast else f"I cannot reach the weather service for {loc['name']} right now, {address}.")
     else:
         greeting = "Good morning" if now.hour < 12 else "Good afternoon" if now.hour < 18 else "Good evening"
         parts.append(f"{greeting}, {address}. It is {now.strftime('%H:%M')} on {now.strftime('%A')} {now.day} {now.strftime('%B')}.")
         if forecast:
             parts.append(weather_sentence(loc, forecast))
+        elif weather and not loc:
+            parts.append("Tell me your town for the weather: say “set my town to Lyon”.")
         if reminders:
             items = reminders_active()
             if items:
@@ -902,9 +923,22 @@ _WEATHER_RE = re.compile(
     r"(?:please\s+)?(?:(?:what(?:'s|\s+is)|how(?:'s|\s+is)|tell\s+me|show\s+me|give\s+me|check)\s+(?:the\s+|today's\s+)?)?weather(?:\s+(?:like|forecast))?(?:\s+(?:today|now|right\s+now|outside|here))?", re.I)
 
 
+_TOWN_RE = re.compile(r"(?:please\s+)?(?:(?:set|change)\s+(?:my|the)\s+(?:weather\s+)?(?:town|city|location|weather\s+location)\s+to|my\s+(?:town|city)\s+is|ma\s+ville\s+est|(?:change|mets|règle|regle)\s+ma\s+ville\s+(?:à|a|sur|pour))\s+(.{2,60})", re.I)
+
+
 def briefing_command(text: str) -> str | None:
     candidate = (text or "").strip().rstrip(".!? ")
-    if not candidate or len(candidate) > 60:
+    if not candidate or len(candidate) > 90:
+        return None
+    town = _TOWN_RE.fullmatch(candidate)
+    if town:
+        try:
+            place = set_location(town.group(1).strip(" “”\"'"))
+        except ValueError as exc:
+            return str(exc)
+        where = ", ".join(x for x in (place["name"], place.get("region"), place.get("country")) if x)
+        return f"Done, {current_address()}: the weather is now for {where}."
+    if len(candidate) > 60:
         return None
     if _WEATHER_RE.fullmatch(candidate):
         return build_briefing(only_weather=True)["text"]
@@ -1237,10 +1271,19 @@ def planner_obj():
 GRADES: dict = {"path": None, "obj": None}
 
 
+GRADE_SCALE_BY_COUNTRY = {"Switzerland": "swiss", "Schweiz": "swiss", "Suisse": "swiss", "Svizzera": "swiss", "France": "france", "Germany": "germany", "Deutschland": "germany"}
+
+
+def grade_scale_default() -> str:
+    """Before a scale is chosen: the one of the country of your town (percent when it is unknown)."""
+    loc = current_location() or {}
+    return GRADE_SCALE_BY_COUNTRY.get(str(loc.get("country") or ""), "percent")
+
+
 def grades_obj() -> "grades_module.Grades":
     path = data_path("grades.json")
     if GRADES["path"] != path:
-        GRADES["path"], GRADES["obj"] = path, grades_module.Grades(path)
+        GRADES["path"], GRADES["obj"] = path, grades_module.Grades(path, grade_scale_default)
     return GRADES["obj"]
 
 
@@ -2049,6 +2092,8 @@ def router_registry() -> tools_registry.Registry:
 
     def weather(args):
         loc = current_location()
+        if not loc:
+            return personalize(NO_TOWN)
         forecast = fetch_weather(loc)
         return weather_sentence(loc, forecast) if forecast else f"I cannot reach the weather service for {loc['name']} right now, {current_address()}."
 
@@ -8866,18 +8911,10 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(400, {"error": "Type the name of a town or city."})
                     return
                 try:
-                    place = geocode_place(name)
-                except Exception:
-                    self.send_json(502, {"error": "Could not reach the place search. Check your internet connection."})
+                    place = set_location(name)
+                except ValueError as exc:
+                    self.send_json(502 if "internet" in str(exc) else 404, {"error": str(exc)})
                     return
-                if not place:
-                    self.send_json(404, {"error": f"I could not find a place called “{name}”."})
-                    return
-                with SETTINGS_LOCK:
-                    SETTINGS["location"] = place
-                save_settings()
-                with WEATHER_LOCK:
-                    WEATHER_CACHE["data"] = None
                 self.send_json(200, {"location": place})
             elif path == "/api/language":
                 if "ui" in payload:

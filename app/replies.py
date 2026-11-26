@@ -182,6 +182,11 @@ S = [
     (r"What I already learned stays until you delete it in Settings > Memory\.", "Ce que j'ai déjà appris reste jusqu'à ce que vous le supprimiez dans Réglages > Mémoire."),
     # weather
     (r"I cannot reach the weather service for (.+) right now, sir\.", "Je n'arrive pas à joindre la météo pour {1} pour le moment, monsieur."),
+    (r"I do not know your town yet, sir\.", "Je ne connais pas encore votre ville, monsieur."),
+    (r"Say “set my town to Lyon”, or set it in Settings > Routines & timers > Startup briefing\.", "Dites « ma ville est Lyon », ou réglez-la dans Réglages > Routines et minuteurs > Briefing au démarrage."),
+    (r"Tell me your town for the weather: say “set my town to Lyon”\.", "Dites-moi votre ville pour la météo : « ma ville est Lyon »."),
+    (r"Done, sir: the weather is now for (.+)\.", "C'est fait, monsieur : la météo est maintenant pour {1}."),
+    (r"I could not find a place called (“.*”)\.", "Je n'ai pas trouvé d'endroit appelé {1}."),
     # timetable, exams, the day
     (r"Added (.+) to your timetable, sir: (.+?), (\d{1,2}:\d{2})–(\d{1,2}:\d{2})( in .+)?\.", lambda g: f"J'ai ajouté {g[1]} à votre horaire, monsieur : {when(g[2]).replace('Mondays', 'le lundi')}, {g[3]}–{g[4]}" + (f", salle{g[5][3:]}" if g[5] else "") + "."),
     (r"Added (“.*”) on (.+?) at (\d{1,2}:\d{2}), sir: in (\d+) days?\.", lambda g: f"J'ai ajouté {g[1]} le {when(g[2])} à {g[3]}, monsieur : dans {_n(g[4], 'jour', 'jours')}."),

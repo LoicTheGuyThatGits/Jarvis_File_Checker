@@ -82,6 +82,11 @@ def call(method, path, body=None):
     c = http.client.HTTPConnection("127.0.0.1", port, timeout=30); c.request(method, path, json.dumps(body) if body is not None else None, {"Content-Type": "application/json"})
     r = c.getresponse(); return r.status, json.loads(r.read())
 chat = lambda text: call("POST", "/api/chat", {"messages": [{"role": "user", "content": text}], "stream": False})[1]["reply"]
+# before a scale is chosen it follows the country of your town: percent when there is none, Swiss for a Swiss town
+assert call("GET", "/api/grades")[1]["scale"]["preset"] == "percent"
+(tmp / "data" / "settings.json").write_text(json.dumps({"location": {"name": "Bern", "region": "Bern", "country": "Switzerland", "lat": 46.95, "lon": 7.45}}))
+S.SETTINGS_LOADED_FROM = None
+assert call("GET", "/api/grades")[1]["scale"]["preset"] == "swiss"
 S.timetable_obj().add(0, "08:15", "09:00", "Mathematics")
 assert chat("I got a 5 in mathematics").startswith("Recorded 5 in Mathematics"), "the timetable's subject name is used"
 assert chat("I got a 4 on the maths test").startswith("Recorded 4 in Mathematics"), "maths = mathematics"

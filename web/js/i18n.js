@@ -141,7 +141,7 @@
   ['toLocaleDateString', 'toLocaleTimeString', 'toLocaleString'].forEach(function (name) {
     var native = Date.prototype[name];
     Date.prototype[name] = function (locales, options) {
-      if (code !== 'en' && (locales === undefined || (Array.isArray(locales) && !locales.length))) locales = code === 'ar' ? 'ar-u-nu-latn' : code + (code === 'de' || code === 'fr' || code === 'it' ? '-CH' : '');
+      if (code !== 'en' && (locales === undefined || (Array.isArray(locales) && !locales.length))) locales = code === 'ar' ? 'ar-u-nu-latn' : (String(navigator.language || '').toLowerCase().indexOf(code + '-') === 0 ? navigator.language : code);   // the browser's region when it speaks that language (fr-CH, pt-BR)
       return native.call(this, locales, options);
     };
   });

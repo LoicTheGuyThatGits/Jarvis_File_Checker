@@ -462,7 +462,7 @@
   });
   function placeLabel(l) { return [l.name, l.region, l.country].filter(Boolean).join(', '); }
   function showPlace() {
-    api('/api/location').then(function (d) { $('brief-place').value = d.location.name; $('brief-place').title = placeLabel(d.location); }).catch(function () {});
+    api('/api/location').then(function (d) { if (!d.location) return; $('brief-place').value = d.location.name; $('brief-place').title = placeLabel(d.location); }).catch(function () {});
   }
   function findPlace() {
     var name = $('brief-place').value.trim(); if (!name) return;

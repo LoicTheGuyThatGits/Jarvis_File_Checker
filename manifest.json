@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "12f545d11360029030a7befcfa2cc85742335101414337a3d7ca91f4150c21c1",
-   "size": 101192
+   "sha256": "4d11139c11fc52ab8cb8691dc9e292082f183ba6eb952f5593123300a04af009",
+   "size": 101332
   },
   {
    "path": "app/advisor.py",
@@ -114,8 +114,8 @@
   },
   {
    "path": "app/grades.py",
-   "sha256": "5272c94fe78397676b1ae36cb20f9319c536b648bfb88fabfa3aeea5669d544e",
-   "size": 21451
+   "sha256": "c38a279f95518ae3406cd766e798bcbd49b631fd706ef8e0552474276895ed14",
+   "size": 21763
   },
   {
    "path": "app/homework.py",
@@ -204,8 +204,8 @@
   },
   {
    "path": "app/replies.py",
-   "sha256": "95390ee57b3ec047a93dac5fb7119b9ad0a08aabfc9bac437dd0084d126fc4b1",
-   "size": 26262
+   "sha256": "2bdaa2877f878e75a8ca96ce36310aaf2eccd18f614f5299e58a0c3e4002a4c6",
+   "size": 26934
   },
   {
    "path": "app/screenmap.py",
@@ -224,8 +224,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "1426c1e0cf2c92350501c9c36725800624dd54ef7cfbaeb1a061d21515519421",
-   "size": 604370
+   "sha256": "12b0958e4b45f88546a527d3d28c2938a1d3fe42e0e5541dde0fc770b63de0e6",
+   "size": 606067
   },
   {
    "path": "app/set-address.py",
@@ -274,8 +274,8 @@
   },
   {
    "path": "app/transport.py",
-   "sha256": "8db6646c04fe7174c448bdb0f7e174c034c65f56a9d682f3578f112f72fa212d",
-   "size": 24318
+   "sha256": "742d2d35c8f79147456e65ef947d8e90568a5bcc009ead7a7cf3435bc2bb7253",
+   "size": 24320
   },
   {
    "path": "app/voice_listener.py",
@@ -404,68 +404,68 @@
   },
   {
    "path": "web/i18n/ar.json",
-   "sha256": "83cc6b95bab1566feb57176da046861a52b2759ff5207f3f41033ed98fefb3be",
-   "size": 137906
+   "sha256": "5c9d021cd59386eb47cc431a2d645ad273b3851c4b8512fcd4cf9d51389e5004",
+   "size": 137902
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "e8511be9d4d200cfead8123ea427a7f926871cf66e65d65f63e76578c1d55e31",
-   "size": 118377
+   "sha256": "49c6710dc717252389c8413830a9ece72b44f21313a3b029d001e4de9a47c4c4",
+   "size": 118373
   },
   {
    "path": "web/i18n/es.json",
-   "sha256": "ad8a80d4812c8badb90f686bb7513865d35066c01c3b6cc099e39862167c9922",
-   "size": 118234
+   "sha256": "f01d9e3e42ba586f0033676151892ce677c3844b7f9af8a6dd784ac9ecdb435d",
+   "size": 118230
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "f63137dc00fc792480d68654e9a2c3a063052690eb494daf2ce39439501b19f2",
-   "size": 122470
+   "sha256": "415747b67e25fa6c8c6edf25ce8578f0b10d1dc90506c6db27de221e3a39d8ec",
+   "size": 122466
   },
   {
    "path": "web/i18n/he.json",
-   "sha256": "4b224221a002f38f205c93e24d97365c22ec49825de50fba66c040f7ecef8f5b",
-   "size": 131800
+   "sha256": "f32477111fd30f24f21a610fffd3eb7aa13099e561683622490711decdbbfa25",
+   "size": 131796
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "bcfe74edeb25497dc7b492b6d9ff2231fb6fe63eff38950c6d772f0e889aa8b6",
-   "size": 117477
+   "sha256": "11915b5d08c585baa927b08110a6624d75178e1acd7353853a2c1d41f54c2bb0",
+   "size": 117473
   },
   {
    "path": "web/i18n/ja.json",
-   "sha256": "292f8362d4cf8de5b8bb5b1ba7694a138b3debd0fe308aea611332165098d0d1",
-   "size": 131588
+   "sha256": "2e6582a01f9d49080b34b413d8d7a4c09858bf8e499eeeb7038758655f1e3373",
+   "size": 131584
   },
   {
    "path": "web/i18n/ko.json",
-   "sha256": "c3deaeac9cdfb3b36567dcba21a3111eadc9e183684bcde5b1ffa434163c079b",
-   "size": 121818
+   "sha256": "1089dc63c3149a7c52634dc6c7b850bd7af0db4691850173f9c08f69332d6ed4",
+   "size": 121814
   },
   {
    "path": "web/i18n/nl.json",
-   "sha256": "8f4e24ea9f9632265b6ec1f8aa47283547c2a40e69768a23bc259e44324b8635",
-   "size": 116365
+   "sha256": "65ac754c09ed803503a49d96fdb5de2d41d1a1186567ffb6a2db34e1b141c63b",
+   "size": 116361
   },
   {
    "path": "web/i18n/pl.json",
-   "sha256": "c210fd9290dbe0900549cbdab80658b16338ae98e3e654e684c43298a5a1bfe4",
-   "size": 117711
+   "sha256": "f227cebf0893d4a8b50986474c6a60104c244bfd2fe88b43d922ce683ca19c5b",
+   "size": 117707
   },
   {
    "path": "web/i18n/pt.json",
-   "sha256": "da1f2eed3e0cafa9cc4fe81c354fa01ad323c6f8a650fb6760a074b20ab020cf",
-   "size": 117087
+   "sha256": "de3253fbf2109987b63bb400e991d817eb4e0889cf63c489bfb72e639a6fef18",
+   "size": 117083
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "040eeb8a310d8567f3abbe3293b88faec78a7d3b4a0930d221e98948f6c85cb5",
-   "size": 53540
+   "sha256": "26b1411041f8b7abffe34dce370bd032365a4b8ee5e0818458ec7a01b47d9463",
+   "size": 53504
   },
   {
    "path": "web/i18n/zh.json",
-   "sha256": "b99b6a693d5674be5944ff5bcb55b55772402c85408e4b18bd1d676328d98543",
-   "size": 110971
+   "sha256": "6f1a0463a8db297a4f69a2897e3e99d7c1741fe802e0d9aabf87ea1ea20f5ac7",
+   "size": 110967
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -479,8 +479,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "562c973da38e75014b80ea52f55369883ce47ae58d57ef725bb759e2b4076ba1",
-   "size": 112734
+   "sha256": "30d5c8c50ea35325803f57b362f6cb364d2eb15704ef9847ff37f4992b33668b",
+   "size": 112732
   },
   {
    "path": "web/js/app.js",
@@ -524,8 +524,8 @@
   },
   {
    "path": "web/js/i18n.js",
-   "sha256": "22458035d485c43e4cb4d1fcbf97c5cbd7e68586461fa5e241481f44b3c3e584",
-   "size": 8896
+   "sha256": "05be2f0589e0cbd877d2740af8a6e56ac71157c991b6965edeed5388e648fb4f",
+   "size": 8999
   },
   {
    "path": "web/js/mail.js",
@@ -564,8 +564,8 @@
   },
   {
    "path": "web/js/tools.js",
-   "sha256": "c10f461757852df8be5f8d4604c490e83fd68464beeb6104ac440b7be9113baf",
-   "size": 46286
+   "sha256": "aca1d817c2e5aa7212d29766d129444191de8c70aa9c6cd4ce2f495781054fb0",
+   "size": 46311
   },
   {
    "path": "web/js/ui.js",

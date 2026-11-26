@@ -1,8 +1,8 @@
 """Grades: "I got a 5 in maths", "what's my average in French?", "what do I need on the next maths test to keep a 4.5?"
 
 Grades are kept in data/grades.json with their subject, weight (a test that counts double has weight 2), date and an optional
-note. The scale is Swiss by default (1 to 6, 6 best, 4 to pass, report cards rounded to the half point); France (0-20),
-Germany (1-6, 1 best), percent, or your own can be chosen. "Start a new term" makes averages start fresh (older grades stay).
+note. Until one is chosen, the scale follows the country of your town: Swiss (1 to 6, 6 best, 4 to pass, report cards
+rounded to the half point), France (0-20), Germany (1-6, 1 best), otherwise percent; your own can be set too. "Start a new term" makes averages start fresh (older grades stay).
 
     Grades(path)                       .data() .add(...) .remove(id) .set_scale(...) .new_term(day)
     command(text, store, now, known_subjects, parse_when)   the reply, or None when the message is not about grades
@@ -55,9 +55,10 @@ def plural(n: int, word: str) -> str:
 
 
 class Grades:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, default="swiss"):
         self.path = Path(path)
         self.lock = threading.Lock()
+        self.default = default                     # a preset name, or a function giving one (the country of your town)
 
     def _load(self) -> dict:
         try:
@@ -66,9 +67,11 @@ class Grades:
             data = {}
         data = data if isinstance(data, dict) else {}
         scale = data.get("scale") if isinstance(data.get("scale"), dict) else {}
-        base = dict(PRESETS["swiss"], preset="swiss")
+        first = self.default() if callable(self.default) else self.default
+        first = first if first in PRESETS else "percent"
+        base = dict(PRESETS[first], preset=first)
         try:
-            merged = {"preset": str(scale.get("preset") or "swiss"), "min": float(scale.get("min", base["min"])), "max": float(scale.get("max", base["max"])),
+            merged = {"preset": str(scale.get("preset") or first), "min": float(scale.get("min", base["min"])), "max": float(scale.get("max", base["max"])),
                       "pass": float(scale.get("pass", base["pass"])), "higher_better": scale.get("higher_better", True) is not False,
                       "round": float(scale.get("round", base["round"]))}
         except (TypeError, ValueError):

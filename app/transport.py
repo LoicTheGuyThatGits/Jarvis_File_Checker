@@ -3,8 +3,8 @@
 Data from transport.opendata.ch (the Swiss public transport timetable, free, no account). Every train, tram, bus and boat
 in Switzerland is there, with the delays the operators report.
 
-    “when's my next train to Geneva?”, “next bus to Bernex”, “how do I get to Lausanne by 5pm?”,
-    “connections from Laconnex to Geneva at 7:30”, “departures from Bernex”, “next departures”,
+    “when's my next train to Geneva?”, “next bus to Zürich HB”, “how do I get to Lausanne by 5pm?”,
+    “connections from Bern to Geneva at 7:30”, “departures from Lausanne”, “next departures”,
     “when should I leave for school?”, “is my bus late?”
 
 The trip to school: with a home stop and a school stop in Settings, Jarvis works out each school morning which connection

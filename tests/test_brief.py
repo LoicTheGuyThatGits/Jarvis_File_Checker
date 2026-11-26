@@ -34,7 +34,12 @@ def call(path,payload=None):
     if payload is None: c.request("GET",path)
     else: c.request("POST",path,json.dumps(payload),{"Content-Type":"application/json"})
     r=c.getresponse(); return r.status,json.loads(r.read())
-# default location is Laconnex, no lookup needed
+# no town until you give one: no weather, and Jarvis says how to set it
+st,o=call("/api/location"); assert st==200 and o["location"] is None
+t=call("/api/briefing")[1]["text"]; assert "Tell me your town for the weather: say “set my town to Lyon”." in t and " it is 7 degrees" not in t and not [p for p,q in seen if p=="/wx"], t
+r=call("/api/chat",{"messages":[{"role":"user","content":"what's the weather"}]})[1]["reply"]; assert r.startswith("I do not know your town yet, sir. Say “set my town to Lyon”"), r
+r=call("/api/chat",{"messages":[{"role":"user","content":"set my town to Nowhereville"}]})[1]["reply"]; assert "could not find a place called “Nowhereville”" in r, r
+r=call("/api/chat",{"messages":[{"role":"user","content":"Set my town to Laconnex."}]})[1]["reply"]; assert r=="Done, sir: the weather is now for Laconnex, Geneva, Switzerland.", r
 st,o=call("/api/location"); assert o["location"]["name"]=="Laconnex" and o["location"]["country"]=="Switzerland" and abs(o["location"]["lat"]-46.15)<1e-6
 st,o=call("/api/briefing"); t=o["text"]; print(t)
 assert st==200 and "In Laconnex it is 7 degrees and overcast, though it feels like 2." in t and "high is 9 and the low is 3" in t and "65 percent chance of rain" in t and "no active timers" in t and "All systems are nominal" in t and ("Good morning" in t or "Good afternoon" in t or "Good evening" in t)
