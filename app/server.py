@@ -70,7 +70,7 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS),
     "/game.html": ("game.html", "text/html; charset=utf-8"),
     "/coder.html": ("coder.html", "text/html; charset=utf-8"), "/js/coder.js": ("js/coder.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
@@ -3209,6 +3209,82 @@ def advisor_apply(role: str, model: str) -> str:
     else:
         raise ValueError("Unknown job.")
     return f"{advisor_module.ROLES[role]['label']} now uses {model}."
+
+
+# ---------------- first-run setup: a short guide the first time Jarvis opens on a new PC ----------------
+SETUP_USED_FILES = ("memory.json", "planner.json", "notes.json", "reminders.json", "routines.json", "grades.json", "timetable.json",
+                    "countdowns.json", "calendar.json", "mail.json", "phone.json")
+
+
+def setup_in_use_already() -> bool:
+    """A Jarvis that has been used before (an update, or a copy moved from another PC) never gets the first-run guide."""
+    if any(data_path(n).exists() for n in SETUP_USED_FILES):
+        return True
+    for folder in ("history", "training"):
+        p = data_path(folder)
+        if p.is_dir() and any(p.iterdir()):
+            return True
+    saved = load_settings()
+    return any(k in saved for k in ("provider", "models", "location", "vision_model"))
+
+
+def setup_needed() -> bool:
+    if os.environ.get("JARVIS_NO_SETUP"):
+        return False
+    saved = load_settings()
+    if saved.get("setup_done"):
+        return False
+    if saved.get("setup_started"):              # the guide's own steps save settings that would look like a Jarvis in use
+        return True
+    in_use = setup_in_use_already()
+    with SETTINGS_LOCK:
+        SETTINGS["setup_done" if in_use else "setup_started"] = "already in use" if in_use else True
+    save_settings()
+    return not in_use
+
+
+def setup_address_kind() -> str:
+    name = current_address()
+    return name if name in ("sir", "ma'am") else "name"
+
+
+def setup_brain(start: bool = False) -> dict:
+    """What the first-run guide shows about the AI model: is Ollama there and running, is the chat model downloaded,
+    and which model suits this PC best."""
+    chat = ai_settings("chat")
+    out = {"provider": chat["provider"], "model": chat["model"], "local": chat["is_local"], "pull": dict(PULL),
+           "ollama_installed": bool(ollama_exe()), "running": False, "have": [], "ready": False, "best": None, "pc": None}
+    if not chat["is_local"]:
+        out["ready"] = bool(chat["key"])
+        return out
+    base = ai_settings("chat", "local")["base"]
+    out["running"] = ollama_up(base) or (start and ensure_ollama(base, wait=15))
+    if not out["running"]:
+        return out
+    out["ollama_installed"] = True
+    try:
+        rep = advisor_report()
+        out["have"] = [m["name"] for m in advisor_installed()]
+        best = next((r["best"] for r in rep["roles"] if r["role"] == "chat"), None)
+        out["best"], out["pc"] = best, rep.get("pc")
+    except Exception as exc:
+        print(f"[jarvis] setup: could not size up this PC: {exc}")
+    m = out["model"]
+    out["ready"] = m in out["have"] or (":" not in m and m + ":latest" in out["have"])
+    return out
+
+
+def setup_save(payload: dict) -> dict:
+    if "address" in payload:
+        name = clean_address(payload.get("address"))
+        if not name:
+            raise ValueError("Type a name, or choose sir or ma'am.")
+        data_path("address.txt").write_text(name + "\n", encoding="utf-8")
+    if payload.get("done"):
+        with SETTINGS_LOCK:
+            SETTINGS["setup_done"] = datetime.now().isoformat(timespec="seconds")
+        save_settings()
+    return {"needed": setup_needed(), "address": current_address(), "address_kind": setup_address_kind()}
 
 
 # ---------------- Jarvis Code: the model codes on a project and looks at it in a browser ----------------
@@ -7389,6 +7465,16 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/advisor":
             self.send_json(200, advisor_report())
             return
+        if path == "/api/setup":
+            if self._from_phone:
+                self.send_json(200, {"needed": False})
+                return
+            q = parse_qs(urlparse(self.path).query)
+            out = {"needed": setup_needed(), "address": current_address(), "address_kind": setup_address_kind(), "location": load_settings().get("location")}
+            if (q.get("brain") or [""])[0]:
+                out["brain"] = setup_brain(start=(q.get("start") or [""])[0] == "1")
+            self.send_json(200, out)
+            return
         if path == "/api/speed":
             self.send_json(200, speed_public())
             return
@@ -8470,6 +8556,14 @@ class Handler(BaseHTTPRequestHandler):
                     if payload.get("ollama_fast"):
                         msg = ollama_fast_apply()
                     self.send_json(200, {**speed_public(), "message": msg})
+                except ValueError as exc:
+                    self.send_json(400, {"error": str(exc)})
+            elif path == "/api/setup":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Setting Jarvis up works at the PC only."})
+                    return
+                try:
+                    self.send_json(200, setup_save(payload))
                 except ValueError as exc:
                     self.send_json(400, {"error": str(exc)})
             elif path == "/api/advisor":

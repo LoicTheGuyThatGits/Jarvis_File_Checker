@@ -1,4 +1,5 @@
-import shutil
+import os, shutil
+os.environ.setdefault("JARVIS_NO_SETUP", "1")      # the first-run guide would cover the page in every other test
 from pathlib import Path
 SRC = Path("web")
 def stage(tmp):

@@ -800,84 +800,6 @@
 "Settings for the command, one per line, e.g. GITHUB_TOKEN=your-token": "Réglages de la commande, un par ligne, p. ex. GITHUB_TOKEN=votre-jeton",
 "Environment variables": "Variables d'environnement",
 "Selected text": "Texte sélectionné",
-"@patterns": [
-[
-"^· (\\d+) steps · shown by you$",
-"· $1 étapes · montré par vous"
-],
-[
-"^· (\\d+) steps · shown by you · reused (\\d+)×$",
-"· $1 étapes · montré par vous · réutilisé $2×"
-],
-[
-"^1 month$",
-"1 mois"
-],
-[
-"^1 year$",
-"1 an"
-],
-[
-"^(\\d+) months?$",
-"$1 mois"
-],
-[
-"^(\\d+) years?$",
-"$1 ans"
-],
-[
-"^(\\d+)% in use$",
-"$1 % utilisé"
-],
-[
-"^(\\d+) threads$",
-"$1 fils"
-],
-[
-"^(\\d+) threads · ([\\d.]+) GHz$",
-"$1 fils · $2 GHz"
-],
-[
-"^Updated (.+)$",
-"Mis à jour à $1"
-],
-[
-"^(\\d+) recent traces? \\(newest first\\)\\.$",
-"$1 traces récentes (les plus récentes d'abord)."
-],
-[
-"^(\\d+) new from Classroom\\.$",
-"$1 nouveau(x) sur Classroom."
-],
-[
-"^(\\d+) a day$",
-"$1 par jour"
-],
-[
-"^(\\d+) hour$",
-"$1 heure"
-],
-[
-"^(\\d+) flashcards added to your deck\\.$",
-"$1 fiches ajoutées à votre paquet."
-],
-[
-"^Moved to (.+)\\.$",
-"Déplacée à $1."
-],
-[
-"^· (\\d+) steps · reused (\\d+)×$",
-"· $1 étapes · réutilisé $2×"
-],
-[
-"^· (\\d+) steps$",
-"· $1 étapes"
-],
-[
-"^(\\d+) s$",
-"$1 s"
-]
-],
 "Homework": "Devoirs",
 "Tell Jarvis your homework and it works out when it is due from your timetable. In chat: “maths homework: exercises 4 to 7” (due your next maths lesson), “French homework for Friday: learn unit 4”, “what homework do I have?”, “what homework do I have for tomorrow?”, “I did my maths homework”; in French too (“devoirs de maths : exercices 4 à 7 pour le prochain cours”, “qu'est-ce que j'ai comme devoirs pour demain ?”). Homework due tomorrow is in the evening message and the morning briefing.": "Dites vos devoirs à Jarvis : il calcule pour quand ils sont à rendre d'après votre horaire. Dans le chat : « devoirs de maths : exercices 4 à 7 pour le prochain cours », « qu'est-ce que j'ai comme devoirs pour demain ? », « mes devoirs », « j'ai fini mes devoirs de maths » ; en anglais aussi (“maths homework: exercises 4 to 7”, “what homework do I have?”). Les devoirs pour demain figurent dans le message du soir et dans le briefing du matin.",
 "What to do": "À faire",
@@ -1152,5 +1074,138 @@
 "Ollama’s speed settings are off. Turning them on (flash attention and an 8-bit working memory) lets more of a model fit on the graphics card, at the same quality. Ollama restarts for it (a few seconds).": "Les réglages de vitesse d'Ollama sont désactivés. Les activer (flash attention et mémoire de travail en 8 bits) permet de faire tenir une plus grande partie du modèle sur la carte graphique, à qualité égale. Ollama redémarre pour cela (quelques secondes).",
 "Restarting Ollama…": "Redémarrage d'Ollama…",
 "to the first word": "jusqu'au premier mot",
-"on the graphics card": "sur la carte graphique"
+"on the graphics card": "sur la carte graphique",
+"Setup": "Configuration initiale",
+"The short guide from the first start: language, how Jarvis addresses you, your town, the AI model and voice.": "Le petit guide du premier démarrage : la langue, la façon dont Jarvis s'adresse à toi, ta ville, le modèle d'IA et la voix.",
+"Run the setup again": "Relancer la configuration",
+"Close the setup": "Fermer la configuration",
+"Welcome to Jarvis": "Bienvenue dans Jarvis",
+"A few questions and Jarvis is ready. It takes about two minutes, and you can change everything later in Settings.": "Quelques questions et Jarvis est prêt. Cela prend environ deux minutes, et tu pourras tout changer plus tard dans les Réglages.",
+"How should Jarvis address you?": "Comment Jarvis doit-il s'adresser à toi ?",
+"Jarvis uses it in its replies, like “Done, sir.”": "Jarvis l'utilise dans ses réponses, comme « C'est fait, monsieur. »",
+"Sir": "Monsieur",
+"Ma'am": "Madame",
+"By my name": "Par mon prénom",
+"Your name": "Ton prénom",
+"Where are you?": "Où es-tu ?",
+"Your town or city, for the weather and the morning briefing. Only the name of the town is looked up online.": "Ta ville ou ton village, pour la météo et le briefing du matin. Seul le nom de la ville est cherché en ligne.",
+"Your town or city": "Ta ville ou ton village",
+"Find": "Trouver",
+"Jarvis's brain": "Le cerveau de Jarvis",
+"Jarvis thinks with an AI model that runs on this PC, through Ollama, which is free. What you say stays on this PC.": "Jarvis réfléchit avec un modèle d'IA qui tourne sur ce PC, grâce à Ollama, qui est gratuit. Ce que tu dis reste sur ce PC.",
+"Talking to Jarvis": "Parler à Jarvis",
+"You can always type, or press the microphone button and talk.": "Tu peux toujours écrire, ou appuyer sur le bouton du micro et parler.",
+"More, whenever you want it": "Plus, quand tu le voudras",
+"None of this is needed. Each one is set up in Settings when you are ready.": "Rien de tout cela n'est nécessaire. Chaque chose se règle dans les Réglages quand tu es prêt.",
+"<strong>Phone &amp; Telegram</strong><span>Use Jarvis from your phone.</span>": "<strong>Téléphone et Telegram</strong><span>Utilise Jarvis depuis ton téléphone.</span>",
+"<strong>School</strong><span>Timetable, homework, grades and exams.</span>": "<strong>École</strong><span>Horaire, devoirs, notes et examens.</span>",
+"<strong>Mail</strong><span>Hear what new email came in.</span>": "<strong>Courriel</strong><span>Savoir quels nouveaux e-mails sont arrivés.</span>",
+"<strong>Computer control</strong><span>Jarvis clicks and types for you, with your approval.</span>": "<strong>Contrôle de l'ordinateur</strong><span>Jarvis clique et tape pour toi, avec ton accord.</span>",
+"<strong>Shortcuts &amp; apps</strong><span>Dictation in any app, and Spotify.</span>": "<strong>Raccourcis et applications</strong><span>Dictée dans n'importe quelle application, et Spotify.</span>",
+"<strong>Appearance</strong><span>Colours, animations and the startup sequence.</span>": "<strong>Apparence</strong><span>Couleurs, animations et séquence de démarrage.</span>",
+"All set.": "Tout est prêt.",
+"Try one of these, or ask anything:": "Essaie l'un de ceux-ci, ou demande n'importe quoi :",
+"Settings > Jarvis & updates > Setup brings this guide back.": "Réglages > Jarvis et mises à jour > Configuration initiale fait revenir ce guide.",
+"Back": "Retour",
+"Next": "Suivant",
+"Type a name, or choose Sir or Ma’am.": "Écris un prénom, ou choisis Monsieur ou Madame.",
+"Looking it up…": "Recherche…",
+"Jarvis uses a cloud AI model. Your messages go to that provider.": "Jarvis utilise un modèle d'IA dans le cloud. Tes messages vont chez ce fournisseur.",
+"The cloud key is missing.": "La clé du cloud manque.",
+"Ollama is not installed yet.": "Ollama n'est pas encore installé.",
+"Ollama is a free program that runs AI models on this PC. Install it from ollama.com, then press Check again.": "Ollama est un programme gratuit qui fait tourner des modèles d'IA sur ce PC. Installe-le depuis ollama.com, puis appuie sur Vérifier à nouveau.",
+"Open ollama.com": "Ouvrir ollama.com",
+"Check again": "Vérifier à nouveau",
+"Ollama is installed but not running.": "Ollama est installé mais ne tourne pas.",
+"Start Ollama": "Démarrer Ollama",
+"This PC": "Ce PC",
+"Chat model": "Modèle de chat",
+"Not downloaded yet.": "Pas encore téléchargé.",
+"Download in progress": "Téléchargement en cours",
+"You can go on with the setup meanwhile.": "Tu peux continuer la configuration pendant ce temps.",
+"Best for this PC": "Le meilleur pour ce PC",
+"The chat model you have works, but the one above suits this PC better. It is your choice.": "Ton modèle de chat actuel fonctionne, mais celui du dessus convient mieux à ce PC. C'est toi qui choisis.",
+"Jarvis is ready to think on this PC.": "Jarvis est prêt à réfléchir sur ce PC.",
+"Starting Ollama…": "Démarrage d'Ollama…",
+"Checking this PC…": "Vérification de ce PC…",
+"Start using Jarvis": "Commencer avec Jarvis",
+"I could not find that place.": "Je n'ai pas trouvé cet endroit.",
+"@patterns": [
+[
+"^· (\\d+) steps · shown by you$",
+"· $1 étapes · montré par vous"
+],
+[
+"^· (\\d+) steps · shown by you · reused (\\d+)×$",
+"· $1 étapes · montré par vous · réutilisé $2×"
+],
+[
+"^1 month$",
+"1 mois"
+],
+[
+"^1 year$",
+"1 an"
+],
+[
+"^(\\d+) months?$",
+"$1 mois"
+],
+[
+"^(\\d+) years?$",
+"$1 ans"
+],
+[
+"^(\\d+)% in use$",
+"$1 % utilisé"
+],
+[
+"^(\\d+) threads$",
+"$1 fils"
+],
+[
+"^(\\d+) threads · ([\\d.]+) GHz$",
+"$1 fils · $2 GHz"
+],
+[
+"^Updated (.+)$",
+"Mis à jour à $1"
+],
+[
+"^(\\d+) recent traces? \\(newest first\\)\\.$",
+"$1 traces récentes (les plus récentes d'abord)."
+],
+[
+"^(\\d+) new from Classroom\\.$",
+"$1 nouveau(x) sur Classroom."
+],
+[
+"^(\\d+) a day$",
+"$1 par jour"
+],
+[
+"^(\\d+) hour$",
+"$1 heure"
+],
+[
+"^(\\d+) flashcards added to your deck\\.$",
+"$1 fiches ajoutées à votre paquet."
+],
+[
+"^Moved to (.+)\\.$",
+"Déplacée à $1."
+],
+[
+"^· (\\d+) steps · reused (\\d+)×$",
+"· $1 étapes · réutilisé $2×"
+],
+[
+"^· (\\d+) steps$",
+"· $1 étapes"
+],
+[
+"^(\\d+) s$",
+"$1 s"
+]
+]
 }

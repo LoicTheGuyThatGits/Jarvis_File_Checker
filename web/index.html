@@ -247,6 +247,11 @@
     </div>
     <div class="settings-pane hidden" id="pane-system" role="tabpanel" aria-labelledby="tab-system">
       <div class="pane-intro"><h2 class="pane-title">Jarvis &amp; updates</h2><p>Where this Jarvis runs from, whether everything works, updates and backups.</p></div>
+      <div class="settings-section" id="setup-section">
+        <h2 class="settings-heading">Setup</h2>
+        <p class="settings-note">The short guide from the first start: language, how Jarvis addresses you, your town, the AI model and voice.</p>
+        <button type="button" id="setup-again" class="settings-action">Run the setup again</button>
+      </div>
       <div class="settings-section">
         <h2 class="settings-heading">This Jarvis</h2>
         <p class="settings-note">The folder this copy of Jarvis is running from. Useful when there is more than one copy on a computer, or after moving to another PC.</p>
@@ -870,6 +875,81 @@
     <div id="sysbig-stats" class="sysbig-stats"></div>
   </section>
 
+  <div id="setup-backdrop" class="settings-backdrop setup-backdrop hidden"></div>
+  <section id="setup" class="settings-panel setup-panel hidden" role="dialog" aria-modal="true" aria-labelledby="setup-title">
+    <header class="settings-head setup-head">
+      <div class="panel-title">SETUP</div>
+      <ol class="setup-dots" aria-hidden="true"><li></li><li></li><li></li><li></li><li></li><li></li><li></li></ol>
+      <button type="button" id="setup-close" class="settings-close" aria-label="Close the setup">✕</button>
+    </header>
+    <div class="setup-body" id="setup-body">
+      <div class="setup-step" data-step="welcome">
+        <h2 id="setup-title" class="setup-title">Welcome to Jarvis</h2>
+        <p class="setup-lead">A few questions and Jarvis is ready. It takes about two minutes, and you can change everything later in Settings.</p>
+        <div class="settings-field"><label for="setup-lang">Jarvis speaks and listens in</label><select id="setup-lang"></select></div>
+        <div class="settings-field"><label for="setup-ui">Menus and buttons in</label><select id="setup-ui"></select></div>
+      </div>
+      <div class="setup-step hidden" data-step="you">
+        <h2 class="setup-title">How should Jarvis address you?</h2>
+        <p class="setup-lead">Jarvis uses it in its replies, like “Done, sir.”</p>
+        <div class="setup-choices">
+          <label class="settings-check"><input type="radio" name="setup-address" value="sir" checked> Sir</label>
+          <label class="settings-check"><input type="radio" name="setup-address" value="ma'am"> Ma'am</label>
+          <label class="settings-check"><input type="radio" name="setup-address" value="name"> By my name</label>
+        </div>
+        <input type="text" id="setup-name" class="setup-input hidden" maxlength="24" placeholder="Your name" aria-label="Your name" autocomplete="given-name">
+      </div>
+      <div class="setup-step hidden" data-step="place">
+        <h2 class="setup-title">Where are you?</h2>
+        <p class="setup-lead">Your town or city, for the weather and the morning briefing. Only the name of the town is looked up online.</p>
+        <div class="inline-form"><input type="text" id="setup-place" maxlength="80" placeholder="Town or city" aria-label="Your town or city"><button type="button" id="setup-find">Find</button></div>
+        <p id="setup-place-note" class="settings-note" aria-live="polite"></p>
+      </div>
+      <div class="setup-step hidden" data-step="brain">
+        <h2 class="setup-title">Jarvis's brain</h2>
+        <p class="setup-lead">Jarvis thinks with an AI model that runs on this PC, through Ollama, which is free. What you say stays on this PC.</p>
+        <div id="setup-brain" class="setup-brain" aria-live="polite"></div>
+      </div>
+      <div class="setup-step hidden" data-step="voice">
+        <h2 class="setup-title">Talking to Jarvis</h2>
+        <p class="setup-lead">You can always type, or press the microphone button and talk.</p>
+        <label class="settings-check"><input type="checkbox" id="setup-voice"> Speak Jarvis's answers aloud</label>
+        <button type="button" id="setup-voice-test" class="settings-action setup-inline">▶ Test voice</button>
+        <label class="settings-check setup-gap"><input type="checkbox" id="setup-wake"> Listen for “Hey Jarvis”, even when this window is closed</label>
+        <p id="setup-wake-note" class="settings-note"></p>
+      </div>
+      <div class="setup-step hidden" data-step="more">
+        <h2 class="setup-title">More, whenever you want it</h2>
+        <p class="setup-lead">None of this is needed. Each one is set up in Settings when you are ready.</p>
+        <div class="setup-more">
+          <button type="button" data-open-pane="devices"><strong>Phone &amp; Telegram</strong><span>Use Jarvis from your phone.</span></button>
+          <button type="button" data-open-pane="school"><strong>School</strong><span>Timetable, homework, grades and exams.</span></button>
+          <button type="button" data-open-pane="mail"><strong>Mail</strong><span>Hear what new email came in.</span></button>
+          <button type="button" data-open-pane="control"><strong>Computer control</strong><span>Jarvis clicks and types for you, with your approval.</span></button>
+          <button type="button" data-open-pane="keys"><strong>Shortcuts &amp; apps</strong><span>Dictation in any app, and Spotify.</span></button>
+          <button type="button" data-open-pane="look"><strong>Appearance</strong><span>Colours, animations and the startup sequence.</span></button>
+        </div>
+      </div>
+      <div class="setup-step hidden" data-step="done">
+        <h2 class="setup-title">All set.</h2>
+        <p class="setup-lead">Try one of these, or ask anything:</p>
+        <div class="setup-try">
+          <button type="button" data-try data-no-i18n>What can you do?</button>
+          <button type="button" data-try data-no-i18n>What's the weather?</button>
+          <button type="button" data-try data-no-i18n>Set a timer for 10 minutes</button>
+          <button type="button" data-try data-no-i18n>Remind me tomorrow at 8am to take my keys</button>
+        </div>
+        <p class="settings-note">Settings &gt; Jarvis &amp; updates &gt; Setup brings this guide back.</p>
+      </div>
+    </div>
+    <footer class="setup-foot">
+      <button type="button" id="setup-back" class="setup-btn">Back</button>
+      <p id="setup-error" class="setup-error" role="alert"></p>
+      <button type="button" id="setup-skip" class="setup-btn">Skip</button>
+      <button type="button" id="setup-next" class="setup-btn primary">Next</button>
+    </footer>
+  </section>
+
   <div id="alerts" class="alerts" role="alert" aria-live="assertive"></div>
 
   <div id="boot" class="boot" aria-label="Jarvis starting up">
@@ -944,5 +1024,6 @@
   <script src="/js/telegram.js"></script>
   <script src="/js/phone.js"></script>
   <script src="/js/call.js"></script>
+  <script src="/js/setup.js"></script>
 </body>
 </html>

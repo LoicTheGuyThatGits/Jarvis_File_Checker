@@ -8,6 +8,7 @@ Source: <https://github.com/LoicTheGuyThatGits/Jarvis_File_Checker> · Licence: 
 
 1. Double-click `install-jarvis.bat` once. It checks for Python 3.10 or newer (and offers to install it with winget), creates a private environment in the `.venv` folder in the Jarvis folder, and installs PyAutoGUI, Pillow and psutil into it. Nothing is installed system-wide. If Ollama is present it can also download the `llama3.2:3b` model.
 2. Double-click `start-jarvis.bat` whenever you want to use Jarvis. It uses the `.venv` environment automatically.
+3. The first time Jarvis opens, a short setup guide asks for your language (it offers the browser's language), how Jarvis should address you, your town for the weather, and checks the AI model: whether Ollama is installed and running, and which model suits this PC best (it can download it and switch to it). Then it shows the voice options and what else can be set up later. Every step can be skipped, and Settings > Jarvis & updates > Setup brings the guide back. A Jarvis that was already in use before this version (an update, or a copy moved from another PC with its `data` folder) never shows it.
 
 The `.venv` folder is tied to this PC. If you copy Jarvis to another computer, copy everything except `.venv` and run `install-jarvis.bat` there. The manual steps below do the same thing by hand.
 
@@ -34,7 +35,7 @@ It downloads every file, then run `install-jarvis.bat` as described above. Your 
 
 ## What Jarvis calls you
 
-The installer asks whether Jarvis should call you “sir”, “ma'am” or a name you type. The choice is saved in `data/address.txt`. To change it later, run the installer again, run `py app/set-address.py`, or edit `data/address.txt` (reload the page afterwards). `JARVIS_ADDRESS` overrides the file.
+The installer and the first-run setup guide ask whether Jarvis should call you “sir”, “ma'am” or a name you type. The choice is saved in `data/address.txt`. To change it later, run the installer again, run `py app/set-address.py`, or edit `data/address.txt` (reload the page afterwards). `JARVIS_ADDRESS` overrides the file.
 
 ## Folder layout
 

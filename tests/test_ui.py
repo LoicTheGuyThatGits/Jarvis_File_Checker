@@ -1,4 +1,5 @@
 import os, threading, time, importlib.util
+os.environ.setdefault("JARVIS_NO_SETUP", "1")
 from http.server import ThreadingHTTPServer
 os.environ["OPENAI_API_KEY"]="x"
 spec=importlib.util.spec_from_file_location("srv","app/server.py"); srv=importlib.util.module_from_spec(spec); spec.loader.exec_module(srv)
