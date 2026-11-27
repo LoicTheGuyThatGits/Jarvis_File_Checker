@@ -80,7 +80,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(300); sp=pg.evaluate("window.__spoken"); assert sp[-1]["text"].startswith("Voice systems online") and sp[-1]["voice"].startswith("Microsoft George"), sp
     pg.evaluate("window.__spoken.length=0"); pg.click("#chat-list .chat-item >> nth=0")
     pg.fill("#message","tell me something"); pg.keyboard.press("Enter")
-    pg.wait_for_function("window.__spoken.some(s=>s.text.includes('All done'))",timeout=8000)
+    pg.wait_for_function("window.__spoken.some(s=>s.text.includes('All done')) && window.__spoken.some(s=>s.text.includes('Hello there'))",timeout=8000)   # the first sentence waits for the chirp
     said=" | ".join(s["text"] for s in pg.evaluate("window.__spoken")); print("spoken:",said)
     assert "Hello there, sir." in said and "All done, sir." in said and "print" not in said and "```" not in said
     pg.wait_for_function("!document.documentElement.hasAttribute('data-speaking')",timeout=4000)
