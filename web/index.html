@@ -97,9 +97,10 @@
     <form class="composer" id="composer">
       <label class="sr-only" for="message">Message Jarvis</label>
       <div class="computer-note hidden" id="computer-note">The preview stays on this PC. Frames are sent to your AI provider when a task is analyzed and as it runs; API charges may apply. Actions normally need your approval.</div>
+      <div class="edit-bar hidden" id="edit-bar"><span>Editing your last message. Sending it replaces the message and the answer after it.</span><button type="button" id="edit-cancel">Cancel</button></div>
       <textarea id="message" rows="1" placeholder="Message Jarvis…" autocomplete="off" dir="auto"></textarea>
       <div class="composer-tools">
-        <span class="hint" id="voice-hint">Enter to send</span>
+        <span class="hint" id="voice-hint">Enter to send · / for commands</span>
         <div class="button-group">
           <button type="button" id="autopilot-mode" class="autopilot-toggle hidden" aria-pressed="false" title="Run computer actions without step-by-step approval; stop with Ctrl+Shift+F10">Autopilot off</button>
           <button type="button" id="autopilot-stop" class="autopilot-stop hidden" title="Stop Autopilot">Stop</button>
@@ -112,6 +113,7 @@
         </div>
       </div>
     </form>
+    <div class="undo-toast hidden" id="undo-toast" role="status"><span id="undo-text"></span><button type="button" id="undo-button">Undo</button></div>
     <footer>Computer actions need approval unless Autopilot is on <span>·</span> Screen analysis may use API credits</footer>
       </main>
 
@@ -790,6 +792,20 @@
     <div class="settings-pane hidden" id="pane-keys" role="tabpanel" aria-labelledby="tab-keys">
       <div class="pane-intro"><h2 class="pane-title">Shortcuts &amp; apps</h2><p>Keyboard shortcuts that work in any app, and Spotify.</p></div>
       <div class="settings-section">
+        <h2 class="settings-heading">Quick ask</h2>
+        <label class="settings-check"><input type="checkbox" id="ask-enabled"> Press a key in any app: a small Jarvis box opens on top, you ask, the answer stays there</label>
+        <div class="settings-field"><label for="ask-key">Press</label><select id="ask-key"></select></div>
+        <div class="inline-form"><button type="button" id="ask-try">Open it now</button></div>
+        <p class="settings-note">Esc puts the box away and the same key brings it back, with your conversation, for 15 minutes. <strong>Copy</strong> under an answer puts it on the clipboard, and <strong>Open in Jarvis</strong> carries the conversation on here. It uses Edge or Chrome, like the Jarvis window.</p>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">Clipboard history</h2>
+        <label class="settings-check"><input type="checkbox" id="clip-enabled"> Keep the last 25 texts I copy, so I can get an earlier one back</label>
+        <ul id="clip-list" class="clip-set-list" data-no-i18n></ul>
+        <div class="inline-form"><button type="button" id="clip-clear">Clear</button></div>
+        <p class="settings-note">Say “what did I copy?” or “put back what I copied before” (in the quick-ask box, “paste what I copied before” pastes it straight into your app). Kept in memory only: nothing is saved to disk, it is gone when Jarvis restarts, and it is never sent to your phone, Telegram or the AI model. Passwords, codes, card numbers, keys and anything a password manager copies are never kept.</p>
+      </div>
+      <div class="settings-section">
         <h2 class="settings-heading">Dictation anywhere</h2>
         <label class="settings-check"><input type="checkbox" id="dict-enabled"> Hold a key, speak, let go: Jarvis types what you said into the app you are using</label>
         <div class="settings-field"><label for="dict-key">Hold</label><select id="dict-key"></select></div>
@@ -1075,6 +1091,7 @@
   <script src="/js/extras.js"></script>
   <script src="/js/code.js"></script>
   <script src="/js/app.js"></script>
+  <script src="/js/suggest.js"></script>
   <script src="/js/debug.js"></script>
   <script src="/js/ui.js"></script>
   <script src="/js/features.js"></script>

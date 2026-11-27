@@ -22,8 +22,8 @@ OUT = ROOT / "web" / "i18n"
 KEEP = {"Jarvis", "JARVIS", "J.A.R.V.I.S. // MK 24", "Just A Rather Very Intelligent System", "DM Mono", "Excel", "PowerShell", "Telegram", "Spotify",
         "Ollama", "Tailscale", "Piper", "Gmail", "Mark III", "Arc Reactor", "Sakura", "Nebula", "Stealth", "Toxic", "Midnight", "Emerald", "Crimson",
         "English", "French", "Docs", "OneNote", "Notepad", "onyx", "echo", "fable", "alloy", "nova", "shimmer", "ash", "coral", "sage", "ballad", "verse",
-        "RAM", "CPU", "GPU", "BAT", "VRAM", "Wi-Fi", "OK"}
-SKIP = re.compile(r"^(?:[\w.:-]+\s·\s\w+|\d.*|[^A-Za-zÀ-ÿ]*|https?://\S+|[\w.-]+@[\w.-]+|Ctrl\+.*|[A-Z0-9_]|.{900,}"
+        "RAM", "CPU", "GPU", "BAT", "VRAM", "Wi-Fi", "OK", "Esc", "Enter", "Slash", "Shift + Enter", "Content-Type", "Content-Security-Policy"}
+SKIP = re.compile(r"^(?:[\w.:-]+\s·\s\w+|\d.*|[^A-Za-zÀ-ÿ]*|https?://\S+|[\w.-]+@[\w.-]+|Ctrl ?\+.*|[A-Z0-9_]|.{900,}"
                   r"|.*(?:/tmp/|[A-Za-z]:\\|\b(?:MON|TUE|WED|THU|FRI|SAT|SUN), [A-Z]{3} \d|\d+ / \d+(?:\.\d+)? GB).*)$", re.S)
 
 
@@ -65,6 +65,9 @@ def page_texts() -> list[str]:
         page.reload()
         page.wait_for_timeout(1500)
         texts = page.evaluate("window.JarvisI18n.collect()")
+        page.goto(f"http://127.0.0.1:{app.server_address[1]}/ask.html")   # the quick-ask box
+        page.wait_for_timeout(800)
+        texts += page.evaluate("window.JarvisI18n.collect()")
         browser.close()
     return texts
 

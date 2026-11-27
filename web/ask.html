@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" data-fixed-title>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/icons/jarvis.png" type="image/png">
+  <title>Jarvis Ask</title>
+  <script>try{var d=document.documentElement,t=localStorage.getItem('jarvis-theme-v1');if(t)d.setAttribute('data-theme',t);var l=localStorage.getItem('jarvis-ui-lang')||'en';if(l!=='en')d.classList.add('i18n-pending');if(l==='ar'||l==='he')d.dir='rtl'}catch(e){}</script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600&family=Rajdhani:wght@500;600&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    html,body{height:100%}
+    html.i18n-pending body{visibility:hidden}
+    body.ask{display:flex;flex-direction:column;min-height:0;margin:0;background:var(--bg);overflow:hidden}
+    body.ask::before,body.ask::after{display:none}
+    .ask-head{display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--a20);background:var(--panel)}
+    .ask-brand{flex:1;font:600 11px var(--disp);letter-spacing:.3em;color:var(--accent)}
+    .ask-head button{height:28px;padding:0 10px;border:1px solid var(--a30);background:transparent;color:var(--muted);cursor:pointer;font:600 11px var(--hud);letter-spacing:.1em;text-transform:uppercase}
+    .ask-head button:hover,.ask-head button:focus-visible{color:var(--ice);border-color:var(--accent);outline:none}
+    .ask-box{display:flex;gap:8px;align-items:flex-end;padding:12px;border-bottom:1px solid var(--a12)}
+    #ask-input{flex:1;min-height:30px;max-height:120px;font-size:18px}
+    #ask-send{width:38px;height:34px;border:1px solid var(--accent);background:var(--a20);color:var(--ice);cursor:pointer;font-size:16px}
+    #ask-send.stop{border-color:var(--red);color:var(--red);background:transparent;font-size:12px;width:auto;padding:0 10px}
+    .ask-out{flex:1;overflow-y:auto;padding:4px 14px 12px}
+    .ask-q{margin:12px 0 4px;color:var(--muted);font:500 14px var(--hud);white-space:pre-wrap;overflow-wrap:anywhere}
+    .ask-q::before{content:"› ";color:var(--accent)}
+    .ask-a{padding:2px 0 2px 12px;border-inline-start:2px solid var(--a65);color:var(--text);font:500 16px/1.55 var(--hud);white-space:pre-wrap;overflow-wrap:anywhere}
+    .ask-a pre{margin:8px 0;padding:8px 10px;background:var(--bg2);border:1px solid var(--a20);white-space:pre-wrap;font:13px/1.45 var(--mono);color:var(--ice)}
+    .ask-a.error{border-color:var(--red);color:var(--muted)}
+    .ask-note{margin-top:6px;color:var(--warn);font:500 13px var(--hud)}
+    .ask-tools{display:flex;gap:6px;margin:6px 0 0 12px}
+    .ask-tools button{padding:3px 9px;border:1px solid var(--a20);background:transparent;color:var(--muted);cursor:pointer;font:500 12px var(--hud)}
+    .ask-tools button:hover{color:var(--ice);border-color:var(--accent)}
+    .ask-empty{margin:18px 0;color:var(--dim);font:500 14px var(--hud);line-height:1.6}
+    .ask-foot{padding:6px 12px;border-top:1px solid var(--a12);font:11px var(--mono);color:var(--dim)}
+    .ask-clips{margin:8px 0 0;padding-inline-start:22px;font:500 14px var(--hud)}
+    .ask-clips li{margin:3px 0}
+    .ask-clips span{display:inline-block;max-width:calc(100% - 70px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+    .ask-clips button{margin-inline-start:8px;padding:1px 8px;border:1px solid var(--a30);background:transparent;color:var(--muted);cursor:pointer;font:500 12px var(--hud);vertical-align:middle}
+    .ask-thinking{color:var(--dim);font:500 14px var(--hud);padding-left:12px}
+  </style>
+</head>
+<body class="ask">
+  <div class="ask-head">
+    <span class="ask-brand" data-no-i18n>◉ JARVIS</span>
+    <button type="button" id="ask-new" title="Start over">New</button>
+    <button type="button" id="ask-main" title="Carry on in the big Jarvis window, as a chat of its own">Open in Jarvis</button>
+    <button type="button" id="ask-close" title="Close (Esc)" aria-label="Close">×</button>
+  </div>
+  <form class="ask-box" id="ask-form">
+    <label class="sr-only" for="ask-input">Ask Jarvis</label>
+    <textarea id="ask-input" rows="1" placeholder="Ask Jarvis…" autocomplete="off" dir="auto"></textarea>
+    <button type="submit" id="ask-send" aria-label="Ask">↑</button>
+  </form>
+  <div class="ask-out" id="ask-out" aria-live="polite">
+    <p class="ask-empty" id="ask-empty">Ask anything, or give a command (“set a timer for 10 minutes”). The answer stays here; <strong>Copy</strong> puts it on the clipboard for the app you were in.</p>
+  </div>
+  <div class="ask-foot" id="ask-foot">Enter to ask · Shift+Enter for a new line · Esc to close</div>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/ask.js"></script>
+</body>
+</html>

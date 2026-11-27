@@ -17,7 +17,8 @@
     var show = function (d) {
       $('dict-enabled').checked = d.dictation.enabled; $('quick-enabled').checked = d.quick.enabled;
       fill($('dict-key'), d.dictation_keys, d.dictation.key); fill($('quick-key'), d.quick_keys, d.quick.key);
-      $('keys-status').textContent = d.state === 'error' ? d.error : d.state === 'recording' ? 'Listening…' : d.error ? d.error : d.dictation.enabled || d.quick.enabled ? 'Ready.' : '';
+      if (d.ask && $('ask-enabled')) { $('ask-enabled').checked = d.ask.enabled; fill($('ask-key'), d.ask_keys, d.ask.key); }
+      $('keys-status').textContent = d.state === 'error' ? d.error : d.state === 'recording' ? 'Listening…' : d.error ? d.error : d.dictation.enabled || d.quick.enabled || (d.ask && d.ask.enabled) ? 'Ready.' : '';
       var log = $('dict-log'); log.textContent = '';
       (d.recent || []).slice().reverse().forEach(function (e) { var li = document.createElement('li'); li.className = 'tool-item'; li.textContent = e.time + '  ' + e.text; log.appendChild(li); });
       if (!(d.recent || []).length) { var li = document.createElement('li'); li.className = 'tool-item'; li.textContent = 'Nothing yet.'; log.appendChild(li); }
@@ -27,8 +28,40 @@
     $('dict-key').addEventListener('change', function () { send({ dictation: { key: $('dict-key').value } }); });
     $('quick-enabled').addEventListener('change', function () { send({ quick: { enabled: $('quick-enabled').checked } }); });
     $('quick-key').addEventListener('change', function () { send({ quick: { key: $('quick-key').value } }); });
-    var refresh = function () { if (!busy && !$('pane-keys').classList.contains('hidden')) api('/api/shortcuts').then(show).catch(function () {}); };
-    var loadKeys = function () { api('/api/shortcuts').then(show).catch(function () {}); };
+    if ($('ask-enabled')) {
+      $('ask-enabled').addEventListener('change', function () { send({ ask: { enabled: $('ask-enabled').checked } }); });
+      $('ask-key').addEventListener('change', function () { send({ ask: { key: $('ask-key').value } }); });
+      $('ask-try').addEventListener('click', function () {
+        api('/api/ask/open', {}).then(function (d) { if (d.how === 'not-windows') $('keys-status').textContent = 'The quick-ask box opens on Windows.'; })
+          .catch(function (e) { $('keys-status').textContent = e.message; });
+      });
+    }
+    // clipboard history
+    var tr = function (t) { return window.JarvisI18n ? window.JarvisI18n.t(t) : t; };
+    var clipShow = function (d) {
+      if (!$('clip-enabled')) return;
+      $('clip-enabled').checked = d.enabled;
+      var list = $('clip-list'), sig = JSON.stringify([d.enabled, d.items.map(function (e) { return e.id; })]);
+      if (list.dataset.sig === sig) return;
+      list.dataset.sig = sig; list.textContent = '';
+      if (!d.items.length) { var li = document.createElement('li'); li.className = 'tool-item'; li.textContent = tr(d.enabled ? 'Nothing copied since Jarvis started.' : 'Clipboard history is off.'); list.appendChild(li); }
+      d.items.forEach(function (e) {
+        var li = document.createElement('li'), text = document.createElement('span'), when = document.createElement('small'), copy = document.createElement('button'), del = document.createElement('button');
+        text.className = 'clip-text'; text.textContent = e.text.replace(/\s+/g, ' ').trim(); text.title = e.text.slice(0, 600);
+        when.textContent = new Date(e.at * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        copy.type = 'button'; copy.textContent = tr('Copy'); copy.addEventListener('click', function () { api('/api/clipboard', { copy: e.id }).then(function () { copy.textContent = tr('Copied'); setTimeout(function () { copy.textContent = tr('Copy'); }, 1500); }).catch(function (err) { $('keys-status').textContent = err.message; }); });
+        del.type = 'button'; del.textContent = '×'; del.title = tr('Forget this one'); del.setAttribute('aria-label', tr('Forget this one'));
+        del.addEventListener('click', function () { api('/api/clipboard', { remove: e.id }).then(clipShow).catch(function () {}); });
+        li.append(text, when, copy, del); list.appendChild(li);
+      });
+    };
+    var clipLoad = function () { if ($('clip-enabled')) api('/api/clipboard').then(clipShow).catch(function () {}); };
+    if ($('clip-enabled')) {
+      $('clip-enabled').addEventListener('change', function () { api('/api/clipboard', { enabled: $('clip-enabled').checked }).then(clipShow).catch(function () {}); });
+      $('clip-clear').addEventListener('click', function () { api('/api/clipboard', { clear: true }).then(clipShow).catch(function () {}); });
+    }
+    var refresh = function () { if (!busy && !$('pane-keys').classList.contains('hidden')) { api('/api/shortcuts').then(show).catch(function () {}); clipLoad(); } };
+    var loadKeys = function () { api('/api/shortcuts').then(show).catch(function () {}); clipLoad(); };
     $('tab-keys').addEventListener('click', loadKeys);
     window.addEventListener('jarvis:pane', function (e) { if (paneHas(e.detail.pane, 'dict-enabled')) loadKeys(); });
     setInterval(refresh, 2500);

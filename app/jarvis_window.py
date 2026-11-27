@@ -43,10 +43,11 @@ def _user32():
     return ctypes.windll.user32
 
 
-def find_window():
-    """Handle of the visible Jarvis app window, or None."""
+def find_window(match=None, visible_only=True):
+    """Handle of the visible Jarvis app window, or None. match(title) picks another Jarvis window (the quick-ask box)."""
     if not IS_WINDOWS:
         return None
+    match = match or is_app_title
     import ctypes
     from ctypes import wintypes
     user32 = _user32()
@@ -54,14 +55,14 @@ def find_window():
     callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 
     def each(hwnd, _lparam):
-        if not user32.IsWindowVisible(hwnd):
+        if visible_only and not user32.IsWindowVisible(hwnd):
             return True
         length = user32.GetWindowTextLengthW(hwnd)
         if length <= 0:
             return True
         title = ctypes.create_unicode_buffer(length + 1)
         user32.GetWindowTextW(hwnd, title, length + 1)
-        if not is_app_title(title.value):
+        if not match(title.value):
             return True
         cls = ctypes.create_unicode_buffer(256)
         user32.GetClassNameW(hwnd, cls, 256)
@@ -111,6 +112,39 @@ def focus(hwnd=None) -> bool:
     user32.keybd_event(0x12, 0, 2, 0)
     user32.SetForegroundWindow(hwnd)
     return True
+
+
+def hide(hwnd) -> bool:
+    """Put a window away without closing it (it comes back at once with focus())."""
+    if not IS_WINDOWS or not hwnd:
+        return False
+    _user32().ShowWindow(hwnd, 0)                                          # SW_HIDE
+    return True
+
+
+def keep_on_top(hwnd) -> bool:
+    if not IS_WINDOWS or not hwnd:
+        return False
+    import ctypes
+    user32 = _user32()
+    user32.SetWindowPos.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_uint]
+    return bool(user32.SetWindowPos(hwnd, ctypes.c_void_p(-1), 0, 0, 0, 0, 0x0001 | 0x0002 | 0x0040))   # HWND_TOPMOST; SWP_NOSIZE|NOMOVE|SHOWWINDOW
+
+
+def place(hwnd, x: int, y: int, width: int, height: int) -> bool:
+    if not IS_WINDOWS or not hwnd:
+        return False
+    import ctypes
+    user32 = _user32()
+    user32.MoveWindow.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int]
+    return bool(user32.MoveWindow(hwnd, int(x), int(y), int(width), int(height), 1))
+
+
+def screen_size() -> tuple[int, int]:
+    if not IS_WINDOWS:
+        return (1920, 1080)
+    user32 = _user32()
+    return (user32.GetSystemMetrics(0) or 1920, user32.GetSystemMetrics(1) or 1080)
 
 
 def set_icon(hwnd, ico_path) -> bool:

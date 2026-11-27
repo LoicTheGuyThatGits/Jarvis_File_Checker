@@ -11,7 +11,7 @@
   var ATTRS = ['title', 'placeholder', 'aria-label'];
   var EXCLUDE = '#conversation, #chat-list, [data-no-i18n], [contenteditable="true"], .code-block, .debug-trace';
   var RTL = { ar: 1, he: 1, fa: 1, ur: 1 };
-  var dict = null, code = 'en', blocks = new WeakMap(), texts = new WeakMap(), attrs = new WeakMap(), observer = null, collecting = null;
+  var baseTitle = null, dict = null, code = 'en', blocks = new WeakMap(), texts = new WeakMap(), attrs = new WeakMap(), observer = null, collecting = null;
 
   function norm(s) { return String(s).replace(/\s+/g, ' ').trim(); }
   function wordy(s) { return /[A-Za-zÀ-ÿ]{2}/.test(s); }
@@ -123,7 +123,8 @@
       try { localStorage.setItem('jarvis-ui-lang', code); } catch (e) {}
       if (!observer) { observer = new MutationObserver(changed); }
       run(document.body);
-      if (document.title) document.title = code === 'en' ? 'Jarvis' : (lookup('Jarvis') || 'Jarvis');
+      if (baseTitle === null) baseTitle = document.title;            // the page's own name ("Jarvis", "Jarvis Code"); the quick-ask window keeps its name, which is how Jarvis finds it
+      if (baseTitle && !document.documentElement.hasAttribute('data-fixed-title')) document.title = code === 'en' ? baseTitle : (lookup(baseTitle) || baseTitle);
       document.documentElement.classList.remove('i18n-pending');
       window.dispatchEvent(new CustomEvent('jarvis:ui-language', { detail: { code: code } }));
       return code;

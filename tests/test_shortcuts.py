@@ -15,7 +15,11 @@ class Mic:
         time.sleep(0.03); return (np.random.default_rng(1).normal(0,0.1,480)*32768).astype(np.int16)
     def close(s): s.closed=True
 S=sc.Shortcuts(tmp/"data"/"shortcuts.json",key_down=lambda vk:vk in DOWN,open_mic=lambda d:Mic(d),transcribe=lambda a,w:heard.pop(0) if heard else "",type_text=typed.append,beep=beeps.append,
-               capture_selection=lambda:"Some selected text",quick_ready=quick.append,pause_listener=paused.append)
+               capture_selection=lambda:"Some selected text",quick_ready=quick.append,pause_listener=paused.append,ask_open=lambda:opened.append(1))
+opened=[]
+assert S.config()["ask"]=={"enabled":True,"key":"ctrl+alt+space"}, "quick ask is on from the start"
+try: S.update({"ask":{"key":"ctrl+alt+d"}}); assert False
+except ValueError: pass
 try: S.update({"dictation":{"key":"nope"}}); assert False
 except ValueError: pass
 S.update({"dictation":{"enabled":True,"key":"ctrl+alt+d"},"quick":{"enabled":True,"key":"ctrl+alt+q"}})
@@ -37,7 +41,12 @@ assert S.public()["recent"][-1]["text"]=="Hello, this is a test." and S.state=="
 # quick action: waits for the modifiers to be let go, then captures
 DOWN.update({0x11,0x12,0x51}); time.sleep(0.2); assert not quick, "must wait for keys to be released"
 DOWN.clear(); time.sleep(0.4); assert quick==["Some selected text"], quick
-S.update({"dictation":{"enabled":False},"quick":{"enabled":False}}); assert S.state=="off" and S.thread is None
+# quick ask: one press, one box (holding the keys does not open it again and again)
+DOWN.update({0x11,0x12,0x20}); time.sleep(0.3); DOWN.clear(); time.sleep(0.1); assert opened==[1], opened
+S.update({"ask":{"key":"ctrl+alt+a"}}); DOWN.update({0x11,0x12,0x20}); time.sleep(0.2); DOWN.clear(); assert opened==[1]
+DOWN.update({0x11,0x12,0x41}); time.sleep(0.2); DOWN.clear(); time.sleep(0.1); assert opened==[1,1]
+S.update({"dictation":{"enabled":False},"quick":{"enabled":False}}); assert S.thread is not None, "quick ask still listens"
+S.update({"ask":{"enabled":False}}); assert S.state=="off" and S.thread is None
 # ---- server ----
 class Fake(BaseHTTPRequestHandler):
     def log_message(self,*a): pass
@@ -76,6 +85,12 @@ with sync_playwright() as p:
     pg.select_option("#dict-key","f9"); pg.check("#quick-enabled"); pg.wait_for_timeout(600)
     cfg=json.loads((tmp/"data"/"shortcuts.json").read_text()); assert cfg["dictation"]["key"]=="f9" and cfg["quick"]["enabled"] is True, cfg
     pg.select_option("#quick-key","f10"); pg.wait_for_timeout(400); assert json.loads((tmp/"data"/"shortcuts.json").read_text())["quick"]["key"]=="f10"
+    assert not pg.is_checked("#ask-enabled") and pg.locator("#ask-key option").count()==3 and pg.input_value("#ask-key")=="ctrl+alt+a", "as switched off above"
+    pg.check("#ask-enabled"); pg.wait_for_timeout(400); assert json.loads((tmp/"data"/"shortcuts.json").read_text())["ask"]["enabled"] is True
+    tried=[]; srv.ask_open=lambda: tried.append(1) or "shown"
+    pg.click("#ask-try"); pg.wait_for_timeout(400); assert tried==[1]
+    pg.select_option("#ask-key","ctrl+shift+space"); pg.uncheck("#ask-enabled"); pg.wait_for_timeout(500)
+    assert json.loads((tmp/"data"/"shortcuts.json").read_text())["ask"]=={"enabled":False,"key":"ctrl+shift+space"}
     srv.quick_ready("Ceci est un texte a corriger"); assert shown
     pg.wait_for_selector("#quick-panel",state="visible",timeout=5000); assert pg.input_value("#quick-text")=="Ceci est un texte a corriger"
     pg.click(".quick-act[data-action=summarize]"); pg.wait_for_function("document.querySelector('#quick-result').textContent.startsWith('RESULT:')",timeout=5000)

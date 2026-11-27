@@ -37,6 +37,7 @@ ROOT = Path(__file__).resolve().parent.parent   # the Jarvis folder; this file l
 if str(Path(__file__).resolve().parent) not in sys.path:
     sys.path.insert(0, str(Path(__file__).resolve().parent))   # so jarvis_window and telegram_bot import however this file is loaded
 import gmail_reader
+import cliphistory
 import phone_link
 import web_research
 HOST = "127.0.0.1"
@@ -70,8 +71,9 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS), "/js/updates.js": ("js/updates.js", JS), "/js/privacy.js": ("js/privacy.js", JS), "/js/safe.js": ("js/safe.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS), "/js/updates.js": ("js/updates.js", JS), "/js/privacy.js": ("js/privacy.js", JS), "/js/safe.js": ("js/safe.js", JS), "/js/suggest.js": ("js/suggest.js", JS), "/js/ask.js": ("js/ask.js", JS),
     "/game.html": ("game.html", "text/html; charset=utf-8"),
+    "/ask.html": ("ask.html", "text/html; charset=utf-8"),
     "/coder.html": ("coder.html", "text/html; charset=utf-8"), "/js/coder.js": ("js/coder.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
     "/icons/jarvis.ico": ("icons/jarvis.ico", "image/x-icon"), "/favicon.ico": ("icons/jarvis.ico", "image/x-icon"),
@@ -5944,6 +5946,63 @@ def show_jarvis_window() -> None:
     webbrowser.open(f"http://127.0.0.1:{PORT}/")
 
 
+ASK_TITLE = "Jarvis Ask"
+ASK_SIZE = (640, 460)
+
+
+def ask_spot() -> tuple[int, int, int, int]:
+    """Where the quick-ask box goes the first time: near the top middle of the screen."""
+    import jarvis_window
+    width, height = jarvis_window.screen_size()
+    return max(0, (width - ASK_SIZE[0]) // 2), max(0, height // 6), ASK_SIZE[0], ASK_SIZE[1]
+
+
+def ask_command(browser: str) -> list[str]:
+    """The quick-ask box: the same app window as Jarvis (Edge or Chrome, Jarvis's own profile), small."""
+    import jarvis_tray
+    x, y, w, h = ask_spot()
+    return jarvis_tray.app_command(browser, url=f"http://127.0.0.1:{PORT}/ask.html") + [f"--window-size={w},{h}", f"--window-position={x},{y}"]
+
+
+def ask_open() -> str:
+    """The quick-ask shortcut: show the box (it comes back at once when it was only put away), on top of the other windows.
+    Without Edge or Chrome, the big Jarvis window comes up instead."""
+    if sys.platform != "win32":
+        return "not-windows"
+    import jarvis_window
+    hwnd = jarvis_window.find_window(match=lambda title: title == ASK_TITLE, visible_only=False)
+    if hwnd:
+        jarvis_window.focus(hwnd)
+        jarvis_window.keep_on_top(hwnd)
+        return "shown"
+    import jarvis_tray
+    browser = jarvis_tray.find_browser()
+    if not browser:
+        show_jarvis_window()
+        return "main"
+    subprocess.Popen(ask_command(browser), close_fds=True)
+
+    def settle():
+        for _ in range(40):                                     # the window takes a moment to appear
+            time.sleep(0.25)
+            found = jarvis_window.find_window(match=lambda title: title == ASK_TITLE)
+            if found:
+                jarvis_window.place(found, *ask_spot())         # a browser that is already running ignores the size given above
+                jarvis_window.keep_on_top(found)
+                jarvis_window.set_icon(found, ROOT / "web" / "icons" / "jarvis.ico")
+                jarvis_window.focus(found)
+                return
+    threading.Thread(target=settle, name="jarvis-ask-window", daemon=True).start()
+    return "opened"
+
+
+def ask_hide() -> bool:
+    if sys.platform != "win32":
+        return False
+    import jarvis_window
+    return jarvis_window.hide(jarvis_window.find_window(match=lambda title: title == ASK_TITLE))
+
+
 def quick_ready(text: str) -> None:
     QUICK["id"] += 1
     QUICK["text"], QUICK["at"] = text, time.time()
@@ -6052,6 +6111,19 @@ class WindowsIO:
         finally:
             self.user32.CloseClipboard()
 
+    def clipboard_sequence(self) -> int:
+        return int(self.user32.GetClipboardSequenceNumber())
+
+    PRIVATE_FORMATS = ("ExcludeClipboardContentFromMonitorProcessing", "CanIncludeInClipboardHistory", "Clipboard Viewer Ignore")
+
+    def clipboard_private(self) -> bool:
+        """Password managers (KeePass, Bitwarden, 1Password…) mark what they copy as private; those texts are never kept."""
+        for name in self.PRIVATE_FORMATS:
+            fmt = self.user32.RegisterClipboardFormatW(name)
+            if fmt and self.user32.IsClipboardFormatAvailable(fmt):
+                return True
+        return False
+
     def capture_selection(self) -> str:
         """Copy what is selected in the active app and return it; when nothing is selected, the text already on the clipboard."""
         before = self.get_clipboard()
@@ -6072,15 +6144,72 @@ class WindowsIO:
 
 
 WIN_IO = None
+CLIP = None
+
+
+def win_io():
+    global WIN_IO
+    if WIN_IO is None and os.name == "nt":
+        WIN_IO = WindowsIO()
+    return WIN_IO
+
+
+def clip_obj() -> "cliphistory.ClipHistory":
+    """The clipboard history (memory only). Off Windows it has nothing to watch."""
+    global CLIP
+    if CLIP is None:
+        io = win_io()
+        CLIP = cliphistory.ClipHistory(
+            read_text=(io.get_clipboard if io else (lambda: None)), sequence=(io.clipboard_sequence if io else (lambda: 0)),
+            is_private=(io.clipboard_private if io else (lambda: False)), config_path=data_path("clipboard.json"),
+            write_text=(io.set_clipboard if io else (lambda text: False)))
+    return CLIP
+
+
+def clipboard_reply(req: dict, source: str = "") -> tuple[str, dict]:
+    """A chat request about the clipboard history. The texts themselves never go in the reply (chats are saved; the history
+    is not): the page shows them in a card beside the answer."""
+    clip, a = clip_obj(), "sir"                              # "sir" becomes the user's chosen address when the reply is sent
+    if req["do"] == "off":
+        clip.set_enabled(False)
+        return f"I will not keep what you copy any more, {a}, and I have forgotten what I had. Say “turn on clipboard history” to change that.", {}
+    if req["do"] == "on":
+        clip.set_enabled(True)
+        if os.name == "nt":
+            clip.start()
+        return f"I will keep the last {cliphistory.LIMIT} texts you copy, {a}: in memory only, and never passwords, codes or card numbers.", {}
+    if not clip.enabled:
+        return f"Clipboard history is off, {a}. Say “turn on clipboard history”, or switch it on in Settings > Shortcuts & apps.", {}
+    if req["do"] == "clear":
+        clip.clear()
+        return f"Done, {a}: your clipboard history is empty.", {}
+    items = clip.items()
+    if not items:
+        return f"Nothing copied since Jarvis started, {a}. From now on I keep the last {cliphistory.LIMIT} texts you copy, in memory only (never passwords or codes).", {}
+    if req["do"] == "list":
+        shown = items[:10]
+        return (f"Here is what you copied recently, {a}, newest first. Press Copy to put one back, or say “put back number 2”.",
+                {"clipboard": [{"id": e["id"], "text": e["text"], "at": e["at"]} for e in shown]})
+    index = req.get("index", 2)
+    if index > len(items):
+        return f"I only have {len(items)} text{'s' if len(items) != 1 else ''} from your clipboard, {a}. Say “what did I copy?” to see them.", {}
+    text = items[index - 1]["text"]
+    if not clip.write_text(text):
+        return f"I could not put it on the clipboard just now, {a}. Try again in a moment.", {}
+    if req.get("paste") and source == "ask" and WIN_IO is not None:
+        def paste():
+            ask_hide()
+            time.sleep(0.4)                                     # the app you were in comes back to the front
+            WIN_IO.ctrl_key(0x56)
+        threading.Thread(target=paste, name="jarvis-paste", daemon=True).start()
+        return f"Pasting it, {a}.", {}
+    return f"It is on the clipboard again, {a} ({len(text)} characters). Press Ctrl+V where you want it.", {}
 
 
 def start_shortcuts_object():
     import shortcuts
     if shortcuts.SHORTCUTS is None:
-        global WIN_IO
-        if os.name == "nt":
-            WIN_IO = WindowsIO()
-        io = WIN_IO
+        io = win_io()
 
         def pause(on: bool) -> None:
             if voice_listener_module().LISTENER is not None:
@@ -6089,7 +6218,7 @@ def start_shortcuts_object():
         shortcuts.SHORTCUTS = shortcuts.Shortcuts(
             data_path("shortcuts.json"), key_down=(io.key_down if io else (lambda vk: False)), open_mic=lambda device: voice_listener_module().MicSource(device or None),
             transcribe=listener_transcribe, type_text=(io.type_text if io else (lambda text: print(f"[jarvis] would type: {text}"))), beep=listener_beep,
-            capture_selection=(io.capture_selection if io else (lambda: "")), quick_ready=quick_ready, pause_listener=pause,
+            capture_selection=(io.capture_selection if io else (lambda: "")), quick_ready=quick_ready, pause_listener=pause, ask_open=lambda: ask_open(),
             device=lambda: voice_listener_module().load_device(data_path("voice.json")))
     return shortcuts.SHORTCUTS
 
@@ -7928,6 +8057,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/shortcuts":
             self.send_json(200, start_shortcuts_object().public())
             return
+        if path == "/api/clipboard":
+            if self._from_phone:
+                self.send_json(403, {"error": "Your clipboard history stays at the PC."})
+            else:
+                self.send_json(200, clip_obj().public())
+            return
         if path == "/api/quick":
             self.send_json(200, {"id": QUICK["id"], "text": QUICK["text"], "age": time.time() - QUICK["at"] if QUICK["at"] else None})
             return
@@ -9041,6 +9176,42 @@ class Handler(BaseHTTPRequestHandler):
                         audit("deleted from Your data: " + ", ".join(out["deleted"]))
                         self.send_json(200, {**out, "restart": True})
                         restart_jarvis()              # forget what was loaded in memory, so nothing is written back
+            elif path == "/api/clipboard":
+                clip = clip_obj()
+                if self._from_phone:
+                    self.send_json(403, {"error": "Your clipboard history stays at the PC."})
+                elif isinstance(payload.get("enabled"), bool):
+                    clip.set_enabled(payload["enabled"])
+                    if payload["enabled"] and os.name == "nt":
+                        clip.start()
+                    self.send_json(200, clip.public())
+                elif payload.get("clear") is True:
+                    clip.clear()
+                    self.send_json(200, clip.public())
+                elif "remove" in payload:
+                    clip.remove(payload.get("remove"))
+                    self.send_json(200, clip.public())
+                elif "copy" in payload:
+                    item = clip.get(payload.get("copy"))
+                    if not item:
+                        self.send_json(404, {"error": "That text is no longer in the history."})
+                    elif not clip.write_text(item["text"]):
+                        self.send_json(409, {"error": "The clipboard is busy. Try again."})
+                    else:
+                        self.send_json(200, clip.public())
+                else:
+                    self.send_json(400, {"error": "Nothing to do."})
+            elif path in ("/api/ask/open", "/api/ask/hide", "/api/ask/main"):
+                if self._from_phone:
+                    self.send_json(403, {"error": "The quick-ask box is only on the PC."})
+                elif path == "/api/ask/open":
+                    self.send_json(200, {"ok": True, "how": ask_open()})
+                elif path == "/api/ask/hide":
+                    self.send_json(200 if ask_hide() else 409, {"ok": True} if sys.platform == "win32" else {"error": "Only on Windows."})
+                else:
+                    ask_hide()
+                    show_jarvis_window()
+                    self.send_json(200, {"ok": True})
             elif path == "/api/restart":
                 if self._from_phone:
                     self.send_json(403, {"error": "Jarvis can only be restarted from the PC."})
@@ -9877,6 +10048,14 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.send_json(200, {"reply": awareness_reply(aware_req), "action": None})
             return
+        clip_req = cliphistory.command(latest)
+        if clip_req is not None:
+            if self._offsite:
+                self.send_json(200, {"reply": "Your clipboard history stays at the PC, sir.", "action": None})
+            else:
+                clip_text, clip_extra = clipboard_reply(clip_req, str(payload.get("source") or ""))
+                self.send_json(200, {"reply": clip_text, "action": None, **clip_extra})
+            return
         clock_reply = clock_command(latest)                 # the date and time come from the PC's clock, never from the model
         if clock_reply:
             self.send_json(200, {"reply": clock_reply, "action": None})
@@ -10398,7 +10577,7 @@ class Handler(BaseHTTPRequestHandler):
                 with PENDING_LOCK:
                     PENDING[token] = action
                 action = {**action, "approval_id": token}
-            self.send_json(200, {"reply": reply, "action": action, **({"exchange_id": exchange_id} if exchange_id else {})})
+            self.send_json(200, {"reply": reply, "action": action, **({"exchange_id": exchange_id} if exchange_id else {}), **({"retry": True} if action is None else {})})
         except Exception as exc:
             self.send_json(502, {"error": f"The AI response was not in the expected format: {exc}"})
 
@@ -11547,6 +11726,11 @@ if __name__ == "__main__":
             start_shortcuts()
     except Exception as exc:
         print(f"[jarvis] shortcuts are not available: {exc}")
+    try:
+        if not SAFE and os.name == "nt" and clip_obj().enabled:
+            clip_obj().start()
+    except Exception as exc:
+        print(f"[jarvis] clipboard history is not available: {exc}")
     try:
         _ai = ai_settings()
         if _ai["provider"] == "local" and _ai["is_local"]:

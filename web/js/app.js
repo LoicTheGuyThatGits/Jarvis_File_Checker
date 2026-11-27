@@ -81,25 +81,66 @@ function chatSnippet(chat,query) {
   }
   return '';
 }
+const tr=text=>window.JarvisI18n?window.JarvisI18n.t(text):text;
+function orderedChats(){const rev=[...chats].reverse();return rev.filter(c=>c.pinned).concat(rev.filter(c=>!c.pinned))}
+function saveChats(){localStorage.setItem(chatsKey,JSON.stringify(chats));localStorage.setItem(currentChatKey,currentChatId)}
 function renderChatList() {
   const list=document.querySelector('#chat-list');
   if(!list)return;
   list.replaceChildren();
   const query=chatFilter.trim().toLowerCase();
   let shown=0;
-  for(const chat of [...chats].reverse()) {
+  for(const chat of orderedChats()) {
     const titleHit=!query||(chat.title||'').toLowerCase().includes(query);
     const snippet=query&&!titleHit?chatSnippet(chat,query):'';
     if(query&&!titleHit&&!snippet)continue;
     shown++;
+    const row=document.createElement('div');row.className='chat-row'+(chat.pinned?' pinned':'')+(chat.id===currentChatId?' active':'');
     const item=document.createElement('button');item.type='button';item.className='chat-item'+(chat.id===currentChatId?' active':'');
     const title=document.createElement('span');title.className='chat-title';title.textContent=chat.title||'New chat';item.append(title);
     if(snippet){const small=document.createElement('small');small.className='chat-snippet';small.textContent=snippet;item.append(small)}
     item.title=chat.title||'New chat';
-    item.addEventListener('click',()=>{currentChatId=chat.id;history=chat.messages;localStorage.setItem(currentChatKey,currentChatId);renderConversation();renderChatList();input.focus()});
-    list.append(item);
+    item.addEventListener('click',()=>{if(chat.id===currentChatId){input.focus();return}currentChatId=chat.id;history=chat.messages;cancelEdit();localStorage.setItem(currentChatKey,currentChatId);renderConversation();renderChatList();input.focus()});
+    item.addEventListener('dblclick',()=>renameChat(chat,row));
+    const tools=document.createElement('span');tools.className='chat-row-tools';
+    const tool=(cls,label,tip,fn)=>{const b=document.createElement('button');b.type='button';b.className='chat-tool '+cls;b.textContent=label;b.title=tr(tip);b.setAttribute('aria-label',tr(tip));b.addEventListener('click',e=>{e.stopPropagation();fn()});tools.append(b);return b};
+    tool('chat-pin',chat.pinned?'★':'☆',chat.pinned?'Unpin this chat':'Pin this chat to the top',()=>{chat.pinned=!chat.pinned;if(!chat.pinned)delete chat.pinned;saveChats();renderChatList()}).setAttribute('aria-pressed',String(!!chat.pinned));
+    tool('chat-rename','✎','Rename this chat',()=>renameChat(chat,row));
+    tool('chat-del','×','Delete this chat',()=>deleteChat(chat.id));
+    row.append(item,tools);list.append(row);
   }
   if(query&&!shown){const none=document.createElement('div');none.className='chat-empty';none.textContent='No chats match “'+chatFilter.trim()+'”';list.append(none)}
+}
+function renameChat(chat,row){
+  const box=document.createElement('input');box.type='text';box.className='chat-rename-box';box.value=chat.title||'';box.maxLength=80;box.setAttribute('aria-label',tr('New name for this chat'));
+  row.replaceChildren(box);box.focus();box.select();
+  let done=false;
+  const finish=keep=>{if(done)return;done=true;const name=box.value.replace(/\s+/g,' ').trim();if(keep&&name){chat.title=name;saveChats()}renderChatList()};
+  box.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();finish(true)}else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();finish(false)}});
+  box.addEventListener('blur',()=>finish(true));
+}
+/* deleting or clearing a chat happens at once, with a few seconds to take it back */
+let undoTimer=null;
+function offerUndo(text,undo){
+  const toast=document.querySelector('#undo-toast');if(!toast)return;
+  document.querySelector('#undo-text').textContent=tr(text);
+  const btn=document.querySelector('#undo-button');
+  btn.onclick=()=>{clearTimeout(undoTimer);toast.classList.add('hidden');undo()};
+  toast.classList.remove('hidden');clearTimeout(undoTimer);undoTimer=setTimeout(()=>toast.classList.add('hidden'),8000);
+}
+function deleteChat(id){
+  const at=chats.findIndex(c=>c.id===id);if(at<0)return;
+  const removed=chats[at],wasCurrent=id===currentChatId,before=currentChatId;
+  chats.splice(at,1);
+  if(!chats.length)chats=[newChatRecord()];
+  if(wasCurrent){currentChatId=chats[Math.max(0,at-1)].id;history=activeChat().messages;cancelEdit()}
+  saveChats();renderConversation();renderChatList();
+  offerUndo('Chat deleted.',()=>{
+    chats=chats.filter(c=>!(c.messages.length===0&&c.title==='New chat'&&chats.length===1));
+    chats.splice(Math.min(at,chats.length),0,removed);
+    if(wasCurrent){currentChatId=before;history=removed.messages}
+    saveChats();renderConversation();renderChatList();
+  });
 }
 function renderConversation() {
   conversation.replaceChildren();
@@ -107,6 +148,7 @@ function renderConversation() {
   welcome.classList.toggle('hidden',history.length>0);
   for(const item of history.slice(-100)) addMessage(item.role,item.content);
   if(!history.length) welcome.classList.remove('hidden');
+  refreshMessageTools();
 }
 function startNewChat() {
   const chat=newChatRecord();chats.push(chat);currentChatId=chat.id;history=chat.messages;
@@ -114,20 +156,41 @@ function startNewChat() {
   renderConversation();renderChatList();input.focus();
 }
 function clearCurrentChat() {
-  if(!window.confirm('Clear all messages in this chat? This cannot be undone.'))return;
-  history=[];const chat=activeChat();chat.messages=[];chat.title='New chat';
-  localStorage.setItem(chatsKey,JSON.stringify(chats));localStorage.setItem(currentChatKey,currentChatId);
-  renderConversation();renderChatList();input.focus();
+  const chat=activeChat();if(!chat.messages.length)return;
+  const saved={messages:chat.messages,title:chat.title};
+  history=[];chat.messages=[];if(!chat.pinned)chat.title='New chat';cancelEdit();
+  saveChats();renderConversation();renderChatList();input.focus();
+  offerUndo('Chat cleared.',()=>{chat.messages=saved.messages;chat.title=saved.title;if(chat.id===currentChatId)history=chat.messages;saveChats();renderConversation();renderChatList()});
 }
-function deleteCurrentChat() {
-  const chat=activeChat();
-  if(!window.confirm(`Delete “${chat.title||'New chat'}” and all its saved messages? This cannot be undone.`))return;
-  const oldIndex=chats.findIndex(item=>item.id===currentChatId);
-  chats=chats.filter(item=>item.id!==currentChatId);
-  if(!chats.length)chats=[newChatRecord()];
-  currentChatId=chats[Math.max(0,oldIndex-1)].id;history=activeChat().messages;
-  localStorage.setItem(chatsKey,JSON.stringify(chats));localStorage.setItem(currentChatKey,currentChatId);
-  renderConversation();renderChatList();input.focus();
+function deleteCurrentChat() { deleteChat(currentChatId); input.focus(); }
+
+/* under the last messages: Edit for your last message, Try again for the answer */
+let editing=null;
+function lastUserIndex(){for(let i=history.length-1;i>=0;i--)if(history[i].role==='user')return i;return -1}
+function refreshMessageTools(){
+  conversation.querySelectorAll('.msg-tools').forEach(n=>n.remove());
+  if(activePromptController||computerMode)return;
+  const rows=[...conversation.querySelectorAll('.message-row')];
+  const ui=lastUserIndex();if(ui<0)return;
+  const userRow=[...rows].reverse().find(r=>r.classList.contains('user'));
+  const lastRow=rows[rows.length-1];
+  const make=(row,label,tip,fn)=>{let bar=row.querySelector('.msg-tools');if(!bar){bar=document.createElement('div');bar.className='msg-tools';row.append(bar)}
+    const b=document.createElement('button');b.type='button';b.className='msg-tool';b.textContent=tr(label);b.title=tr(tip);b.addEventListener('click',fn);bar.append(b);return b};
+  if(userRow&&!editing)make(userRow,'✎ Edit','Change your last message and send it again (↑ in an empty box does the same)',startEdit);
+  const last=history[history.length-1];
+  const failed=last&&last.role==='user'&&lastRow&&lastRow.classList.contains('assistant');      // an error answer is not saved
+  if(lastRow&&lastRow.classList.contains('assistant')&&(failed||(last.role==='assistant'&&last.retry&&history.length-1===ui+1)))
+    make(lastRow,'↻ Try again','Ask the same thing again for a new answer',retryLast);
+}
+function startEdit(){
+  const i=lastUserIndex();if(i<0||activePromptController)return;
+  editing={index:i,chat:currentChatId};input.value=history[i].content;resizeInput();input.focus();input.setSelectionRange(input.value.length,input.value.length);
+  document.querySelector('#edit-bar').classList.remove('hidden');refreshMessageTools();
+}
+function cancelEdit(){if(!editing)return;editing=null;const bar=document.querySelector('#edit-bar');if(bar)bar.classList.add('hidden');input.value='';resizeInput();refreshMessageTools()}
+function retryLast(){
+  const i=lastUserIndex();if(i<0||activePromptController)return;
+  const text=history[i].content;history.splice(i);saveHistory();renderConversation();sendMessage(text);
 }
 const CODE_EXTENSIONS={python:'py',py:'py',javascript:'js',js:'js',node:'js',typescript:'ts',ts:'ts',jsx:'jsx',tsx:'tsx',html:'html',css:'css',scss:'scss',json:'json',bash:'sh',sh:'sh',shell:'sh',powershell:'ps1',ps1:'ps1',bat:'bat',batch:'bat',sql:'sql',c:'c',cpp:'cpp','c++':'cpp',csharp:'cs','c#':'cs',cs:'cs',java:'java',kotlin:'kt',go:'go',rust:'rs',rs:'rs',ruby:'rb',php:'php',swift:'swift',lua:'lua',r:'r',yaml:'yml',yml:'yml',toml:'toml',xml:'xml',markdown:'md',md:'md'};
 function appendInline(parent,text){
@@ -223,6 +286,21 @@ function addFileResults(files, truncated=false, noteText='', headingText='') {
   if(truncated){const note=document.createElement('p');note.className='file-results-note';note.textContent=noteText||'Search stopped at its result or time limit. Try a more specific filename to narrow the results.';section.append(note)}
   conversation.append(section);scrollDown();
 }
+/* "what did I copy?": the texts stay out of the saved chat; they are shown here, with Copy to put one back */
+function addClipboardCard(items) {
+  if(!Array.isArray(items)||!items.length)return;
+  const section=document.createElement('section');section.className='file-results clip-card';
+  const heading=document.createElement('div');heading.className='file-results-heading';heading.textContent=tr('COPIED RECENTLY');section.append(heading);
+  const list=document.createElement('ol');list.className='clip-items';
+  items.forEach(item=>{
+    const li=document.createElement('li');
+    const text=document.createElement('span');text.className='clip-text';text.textContent=item.text.replace(/\s+/g,' ').trim();text.title=item.text.slice(0,600);
+    const copy=document.createElement('button');copy.type='button';copy.className='file-reveal';copy.textContent=tr('Copy');
+    copy.addEventListener('click',async()=>{copy.disabled=true;try{const r=await fetch('/api/clipboard',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({copy:item.id})});const d=await r.json();copy.textContent=r.ok?tr('Copied'):(d.error||tr('Could not copy'))}catch(e){copy.textContent=tr('Could not copy')}setTimeout(()=>{copy.disabled=false;copy.textContent=tr('Copy')},1800)});
+    li.append(text,copy);list.append(li);
+  });
+  section.append(list);conversation.append(section);scrollDown();
+}
 function addScreenPreview(base64) {
   const row=document.createElement('div');row.className='screen-preview-row';
   const image=document.createElement('img');image.className='screen-preview';image.alt='Screenshot shared with Jarvis for computer control';image.src=`data:image/jpeg;base64,${base64}`;
@@ -298,6 +376,7 @@ function showAction(action) {
 }
 async function sendMessage(text) {
   text=text.trim(); if(!text||autonomousRunning||activePromptController)return;
+  if(editing){const e=editing;editing=null;document.querySelector('#edit-bar').classList.add('hidden');if(e.chat===currentChatId&&e.index<=history.length){history.splice(e.index);saveHistory();renderConversation()}}
   const controller=new AbortController();activePromptController=controller;activePromptId=crypto.randomUUID();setPromptRunning(true);
   history.push({role:'user',content:text}); saveHistory(); addMessage('user',text); input.value=''; resizeInput(); {const label=thinking.querySelector('i');if(label)label.textContent='Jarvis is thinking'} thinking.classList.remove('hidden'); scrollDown();
   const autonomous=computerMode&&autopilotMode;
@@ -320,16 +399,21 @@ async function sendMessage(text) {
     if(live.row&&!data.cancelled)renderBubble(live.bubble,reply);else replyRow=addMessage('assistant',reply);
     if(data.debug&&window.JarvisDebug)window.JarvisDebug.attach(data.debug,replyRow);
     if(data.speed&&replyRow)addSpeedLine(replyRow,data.speed);
-    history.push({role:'assistant',content:reply});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.open==='/coder.html')window.JarvisOpenCode&&window.JarvisOpenCode();if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);if(data.ui_language&&window.JarvisI18n&&data.ui_language!==window.JarvisI18n.code())window.JarvisI18n.set(data.ui_language);
+    history.push({role:'assistant',content:reply,...(data.retry&&!data.action?{retry:1}:{})});saveHistory();window.dispatchEvent(new CustomEvent('jarvis:reply',{detail:{text:reply,streamed:!!live.row&&!data.cancelled,cancelled:!!data.cancelled,language:data.language||null}}));if(data.files)addFileResults(data.files,data.files_truncated,data.files_note,data.files_heading);if(data.download)addDownloadCard(data.download);if(data.clipboard)addClipboardCard(data.clipboard);if(data.open==='/coder.html')window.JarvisOpenCode&&window.JarvisOpenCode();if(data.sources)window.dispatchEvent(new CustomEvent('jarvis:sources',{detail:data.sources}));if(data.exchange_id&&replyRow)window.dispatchEvent(new CustomEvent('jarvis:exchange',{detail:{row:replyRow,id:data.exchange_id}}));if(data.decided&&data.decided.length&&replyRow){const why=document.createElement('div');why.className='decided-note';why.textContent='Jarvis chose: '+data.decided.map(d=>String(d).replace(/_/g,' ')).join(', ')+' · say “undo that” if this was wrong';const b=replyRow.querySelector('.bubble');if(b)b.append(why)}if(data.screenshot)addScreenPreview(data.screenshot);if(data.action)showAction(data.action);if(data.ui_language&&window.JarvisI18n&&data.ui_language!==window.JarvisI18n.code())window.JarvisI18n.set(data.ui_language);
   } catch(error) {
     if(error.name==='AbortError'){
       window.dispatchEvent(new CustomEvent('jarvis:stop'));const stopped='Stopped the current prompt, '+(window.JARVIS_ADDRESS||'sir')+'.';if(live.text)history.push({role:'assistant',content:live.text});history.push({role:'assistant',content:stopped});saveHistory();addMessage('assistant',stopped);
     }else{const row=addMessage('assistant',`I couldn't complete that: ${error.message}`);if(error.debug&&window.JarvisDebug)window.JarvisDebug.attach(error.debug,row)}
   }
-  finally { thinking.classList.add('hidden');conversation.removeAttribute('aria-busy');if(autonomous){autonomousRunning=false;activeAutonomousId=null;autopilotStop.classList.add('hidden');autopilotStop.disabled=false;autopilotStop.textContent='Stop'}if(activePromptController===controller){activePromptController=null;activePromptId=null;setPromptRunning(false)}input.focus(); }
+  finally { thinking.classList.add('hidden');conversation.removeAttribute('aria-busy');if(autonomous){autonomousRunning=false;activeAutonomousId=null;autopilotStop.classList.add('hidden');autopilotStop.disabled=false;autopilotStop.textContent='Stop'}if(activePromptController===controller){activePromptController=null;activePromptId=null;setPromptRunning(false)}refreshMessageTools();input.focus(); }
 }
 form.addEventListener('submit',e=>{e.preventDefault();if(activePromptController){stopCurrentPrompt();return}sendMessage(input.value)});
-input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
+input.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey&&!e.defaultPrevented){e.preventDefault();form.requestSubmit()}
+  else if(e.key==='ArrowUp'&&!input.value&&!editing&&!e.defaultPrevented&&lastUserIndex()>=0){e.preventDefault();startEdit()}
+  else if(e.key==='Escape'&&editing&&!e.defaultPrevented){e.preventDefault();e.stopPropagation();cancelEdit()}
+});
+{const c=document.querySelector('#edit-cancel');if(c)c.addEventListener('click',()=>{cancelEdit();input.focus()})}
 input.addEventListener('input',resizeInput);
 function resizeInput(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,150)+'px'}
 document.querySelectorAll('.suggestion').forEach(button=>button.addEventListener('click',()=>sendMessage(button.dataset.prompt)));
@@ -346,6 +430,7 @@ function setComputerMode(enabled){
   computerMode=enabled;computerButton.setAttribute('aria-pressed',String(computerMode));computerButton.textContent=computerMode?'▣ Computer on':'▣ Computer off';
   document.querySelector('#computer-note').classList.toggle('hidden',!computerMode);liveScreen.classList.toggle('hidden',!computerMode);autopilotButton.classList.toggle('hidden',!computerMode);
   input.placeholder=computerMode?'Describe what you want Jarvis to do on screen…':'Message Jarvis…';
+  if(computerMode)cancelEdit();refreshMessageTools();
   if(computerMode){updateLiveScreen();screenFeedTimer=setInterval(updateLiveScreen,1600)}
   else{clearInterval(screenFeedTimer);screenFeedTimer=null;latestScreen=null;latestScreenAt=0;liveScreenImage.removeAttribute('src');screenFeedStatus.textContent='Off';setAutopilotMode(false)}
 }
@@ -378,6 +463,15 @@ autopilotStop.addEventListener('click',async()=>{
 });
 renderConversation();
 renderChatList();
+window.addEventListener('jarvis:ui-language',()=>{renderChatList();refreshMessageTools()});   // the chat list and these buttons are drawn by this script, in the menus' language
+/* another Jarvis window changed the chats (the quick-ask window's "Open in Jarvis", or a second tab): show them */
+window.addEventListener('storage',e=>{
+  if(e.key!==chatsKey&&e.key!==currentChatKey)return;
+  if(activePromptController||editing)return;
+  chats=loadChats();currentChatId=localStorage.getItem(currentChatKey);
+  if(!chats.some(c=>c.id===currentChatId))currentChatId=chats[chats.length-1].id;
+  history=activeChat().messages;renderConversation();renderChatList();
+});
 /* calls save their conversation as a chat of its own */
 window.JarvisChats={saveCall(title,messages){const clean=(messages||[]).filter(m=>m&&['user','assistant'].includes(m.role)&&typeof m.content==='string'&&m.content.trim());if(!clean.length)return null;const chat=newChatRecord(title,clean.slice(-100));chats.push(chat);localStorage.setItem(chatsKey,JSON.stringify(chats));renderChatList();return chat.id},history(){return history.slice(-6)}};
 
@@ -391,6 +485,6 @@ else {
   recognition.onstart=()=>{mic.classList.add('recording');voiceHint.textContent='Listening… press again to stop'};
   recognition.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)finalText+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}input.value=(finalText+interim).trim();resizeInput()};
   recognition.onerror=()=>{voiceHint.textContent='Microphone unavailable'};
-  recognition.onend=()=>{mic.classList.remove('recording');voiceHint.textContent='Enter to send';if(finalText.trim())sendMessage(finalText)};
+  recognition.onend=()=>{mic.classList.remove('recording');voiceHint.textContent='Enter to send · / for commands';if(finalText.trim())sendMessage(finalText)};
 }
 /* the status label (model and provider) is managed by features.js */
