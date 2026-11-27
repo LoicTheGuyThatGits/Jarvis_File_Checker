@@ -25,7 +25,7 @@ with sync_playwright() as p:
     pg.fill("#settings-search","microphone"); pg.wait_for_timeout(300)
     heads=visible_sections(pg); assert any("Wake word" in h for h in heads) and any("Dictation" in h for h in heads) and not any("Interface" in h for h in heads), heads
     assert pg.locator(".settings-group-label").count()>=2 and pg.locator("#tab-look.no-match").count()==1
-    pg.fill("#settings-search","app password"); pg.wait_for_timeout(300); heads=visible_sections(pg); assert heads==["Gmail"] or all("Gmail" in h for h in heads) and heads, heads
+    pg.fill("#settings-search","app password"); pg.wait_for_timeout(300); heads=visible_sections(pg); assert heads and heads[0]=="Gmail" and set(heads) <= {"Gmail", "What Jarvis keeps"}, heads   # also where to delete it
     assert pg.locator("#mail-address").is_visible()
     pg.fill("#settings-search","android"); pg.wait_for_timeout(300); heads=visible_sections(pg); assert any("Phone app" in h for h in heads), heads
     pg.fill("#settings-search","hey jarvis listen"); pg.wait_for_timeout(300); assert any("Wake word" in h for h in visible_sections(pg))

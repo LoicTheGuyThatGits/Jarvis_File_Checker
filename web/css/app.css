@@ -927,3 +927,35 @@ html[lang="ko"] body{word-break:keep-all}                           /* Korean wr
 .setup-callout{border:1px solid var(--a30);background:var(--a05);padding:14px}
 @media(max-width:700px){.update-banner{top:auto;bottom:12px}.ub-main{gap:8px}.ub-btn{padding:0 9px}}
 #updates-section .inline-form{margin:10px 0 8px}
+
+/* Settings > Your data */
+.privacy-outside{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.privacy-out{padding:8px 10px;border:1px solid var(--a12);background:var(--a05)}
+.privacy-out-head{display:flex;align-items:center;gap:8px}
+.privacy-dot{width:8px;height:8px;border-radius:50%;background:var(--a30);flex:none}
+.privacy-out.on .privacy-dot{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.privacy-name{font:600 14px var(--hud);color:var(--ice)}
+.privacy-state{margin-inline-start:auto;font:600 10px var(--disp);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.privacy-out.on .privacy-state{color:var(--accent)}
+.privacy-what{font:500 13px/1.45 var(--hud);color:var(--muted);margin-top:2px}
+.privacy-groups{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.privacy-group{display:flex;align-items:center;gap:12px;padding:10px;border:1px solid var(--a12);background:var(--a05)}
+.privacy-group-text{flex:1;min-width:0}
+.privacy-amount{font:12px var(--mono);color:var(--text);margin-top:4px;opacity:.85}
+.privacy-delete,.privacy-delete-all{flex:none;height:32px;padding:0 14px;border:1px solid #ff5a5a66;background:#ff5a5a12;color:#ff9a9a;font:600 10px var(--disp);letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+.privacy-delete:hover:not(:disabled),.privacy-delete-all:hover{border-color:#ff5a5a;background:#ff5a5a22}
+.privacy-delete:disabled{opacity:.35;cursor:default}
+.privacy-delete.armed,.privacy-delete-all.armed{background:#ff3b3b;border-color:#ff3b3b;color:#fff}
+.privacy-delete-all{width:auto;margin-top:6px}
+.privacy-danger{border:1px solid #ff5a5a44;padding:14px}
+.privacy-tools{margin-top:10px}
+@media(max-width:700px){.privacy-group{flex-wrap:wrap}.privacy-delete{margin-inline-start:auto}}
+
+/* safe mode banner (shares the update banner's frame) */
+.safe-banner{border-color:var(--warn);z-index:59}
+.safe-banner .ub-dot{background:var(--warn);box-shadow:0 0 12px var(--warn);animation:none}
+.safe-banner.notice{border-color:var(--accent)}
+.safe-banner.notice .ub-dot{background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.sb-text{font:500 13px/1.45 var(--hud);color:var(--text)}
+.sb-more{padding:0 12px 12px}
+.sb-crash{max-height:240px;overflow:auto;margin:0 0 8px;padding:8px;background:#0008;border:1px solid var(--a20);font:12px/1.4 var(--mono);color:var(--text);white-space:pre-wrap;overflow-wrap:anywhere}

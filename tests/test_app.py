@@ -57,3 +57,29 @@ assert app3.watchdog_once() is True and t.wait_for_server(30), "restarted"
 assert app3.watchdog_once() is False       # healthy again: nothing to do
 app3.restarts=[time.time()]*5; app3.server.kill(); app3.server.wait(); assert app3.watchdog_once() is False and app3.server is None
 app3.stop_server(); print("watchdog ok")
+# three stops in ten minutes: safe mode, which says why; "Start normally" restarts on purpose (exit code 3, not a crash)
+try:
+    t.SAFE_FILE.unlink()
+except OSError:
+    pass
+app4=t.App(True); app4.start_server(); assert t.wait_for_server(30)
+def safe_state(): return _j.loads(urllib.request.urlopen(f"http://127.0.0.1:{port}/api/safe",timeout=5).read())
+assert safe_state()["safe"] is False
+for n in range(3):
+    app4.server.kill(); app4.server.wait(); time.sleep(0.3)
+    assert app4.watchdog_once() is True and t.wait_for_server(30)
+assert t.safe_mode_on() and len(app4.restarts)==3
+st=safe_state(); assert st["safe"] and st["reason"]=="crashes" and st["tray"], st
+req=urllib.request.Request(f"http://127.0.0.1:{port}/api/safe",data=b'{"safe": false}',headers={"Content-Type":"application/json"})
+assert _j.loads(urllib.request.urlopen(req,timeout=5).read())["restart"]
+deadline=time.time()+20
+while app4.server.poll() is None and time.time()<deadline: time.sleep(0.2)
+assert app4.server.returncode==3, app4.server.returncode
+assert app4.watchdog_once() is True and t.wait_for_server(30) and len(app4.restarts)==3, "a restart on purpose is not counted"
+assert safe_state()["safe"] is False and not t.safe_mode_on()
+# the Start menu's "Jarvis (safe mode)" asks for it
+assert t.main(["--autostart","status"])==0
+t.safe_mode_set(True,"asked"); app4.stop_server(); time.sleep(0.5); app4.start_server(); assert t.wait_for_server(30)
+assert safe_state()["reason"]=="asked"
+t.safe_mode_set(False); app4.stop_server(); time.sleep(0.5); assert not t.port_open()
+print("safe mode ok")

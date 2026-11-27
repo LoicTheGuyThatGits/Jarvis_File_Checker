@@ -70,7 +70,7 @@ JS = "text/javascript; charset=utf-8"
 STATIC_FILES = {
     "/css/app.css": ("css/app.css", "text/css; charset=utf-8"),
     "/js/app.js": ("js/app.js", JS), "/js/ui.js": ("js/ui.js", JS), "/js/features.js": ("js/features.js", JS),
-    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS), "/js/updates.js": ("js/updates.js", JS),
+    "/js/tools.js": ("js/tools.js", JS), "/js/docs.js": ("js/docs.js", JS), "/js/telegram.js": ("js/telegram.js", JS), "/js/code.js": ("js/code.js", JS), "/js/wake.js": ("js/wake.js", JS), "/js/mail.js": ("js/mail.js", JS), "/js/shortcuts.js": ("js/shortcuts.js", JS), "/js/planner.js": ("js/planner.js", JS), "/js/notes.js": ("js/notes.js", JS), "/js/extras.js": ("js/extras.js", JS), "/js/phone.js": ("js/phone.js", JS), "/js/debug.js": ("js/debug.js", JS), "/js/call.js": ("js/call.js", JS), "/js/i18n.js": ("js/i18n.js", JS), "/js/setup.js": ("js/setup.js", JS), "/js/updates.js": ("js/updates.js", JS), "/js/privacy.js": ("js/privacy.js", JS), "/js/safe.js": ("js/safe.js", JS),
     "/game.html": ("game.html", "text/html; charset=utf-8"),
     "/coder.html": ("coder.html", "text/html; charset=utf-8"), "/js/coder.js": ("js/coder.js", JS),
     "/icons/jarvis.png": ("icons/jarvis.png", "image/png"), "/apple-touch-icon.png": ("icons/jarvis.png", "image/png"),
@@ -386,6 +386,9 @@ def is_loopback_url(url: str) -> bool:
     return urlparse(url).hostname in ("localhost", "127.0.0.1", "::1")
 
 
+STARTUP_NOTICES: list[str] = []       # things the page should tell once, like a damaged settings file
+
+
 def load_settings() -> dict:
     """Saved choices (provider, model per provider). Kept in settings.json next to server.py."""
     global SETTINGS_LOADED_FROM
@@ -397,7 +400,14 @@ def load_settings() -> dict:
                 data = json.loads(path.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
                     SETTINGS.update(data)
-            except (OSError, ValueError):
+            except ValueError:
+                keep = path.with_name(f"settings.damaged-{time.strftime('%Y%m%d-%H%M%S')}.json")
+                try:
+                    path.replace(keep)
+                    STARTUP_NOTICES.append(f"Your settings file was damaged, so Jarvis started with default settings. The damaged copy is {keep.name} in the data folder.")
+                except OSError:
+                    pass
+            except OSError:
                 pass
             SETTINGS_LOADED_FROM = path
         return SETTINGS
@@ -1069,6 +1079,7 @@ import awareness as awareness_module
 import teach as teach_module
 import coder as coder_module
 import advisor as advisor_module
+import privacy as privacy_module
 import classroom as classroom_module
 import timetable as timetable_module
 import bench as bench_module
@@ -1145,6 +1156,60 @@ def packages_install_in_background() -> None:
         except Exception as exc:
             PACKAGES.update(state="failed", error=str(exc)[:300])
     threading.Thread(target=work, daemon=True).start()
+
+
+def safe_mode_state() -> dict:
+    """data/safe-mode.json, written by the tray app after repeated crashes, by “Jarvis (safe mode)”, or from Settings."""
+    try:
+        d = json.loads(data_path("safe-mode.json").read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) and d.get("on") else {}
+    except (OSError, ValueError):
+        return {}
+
+
+SAFE: dict = {}                       # filled at start: safe mode is decided once, when Jarvis starts
+
+
+def crash_log(text: str) -> None:
+    """A dated entry in data/crash.log (kept short: the newest 200 KB)."""
+    try:
+        path = data_path("crash.log")
+        old = path.read_text(encoding="utf-8", errors="replace")[-200_000:] if path.exists() else ""
+        path.write_text(old + f"\n=== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===\n{text.rstrip()}\n", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def install_crash_hooks() -> None:
+    import traceback
+
+    def hook(kind, value, tb):
+        crash_log("".join(traceback.format_exception(kind, value, tb)))
+        sys.__excepthook__(kind, value, tb)
+
+    def thread_hook(args):
+        if args.exc_type is SystemExit:
+            return
+        crash_log(f"In thread {getattr(args.thread, 'name', '?')}:\n" + "".join(traceback.format_exception(args.exc_type, args.exc_value, args.exc_traceback)))
+    sys.excepthook = hook
+    threading.excepthook = thread_hook
+
+
+def last_crash(limit: int = 6000) -> str:
+    """The end of crash.log, or else of jarvis.log (what the tray app saved from the console)."""
+    for name in ("crash.log", "jarvis.log"):
+        try:
+            text = data_path(name).read_text(encoding="utf-8", errors="replace").strip()
+        except OSError:
+            continue
+        if text:
+            return text[-limit:]
+    return ""
+
+
+def safe_public() -> dict:
+    return {"safe": bool(SAFE), "reason": SAFE.get("reason", ""), "since": SAFE.get("at"), "crash": last_crash() if SAFE else "",
+            "notices": list(STARTUP_NOTICES), "tray": bool(os.environ.get("JARVIS_APP_WINDOW"))}
 
 
 def restart_jarvis() -> None:
@@ -3351,6 +3416,54 @@ def advisor_apply(role: str, model: str) -> str:
     else:
         raise ValueError("Unknown job.")
     return f"{advisor_module.ROLES[role]['label']} now uses {model}."
+
+
+# ---------------- Your data: what Jarvis keeps, what leaves the PC, and deleting it ----------------
+def _json_file(name: str) -> dict:
+    try:
+        d = json.loads(data_path(name).read_text(encoding="utf-8"))
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def privacy_outside() -> list[dict]:
+    """Each way something can leave this PC, whether it is in use now, and what goes out."""
+    chat = ai_settings("chat")
+    loc = current_location()
+    tg = _json_file("telegram.json")
+    mail = _json_file("mail.json")
+    mcp = _json_file("mcp.json").get("servers") or []
+    mcp_on = [m for m in mcp if isinstance(m, dict) and m.get("enabled", True)]
+    phone = phone_link.load(data_path("phone.json"))
+    stops = _json_file("transport.json")
+    host = urlparse(chat["base"]).hostname or chat["base"]
+    out = [
+        {"key": "ai", "name": "AI model", "on": not chat["is_local"],
+         "what": f"Your messages go to {host} ({chat['model']})." if not chat["is_local"] else "Answers are made on this PC by Ollama: your messages stay here."},
+        {"key": "weather", "name": "Weather", "on": bool(loc),
+         "what": "The position of your town goes to Open-Meteo for the forecast." if loc else "No town set, so nothing is sent."},
+        {"key": "search", "name": "Web search", "on": True, "when": "Only when you ask",
+         "what": "When you ask Jarvis to look something up, the search goes to DuckDuckGo and the pages it reads to their own sites."},
+        {"key": "telegram", "name": "Telegram", "on": bool(tg.get("token") or os.environ.get("JARVIS_TELEGRAM_TOKEN")),
+         "what": "Messages between you and your bot go through Telegram's servers."},
+        {"key": "mail", "name": "Gmail", "on": mail_connected(mail) if mail else False,
+         "what": "Jarvis reads your new mail from Gmail." + ("" if chat["is_local"] else " Summaries are written by the cloud AI model, so senders and subjects go there too.")},
+        {"key": "spotify", "name": "Spotify", "on": bool(_json_file("spotify.json").get("refresh_token")), "what": "Song requests go to Spotify."},
+        {"key": "classroom", "name": "Google Classroom", "on": bool(_json_file("classroom.json").get("refresh_token")), "what": "Jarvis reads your classes and assignments from Google."},
+        {"key": "mcp", "name": "Connected tools (MCP)", "on": bool(mcp_on),
+         "what": f"{len(mcp_on)} connected tool server(s): what you ask them goes to them." if mcp_on else "None connected."},
+        {"key": "phone", "name": "Phone app", "on": bool(phone.get("enabled")), "what": "Phones on your network with the pairing code can use Jarvis."},
+        {"key": "transport", "name": "Public transport", "on": bool(stops.get("home") or stops.get("school")), "when": "Only when you ask, and on school mornings",
+         "what": "The names of your stops go to transport.opendata.ch for the timetable."},
+        {"key": "updates", "name": "Updates", "on": bool(filecheck_config().get("auto", True)),
+         "what": "Jarvis asks GitHub for the list of its newest files. Nothing about you is sent."},
+    ]
+    return out
+
+
+def privacy_public() -> dict:
+    return {"groups": privacy_module.inventory(ROOT), "outside": privacy_outside(), "folder": str(ROOT / "data")}
 
 
 # ---------------- first-run setup: a short guide the first time Jarvis opens on a new PC ----------------
@@ -7745,6 +7858,15 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/backup":
             self.send_json(200, backup_state())
             return
+        if path == "/api/safe":
+            self.send_json(200, safe_public())
+            return
+        if path == "/api/privacy":
+            if self._from_phone:
+                self.send_json(403, {"error": "Your data can only be seen on the PC."})
+                return
+            self.send_json(200, privacy_public())
+            return
         if path == "/api/updates":
             q = parse_qs(urlparse(self.path).query)
             if (q.get("check") or [""])[0] == "1" and not UPDATE_STATE["running"]:
@@ -8886,6 +9008,39 @@ class Handler(BaseHTTPRequestHandler):
                     self.send_json(200, {"ok": True})
                 else:
                     self.send_json(400, {"error": "Nothing to do."})
+            elif path == "/api/safe":
+                if self._from_phone:
+                    self.send_json(403, {"error": "Safe mode is changed on the PC."})
+                elif "safe" in payload:
+                    if payload["safe"]:
+                        data_path("safe-mode.json").write_text(json.dumps({"on": True, "reason": "asked", "at": time.time()}), encoding="utf-8")
+                    else:
+                        try:
+                            data_path("safe-mode.json").unlink()
+                        except OSError:
+                            pass
+                    audit("safe mode " + ("on" if payload["safe"] else "off") + ", restarting")
+                    self.send_json(200, {"ok": True, "restart": True})
+                    restart_jarvis()
+                elif payload.get("seen"):
+                    STARTUP_NOTICES.clear()
+                    self.send_json(200, {"ok": True})
+                else:
+                    self.send_json(400, {"error": "Nothing to do."})
+            elif path == "/api/privacy/delete":
+                keys = payload.get("keys")
+                if self._from_phone:
+                    self.send_json(403, {"error": "Your data can only be deleted on the PC."})
+                elif keys == "all":
+                    keys = list(privacy_module.KEYS)
+                if not self._from_phone:
+                    if not isinstance(keys, list) or not keys or any(k not in privacy_module.KEYS for k in keys):
+                        self.send_json(400, {"error": "Choose what to delete."})
+                    else:
+                        out = privacy_module.delete(ROOT, keys)
+                        audit("deleted from Your data: " + ", ".join(out["deleted"]))
+                        self.send_json(200, {**out, "restart": True})
+                        restart_jarvis()              # forget what was loaded in memory, so nothing is written back
             elif path == "/api/restart":
                 if self._from_phone:
                     self.send_json(403, {"error": "Jarvis can only be restarted from the PC."})
@@ -11379,9 +11534,17 @@ def routine_chat(text: str) -> str:
 
 
 if __name__ == "__main__":
+    install_crash_hooks()
     migrate_legacy_data()
+    if "--safe" in sys.argv[1:]:
+        data_path("safe-mode.json").write_text(json.dumps({"on": True, "reason": "asked", "at": time.time()}), encoding="utf-8")
+    SAFE.update(safe_mode_state())
+    load_settings()
+    if SAFE:
+        print(f"[jarvis] SAFE MODE ({SAFE.get('reason', 'asked')}): voice, Telegram, connected tools, the phone link, shortcuts and background tasks are off.")
     try:
-        start_shortcuts()
+        if not SAFE:
+            start_shortcuts()
     except Exception as exc:
         print(f"[jarvis] shortcuts are not available: {exc}")
     try:
@@ -11393,6 +11556,8 @@ if __name__ == "__main__":
     try:
         import telegram_bot
         telegram_bot.BOT.root, telegram_bot.BOT.port = ROOT, PORT
+        if SAFE:
+            raise RuntimeError("safe mode")
         telegram_bot.start()
         if telegram_bot.BOT.load().get("token"):      # load the speech model now, so the first voice note is not slow
             def warm_speech() -> None:
@@ -11404,16 +11569,19 @@ if __name__ == "__main__":
     except Exception as exc:
         print(f"[jarvis] Telegram is not available: {exc}")
     try:
+        if SAFE:
+            raise RuntimeError("safe mode")
         start_listener()                                  # "Hey Jarvis", when it is switched on in Settings
     except Exception as exc:
         print(f"[jarvis] listening is not available: {exc}")
     print(f"Jarvis is running at http://{HOST}:{PORT}")
     print("The AI key stays in this process environment and is never sent to the browser.")
-    start_scheduler()
-    mcp_start()
+    if not SAFE:
+        start_scheduler()
+        mcp_start()
     threading.Thread(target=watch_autopilot_stop_hotkey, daemon=True).start()
     print("Autopilot stop shortcut: Ctrl+Shift+F10 (or use the Stop button in Jarvis).")
-    PHONE_LISTENING = phone_link.load(data_path("phone.json"))["enabled"]
+    PHONE_LISTENING = phone_link.load(data_path("phone.json"))["enabled"] and not SAFE
     if PHONE_LISTENING:
         print(f"Phone link is on: the Android app can connect to {', '.join(a + ':' + str(PORT) for a in phone_link.addresses()) or 'this PC'} with the pairing code.")
     server = ThreadingHTTPServer(("0.0.0.0" if PHONE_LISTENING else HOST, PORT), Handler)
@@ -11422,4 +11590,9 @@ if __name__ == "__main__":
             webbrowser.open(f"http://{HOST}:{PORT}")
         except Exception:
             pass
-    server.serve_forever()
+    try:
+        server.serve_forever()
+    except Exception:
+        import traceback
+        crash_log(traceback.format_exc())
+        raise

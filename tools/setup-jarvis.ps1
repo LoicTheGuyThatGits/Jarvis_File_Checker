@@ -3,7 +3,9 @@
 # files, and the Start menu's "Repair Jarvis" runs it again. Everything goes into the Jarvis folder, except Python
 # itself when it is missing (installed for this Windows user only, from winget or python.org).
 #
-#   powershell -ExecutionPolicy Bypass -File tools\setup-jarvis.ps1 [-Root <folder>] [-Version 2026.11.26] [-Voice] [-Releases]
+#   powershell -ExecutionPolicy Bypass -File tools\setup-jarvis.ps1 [-Root <folder>] [-Version 2026.11.26] [-Voice] [-Releases] [-Files]
+#   -Files (Repair Jarvis) also restores missing program files and brings back the ones an update would replace;
+#   files you changed yourself are left alone.
 #
 # Exit codes: 0 ready, 1 no Python, 2 the environment could not be made, 3 the packages did not install.
 # Keep this file ASCII: Windows PowerShell 5 reads scripts without a byte order mark in the local code page.
@@ -11,7 +13,8 @@ param(
     [string]$Root = "",
     [string]$Version = "",
     [switch]$Voice,
-    [switch]$Releases
+    [switch]$Releases,
+    [switch]$Files
 )
 $ErrorActionPreference = "Continue"
 if (-not $Root) { $Root = Split-Path -Parent $PSScriptRoot }
@@ -105,6 +108,13 @@ if (-not (Test-Path $vpy)) {
         Say "Could not make the environment in $venv."
         exit 2
     }
+}
+
+# ---- 2b. Program files (Repair Jarvis) ----
+if ($Files) {
+    Say "Checking Jarvis's program files against the newest version..."
+    & $vpy (Join-Path $Root "filecheck.py") --update --yes
+    if ($LASTEXITCODE -ne 0) { Say "Some program files could not be checked or restored (no internet?). Jarvis goes on with what it has." }
 }
 
 # ---- 3. Packages ----

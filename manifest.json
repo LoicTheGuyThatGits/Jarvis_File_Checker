@@ -9,8 +9,8 @@
   },
   {
    "path": "README.md",
-   "sha256": "419e93a7d4edc54a36cb1d71e04fac2ecbd311def425bd12dbad3c263307c6ff",
-   "size": 103539
+   "sha256": "82e591c3575f588714b99873c0684660bbe8adb9b628a474c15115703b3445cc",
+   "size": 105099
   },
   {
    "path": "app/advisor.py",
@@ -134,8 +134,8 @@
   },
   {
    "path": "app/jarvis_tray.py",
-   "sha256": "e0ec205960f03caccd0305065fa308909f75d9d2189e43bcbf7f3a18daf3f43f",
-   "size": 21162
+   "sha256": "79abb3a102666b6dc6d1b6483ec46bddd90a27cef0c365c617cf47370e796bc7",
+   "size": 22725
   },
   {
    "path": "app/jarvis_window.py",
@@ -176,6 +176,11 @@
    "path": "app/planner.py",
    "sha256": "81114ce41e9abda4683ed70c0abff44b407e2b52dc24a3c90b9505a48b91dc29",
    "size": 26488
+  },
+  {
+   "path": "app/privacy.py",
+   "sha256": "85112bf9fdb9d87c5eba963795c8e65f4abf700211e4427104827ab538c28833",
+   "size": 5012
   },
   {
    "path": "app/proactive.py",
@@ -224,8 +229,8 @@
   },
   {
    "path": "app/server.py",
-   "sha256": "843ba1b5e0c1d1b3e560b3fe83ea084342426153b20b2227cea6e09458cda426",
-   "size": 614353
+   "sha256": "38f80c7a9275d6c67991407c4907cd1f02bcdbdc061a5c6cb0647faeff1f6e25",
+   "size": 623333
   },
   {
    "path": "app/set-address.py",
@@ -389,8 +394,8 @@
   },
   {
    "path": "tools/setup-jarvis.ps1",
-   "sha256": "11a4a47ee1ca731ecb72aa5249fa372eb4ad3601ef9c67a24ce8d5dfc766d855",
-   "size": 6347
+   "sha256": "1bdf00a3b80f63ef84a1d5f0c15979993af7cc99e089fde4083ae2f9ce2047f5",
+   "size": 6870
   },
   {
    "path": "web/coder.html",
@@ -399,8 +404,8 @@
   },
   {
    "path": "web/css/app.css",
-   "sha256": "91c16ec5cf03e8c43e2b7fa26609d01dcbc852ae6008120eeb0b15516b0b1bf3",
-   "size": 78354
+   "sha256": "578f0be48c2f9082a84d79386717c24b19d76d624780b1da4304c0db7f58b3ee",
+   "size": 80778
   },
   {
    "path": "web/game.html",
@@ -409,68 +414,68 @@
   },
   {
    "path": "web/i18n/ar.json",
-   "sha256": "e075c2e7a4ae38759726719b7639920c32ba0c0d69a941aaf2bb8188f4be0159",
-   "size": 140303
+   "sha256": "324c8742982b05623cd5c38f254e085c7448000a5ff7051201bfa47c7594ed35",
+   "size": 150637
   },
   {
    "path": "web/i18n/de.json",
-   "sha256": "05c7ff1373f810367ac57576ad7dcb9a152de8fae9bee833587d0ee7b6127ebe",
-   "size": 120539
+   "sha256": "5338afacd03e0859c29ba394b9f9cbdad13ec10db152b28dd4e960ed471934a2",
+   "size": 129240
   },
   {
    "path": "web/i18n/es.json",
-   "sha256": "de535afae61c37c5832943afd7601e2992914518776831ec357cbc7e265a82f6",
-   "size": 120354
+   "sha256": "07c185fa43cdf8e62e9469e43446244318bd5e5aaf418f5ec4ae7c8776317a10",
+   "size": 129128
   },
   {
    "path": "web/i18n/fr.json",
-   "sha256": "8179ae2999a0a5fead4ef6ca91e78e95f6821a8f5c33a732761254831153d030",
-   "size": 124708
+   "sha256": "7cafa0a390686c3cd0ae305f798614f466b35cb6dc92c0e2270b7f38f11c084f",
+   "size": 133889
   },
   {
    "path": "web/i18n/he.json",
-   "sha256": "af6e1ae80834d36303b90c9c63b0edf8f060595a3d822b6718904bd1eea6c43f",
-   "size": 134211
+   "sha256": "43b7d255364fa4a6af136180581d1632e2f4f5fe4d7ef7b2f91f0fbf4a96ec04",
+   "size": 144101
   },
   {
    "path": "web/i18n/it.json",
-   "sha256": "23abcc9528b39cafa050561fe0db320eea954256bdc31845399608d70bfaaf74",
-   "size": 119560
+   "sha256": "e16b83e9582c4b4908123a02a783b75f33269985a2f7bc36e5023efc788571f2",
+   "size": 128316
   },
   {
    "path": "web/i18n/ja.json",
-   "sha256": "18692c1645b5bace435db0d54acfb06566dd86507e35e2a5a8d9165309a8d348",
-   "size": 134081
+   "sha256": "a337b5338b06e0eb242443ed06be257cba429e173f3233d8e626cb862a537515",
+   "size": 144039
   },
   {
    "path": "web/i18n/ko.json",
-   "sha256": "7db5e284b6b4b21942a4fe683fa09b6d4da82d58869cfc1ffbcfbeee903a6470",
-   "size": 124108
+   "sha256": "43432759f06abfbc36a7dfdebf1ff3ae1b56bc73fa7880b14fd8a43a6ce1542f",
+   "size": 133021
   },
   {
    "path": "web/i18n/nl.json",
-   "sha256": "9d190b52ff863c9dbc2e3b22b18a4519b0a99463364e6fb73e619b9460380645",
-   "size": 118495
+   "sha256": "7f77b087f5c9ed61750df3c53cc3089c009aa5f19bf965991244133bd1f62c2e",
+   "size": 127080
   },
   {
    "path": "web/i18n/pl.json",
-   "sha256": "effd7bffafa05a23123cdf023fb585f91a46abc72a5ca7eda3a6495cb6566d1d",
-   "size": 119850
+   "sha256": "78596baced1551e2c9630e34352acb53e4ed909eb8ae27f18b0eb738176b1df2",
+   "size": 128600
   },
   {
    "path": "web/i18n/pt.json",
-   "sha256": "6dbbaf1b768a384268917eb8c49a16dee737c8214f951e776f47b60f797ea491",
-   "size": 119192
+   "sha256": "17d06ceb91f38c68aa37fd9fb4b7fd284fa1cb3f37fb9b482036a86b34775eae",
+   "size": 127906
   },
   {
    "path": "web/i18n/source.json",
-   "sha256": "101cb1856af33b9025633514db05173049214eaec96556a459bf48a3964a22db",
-   "size": 54244
+   "sha256": "5db8d98b372a9f9aad725970606b01b74150d26e205127ca46096e361a4f3d5d",
+   "size": 55612
   },
   {
    "path": "web/i18n/zh.json",
-   "sha256": "df6b7a52b20b2dcddbeb7a746b1ef296012e4f68185cf8e078fdfa349624ffb5",
-   "size": 112936
+   "sha256": "1603019d168c793979e8b0534f1a9887bd0c659aae7a0f847a808e74f08fae77",
+   "size": 121225
   },
   {
    "path": "web/icons/jarvis.ico",
@@ -484,8 +489,8 @@
   },
   {
    "path": "web/index.html",
-   "sha256": "8cb48278377b5e4c413734a125097ece02ed007286e9cdff1835af74f3e8b89d",
-   "size": 114904
+   "sha256": "91aba4c80931a6ee5a0392f2a3f0e30fd732ff8a27d0cdc9150f9c8e287fedff",
+   "size": 118355
   },
   {
    "path": "web/js/app.js",
@@ -551,6 +556,16 @@
    "path": "web/js/planner.js",
    "sha256": "90344aeb0b8a0f18a2c13ec9f2adef4f2f866e53d499da9596ea45c5e9db61d0",
    "size": 10184
+  },
+  {
+   "path": "web/js/privacy.js",
+   "sha256": "dfb4736c26e46eb1f420a2390b952ff52d80a54bff8572f072d20ba42df1f434",
+   "size": 6254
+  },
+  {
+   "path": "web/js/safe.js",
+   "sha256": "304f36c16aca8bb1d1115d85b07592e6cf012fef6c503c7f300c9807ab6392d2",
+   "size": 4212
   },
   {
    "path": "web/js/setup.js",

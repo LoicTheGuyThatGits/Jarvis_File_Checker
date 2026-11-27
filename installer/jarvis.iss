@@ -87,6 +87,16 @@ nl.Repair=Jarvis herstellen
 pl.Repair=Napraw Jarvisa
 ja.Repair=Jarvis を修復
 he.Repair=תיקון Jarvis
+en.SafeMode=Jarvis (safe mode)
+fr.SafeMode=Jarvis (mode sans échec)
+de.SafeMode=Jarvis (abgesicherter Modus)
+it.SafeMode=Jarvis (modalità provvisoria)
+es.SafeMode=Jarvis (modo seguro)
+pt.SafeMode=Jarvis (modo de segurança)
+nl.SafeMode=Jarvis (veilige modus)
+pl.SafeMode=Jarvis (tryb awaryjny)
+ja.SafeMode=Jarvis（セーフモード）
+he.SafeMode=Jarvis (מצב בטוח)
 en.Working=Installing Python and the packages Jarvis uses (a few minutes)...
 fr.Working=Installation de Python et des paquets utilisés par Jarvis (quelques minutes)...
 de.Working=Python und die Pakete für Jarvis werden installiert (einige Minuten)...
@@ -139,7 +149,8 @@ Name: "{app}\data"; Flags: uninsneveruninstall
 
 [Icons]
 Name: "{autoprograms}\Jarvis"; Filename: "{app}\start-jarvis-app.bat"; WorkingDir: "{app}"; IconFilename: "{app}\web\icons\jarvis.ico"; Flags: runminimized
-Name: "{autoprograms}\{cm:Repair}"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\tools\setup-jarvis.ps1"" -Root ""{app}"" -Voice"; WorkingDir: "{app}"; IconFilename: "{app}\web\icons\jarvis.ico"
+Name: "{autoprograms}\{cm:Repair}"; Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\tools\setup-jarvis.ps1"" -Root ""{app}"" -Voice -Files"; WorkingDir: "{app}"; IconFilename: "{app}\web\icons\jarvis.ico"
+Name: "{autoprograms}\{cm:SafeMode}"; Filename: "{app}\start-jarvis-app.bat"; Parameters: "safe"; WorkingDir: "{app}"; IconFilename: "{app}\web\icons\jarvis.ico"; Flags: runminimized
 Name: "{autodesktop}\Jarvis"; Filename: "{app}\start-jarvis-app.bat"; WorkingDir: "{app}"; IconFilename: "{app}\web\icons\jarvis.ico"; Flags: runminimized; Tasks: desktopicon
 
 [Registry]

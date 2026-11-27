@@ -10,6 +10,7 @@ Closing the window leaves Jarvis running; press the hotkey (Ctrl+Alt+J) or doubl
   python jarvis_tray.py --shortcut   put a Jarvis shortcut with its icon on the desktop
   python jarvis_tray.py --autostart on|off|status
 """
+import json
 import os
 import socket
 import subprocess
@@ -384,26 +385,35 @@ class App:
             self.quitting.wait(2)
         kernel32.SetThreadExecutionState(ES_CONTINUOUS)
 
-    # -- restart the server if it ever stops by itself
+    # -- restart the server if it ever stops by itself. Exit code 3 is Jarvis restarting on purpose (after an update, a delete,
+    #    or "Start normally"); anything else is a crash. Three crashes in ten minutes: start in safe mode (data/safe-mode.json),
+    #    with the optional parts off, so chat and Settings still work and say what went wrong. Five: stop and say so.
     def watchdog_once(self) -> bool:
         proc = self.server
         if not proc or proc.poll() is None or self.quitting.is_set():
             return False
+        self.server = None
+        if proc.returncode == 3:
+            log("the Jarvis server restarts")
+            self.start_server()
+            return True
         now = time.time()
         self.restarts = [t for t in self.restarts if now - t < 600]
         log(f"the Jarvis server stopped (exit code {proc.returncode})")
         if len(self.restarts) >= 5:
-            self.server = None
-            self.notify("The Jarvis server keeps stopping. See data/jarvis.log.")
+            self.notify("Jarvis keeps stopping, even in safe mode. Open \"Repair Jarvis\" from the Start menu, or see data/jarvis.log.")
             return False
         self.restarts.append(now)
-        self.server = None
+        if len(self.restarts) >= 3 and not safe_mode_on():
+            safe_mode_set(True, "crashes")
+            log("starting in safe mode after repeated stops")
+            self.notify("Jarvis kept stopping, so it started in safe mode. Open it to see what went wrong.")
         self.start_server()
         log("the Jarvis server was restarted")
         return True
 
     def watchdog_loop(self) -> None:
-        while not self.quitting.wait(15):
+        while not self.quitting.wait(2):
             try:
                 self.watchdog_once()
             except Exception as exc:
@@ -468,7 +478,31 @@ def log(text: str) -> None:
         pass
 
 
+SAFE_FILE = DATA / "safe-mode.json"
+
+
+def safe_mode_on() -> bool:
+    try:
+        return bool(json.loads(SAFE_FILE.read_text(encoding="utf-8")).get("on"))
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
+def safe_mode_set(on: bool, reason: str = "asked") -> None:
+    try:
+        if on:
+            DATA.mkdir(parents=True, exist_ok=True)
+            SAFE_FILE.write_text(json.dumps({"on": True, "reason": reason, "at": time.time()}), encoding="utf-8")
+        elif SAFE_FILE.exists():
+            SAFE_FILE.unlink()
+    except OSError as exc:
+        log(f"safe mode: {exc}")
+
+
 def main(argv: list[str]) -> int:
+    if "--safe" in argv or "safe" in argv:            # the Start menu's "Jarvis (safe mode)"
+        safe_mode_set(True, "asked")
+        argv = [a for a in argv if a not in ("--safe", "safe")]
     if "--autostart" in argv:
         i = argv.index("--autostart")
         mode = argv[i + 1] if i + 1 < len(argv) else "status"

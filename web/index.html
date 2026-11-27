@@ -156,6 +156,7 @@
       <button type="button" role="tab" id="tab-mail" class="settings-tab" data-pane="mail" aria-selected="false" aria-controls="pane-mail" tabindex="-1">Mail</button>
       <button type="button" role="tab" id="tab-keys" class="settings-tab" data-pane="keys" aria-selected="false" aria-controls="pane-keys" tabindex="-1">Shortcuts &amp; apps</button>
       <div class="settings-tabgroup" aria-hidden="true">Your data & PC</div>
+      <button type="button" role="tab" id="tab-privacy" class="settings-tab" data-pane="privacy" aria-selected="false" aria-controls="pane-privacy" tabindex="-1">Your data</button>
       <button type="button" role="tab" id="tab-chats" class="settings-tab" data-pane="chats" aria-selected="false" aria-controls="pane-chats" tabindex="-1">Chats</button>
       <button type="button" role="tab" id="tab-memory" class="settings-tab" data-pane="memory" aria-selected="false" aria-controls="pane-memory" tabindex="-1">Memory &amp; documents</button>
       <button type="button" role="tab" id="tab-notes" class="settings-tab" data-pane="notes" aria-selected="false" aria-controls="pane-notes" tabindex="-1">Notes</button>
@@ -262,6 +263,11 @@
         <h2 class="settings-heading">Setup</h2>
         <p class="settings-note">The short guide from the first start: language, how Jarvis addresses you, your town, the AI model and voice. Run it again any time; what you already set stays until you change it.</p>
         <button type="button" id="setup-again" class="settings-action primary">▶ Run the first-start setup again</button>
+      </div>
+      <div class="settings-section" id="safe-section">
+        <h2 class="settings-heading">Safe mode</h2>
+        <p class="settings-note">Starts Jarvis with only chat and Settings: voice, Telegram, connected tools, the phone link, shortcuts and background tasks stay off. Useful when something keeps going wrong; Jarvis also starts this way by itself after it stopped three times in ten minutes. The Start menu has “Jarvis (safe mode)” too.</p>
+        <button type="button" id="safe-restart" class="settings-action">Restart in safe mode</button>
       </div>
       <div class="settings-section">
         <h2 class="settings-heading">This Jarvis</h2>
@@ -807,6 +813,26 @@
         <p class="settings-note" id="spotify-status" role="status"></p>
       </div>
     </div>
+    <div class="settings-pane hidden" id="pane-privacy" role="tabpanel" aria-labelledby="tab-privacy">
+      <div class="pane-intro"><h2 class="pane-title">Your data</h2><p>What Jarvis keeps on this PC, what leaves it, and deleting it.</p></div>
+      <div class="settings-section">
+        <h2 class="settings-heading">What leaves this PC</h2>
+        <p class="settings-note">Jarvis has no account and no server of its own. These are the only ways something goes out, and whether each one is in use now.</p>
+        <ul id="privacy-outside" class="privacy-outside"></ul>
+      </div>
+      <div class="settings-section">
+        <h2 class="settings-heading">What Jarvis keeps</h2>
+        <p class="settings-note">All of it is on this PC, in the data folder, plus the chats this browser keeps. Deleting is permanent: make a backup first if you may want it back. Jarvis restarts after deleting, so nothing it had loaded is written back.</p>
+        <div id="privacy-groups" class="privacy-groups"></div>
+        <div class="inline-form privacy-tools"><button type="button" id="privacy-open">Open the data folder</button><button type="button" id="privacy-backup">Make a backup first</button></div>
+      </div>
+      <div class="settings-section privacy-danger">
+        <h2 class="settings-heading">Delete everything</h2>
+        <p class="settings-note">Removes everything above, signs Jarvis out of every connection and clears the chats in this browser. Jarvis then starts like new, with the setup guide. The program itself stays; uninstall it from Windows Settings > Apps.</p>
+        <button type="button" id="privacy-all" class="settings-action privacy-delete-all">Delete everything</button>
+      </div>
+      <p id="privacy-status" class="settings-note" role="status" aria-live="polite"></p>
+    </div>
     <div class="settings-pane hidden" id="pane-chats" role="tabpanel" aria-labelledby="tab-chats">
       <div class="pane-intro"><h2 class="pane-title">Chats</h2><p>Your saved conversations.</p></div>
       <div class="settings-section">
@@ -961,6 +987,17 @@
     </footer>
   </section>
 
+  <div id="safe-banner" class="update-banner safe-banner hidden" role="alert">
+    <div class="ub-main">
+      <span class="ub-dot" aria-hidden="true"></span>
+      <div class="ub-text"><div class="ub-title" id="sb-title">Safe mode</div><div class="sb-text" id="sb-text"></div></div>
+      <button type="button" id="sb-details" class="ub-btn">What went wrong</button>
+      <button type="button" id="sb-updates" class="ub-btn">Check for updates</button>
+      <button type="button" id="sb-normal" class="ub-btn primary">Start normally</button>
+      <button type="button" id="sb-ok" class="ub-btn hidden">OK</button>
+    </div>
+    <div class="sb-more hidden" id="sb-more"><pre class="sb-crash" id="sb-crash" data-no-i18n></pre><button type="button" id="sb-copy" class="ub-btn">Copy report</button></div>
+  </div>
   <div id="update-banner" class="update-banner hidden" role="status" aria-live="polite">
     <div class="ub-main">
       <span class="ub-dot" aria-hidden="true"></span>
@@ -1048,5 +1085,7 @@
   <script src="/js/call.js"></script>
   <script src="/js/setup.js"></script>
   <script src="/js/updates.js"></script>
+  <script src="/js/privacy.js"></script>
+  <script src="/js/safe.js"></script>
 </body>
 </html>

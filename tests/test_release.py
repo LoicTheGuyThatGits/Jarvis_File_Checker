@@ -92,7 +92,7 @@ assert iss.startswith(b"\xef\xbb\xbf"), "Inno Setup reads non-English text right
 iss = iss.decode("utf-8-sig")
 langs = re.findall(r'^Name: "(\w+)"; MessagesFile', iss, re.M)
 assert len(langs) == 10 and "en" in langs
-for key in ("Needs", "Autostart", "Voice", "Repair", "Working", "Failed", "KeepData"):
+for key in ("Needs", "Autostart", "Voice", "Repair", "SafeMode", "Working", "Failed", "KeepData"):
     have = re.findall(rf"^(\w+)\.{key}=", iss, re.M)
     assert sorted(have) == sorted(langs), (key, have)
 for src in re.findall(r'Source: "\.\.\\([^"*]+)"', iss):
